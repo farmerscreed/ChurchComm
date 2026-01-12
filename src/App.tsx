@@ -1,35 +1,66 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuthStore } from '@/stores/authStore';
+import { LoginPage } from '@/components/auth/LoginPage';
+import { AppLayout } from '@/components/layout/AppLayout';
+import Dashboard from '@/pages/Dashboard';
+import People from '@/pages/People';
+import Groups from '@/pages/Groups';
+import Communications from '@/pages/Communications';
+import Settings from '@/pages/Settings';
+import SystemTest from '@/pages/SystemTest';
+import { Toaster } from '@/components/ui/toaster';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const { fetchSession, user, loading } = useAuthStore();
+
+  useEffect(() => {
+    fetchSession();
+  }, [fetchSession]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <BrowserRouter>
+      <Routes>
+        {/* Public route - login */}
+        <Route
+          path="/login"
+          element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />}
+        />
+
+        {/* Protected routes */}
+        <Route
+          path="/"
+          element={user ? <AppLayout /> : <Navigate to="/login" replace />}
+        >
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="people" element={<People />} />
+          <Route path="groups" element={<Groups />} />
+          <Route path="communications" element={<Communications />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="system-test" element={<SystemTest />} />
+        </Route>
+
+        {/* Catch all - redirect to dashboard or login */}
+        <Route
+          path="*"
+          element={<Navigate to={user ? "/dashboard" : "/login"} replace />}
+        />
+      </Routes>
+      <Toaster />
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;

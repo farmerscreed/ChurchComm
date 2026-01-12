@@ -56,11 +56,11 @@ export function CSVUpload({ onUploadComplete }: CSVUploadProps) {
         preview: 5,
         complete: (result) => {
           // Normalize headers: trim, lowercase, replace spaces with underscores
-          const normalizedData = result.data.map(row => {
+          const normalizedData = result.data.map((row: any) => {
             const newRow: any = {};
             for (const key in row) {
               const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
-              newRow[normalizedKey] = (row as any)[key];
+              newRow[normalizedKey] = row[key];
             }
             return newRow;
           });
@@ -118,11 +118,11 @@ export function CSVUpload({ onUploadComplete }: CSVUploadProps) {
         setUploadProgress(30);
 
         // Normalize headers and validate rows
-        rows.forEach((row, index) => {
+        rows.forEach((row: any, index) => {
           const newRow: any = {};
           for (const key in row) {
             const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
-            newRow[normalizedKey] = (row as any)[key];
+            newRow[normalizedKey] = row[key];
           }
 
           const error = validateRow(newRow, index);
