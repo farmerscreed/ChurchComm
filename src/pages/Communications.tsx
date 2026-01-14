@@ -67,10 +67,24 @@ export default function Communications() {
     setLoading(true);
 
     try {
+      // Get current user and session for auth
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        throw new Error('You must be logged in to send SMS');
+      }
+
       const { data, error } = await supabase.functions.invoke('send-sms', {
         body: {
-          groupId: recipientType === 'group' ? selectedGroupId : null,
-          message: message
+          recipientType: recipientType === 'all' ? 'all' : 'group',
+          recipientId: recipientType === 'group' ? selectedGroupId : currentOrganization?.id,
+          message: message,
+          organizationId: currentOrganization?.id,
+          createdBy: user?.id
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 
@@ -78,7 +92,7 @@ export default function Communications() {
 
       toast({
         title: 'Success!',
-        description: `SMS sent to ${data.results?.length || 0} people`,
+        description: `SMS sent to ${data.sent || 0} people`,
       });
 
       // Reset form

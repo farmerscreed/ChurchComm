@@ -41,7 +41,7 @@ interface AuthState {
   organizations: Organization[];
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-  signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
+  signUp: (email: string, password: string, firstName: string, lastName: string, organizationName?: string) => Promise<void>;
   fetchSession: () => Promise<void>;
   fetchOrganizations: () => Promise<void>;
   setCurrentOrganization: (organizationId: string) => Promise<void>;
@@ -84,7 +84,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  signUp: async (email: string, password: string, firstName: string, lastName: string) => {
+  signUp: async (email: string, password: string, firstName: string, lastName: string, organizationName?: string) => {
     set({ loading: true, error: null });
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -94,6 +94,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           data: {
             first_name: firstName,
             last_name: lastName,
+            organization_name: organizationName,
           },
         },
       });
@@ -155,15 +156,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .from('organization_members')
         .select('organization_id')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (membershipError) {
         console.error('loadUserOrganization ERROR at Step 1:', membershipError);
         throw new Error(`Failed to find your organization membership: ${membershipError.message}`);
       }
       if (!membership) {
-        console.error('loadUserOrganization ERROR: No membership record found for user.');
-        throw new Error('Your user account is not associated with any organization.');
+        // User has no organization - this is OK for new users
+        console.log('No organization membership found. User needs to create or join an organization.');
+        set({ loading: false, organization: null, currentOrganization: null });
+        return;
       }
       console.log('Step 1 SUCCESS. Membership found. Org ID:', membership.organization_id);
 

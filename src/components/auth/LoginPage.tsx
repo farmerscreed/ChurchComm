@@ -30,7 +30,7 @@ export const LoginPage = () => {
     setSignupSuccess(false);
 
     if (isSignUp) {
-      await signUp(email, password, firstName, lastName);
+      await signUp(email, password, firstName, lastName, organizationName);
       if (!useAuthStore.getState().error) {
         setSignupSuccess(true);
       }

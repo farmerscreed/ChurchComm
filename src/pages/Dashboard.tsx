@@ -15,10 +15,6 @@ export default function Dashboard() {
     loading: true
   });
 
-  useEffect(() => {
-    loadStats();
-  }, [currentOrganization]);
-
   const loadStats = async () => {
     if (!currentOrganization) return;
 
@@ -52,6 +48,10 @@ export default function Dashboard() {
       setStats(prev => ({ ...prev, loading: false }));
     }
   };
+
+  useEffect(() => {
+    loadStats();
+  }, [currentOrganization]);
 
   if (stats.loading) {
     return (

@@ -16,8 +16,16 @@ serve(async (req) => {
       createdBy
     } = await req.json()
 
-    if (!recipientType || !recipientId || !message || !organizationId) {
+    if (!recipientType || !message || !organizationId) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      })
+    }
+
+    // recipientId is required for group and individual, but not for 'all'
+    if ((recipientType === 'group' || recipientType === 'individual') && !recipientId) {
+      return new Response(JSON.stringify({ error: 'recipientId is required for group or individual' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       })
@@ -40,7 +48,19 @@ serve(async (req) => {
 
     let recipients = []
 
-    if (recipientType === 'group') {
+    if (recipientType === 'all') {
+      // Get all people in the organization with phone numbers
+      const { data: allPeople, error: allError } = await supabaseAdmin
+        .from('people')
+        .select('id, first_name, last_name, phone_number')
+        .eq('organization_id', organizationId)
+        .not('phone_number', 'is', null)
+
+      if (allError) throw allError
+
+      recipients = allPeople?.filter(person => person.phone_number) || []
+
+    } else if (recipientType === 'group') {
       // Get all phone numbers from the group
       const { data: members, error: membersError } = await supabaseAdmin
         .from('group_members')

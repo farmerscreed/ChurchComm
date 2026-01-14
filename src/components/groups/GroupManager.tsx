@@ -62,12 +62,6 @@ export function GroupManager() {
   const [selectedPeople, setSelectedPeople] = useState<Person[]>([]);
   const [existingMembers, setExistingMembers] = useState<GroupMember[]>([]);
 
-  useEffect(() => {
-    if (currentOrganization?.id) {
-      fetchInitialData();
-    }
-  }, [currentOrganization]);
-
   const fetchInitialData = async () => {
     setIsLoading(true);
     await Promise.all([fetchGroups(), fetchPeople()]);
@@ -101,6 +95,12 @@ export function GroupManager() {
       setPeople(data.map(p => ({ id: p.id, full_name: `${p.first_name} ${p.last_name}` })));
     }
   };
+
+  useEffect(() => {
+    if (currentOrganization?.id) {
+      fetchInitialData();
+    }
+  }, [currentOrganization]);
 
   const openAddMembersDialog = async (group: Group) => {
     setAddMembersGroup(group);
