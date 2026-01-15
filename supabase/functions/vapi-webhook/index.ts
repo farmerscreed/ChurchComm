@@ -20,54 +20,90 @@ serve(async (req) => {
   }
 
   const body = await req.text()
-  console.log('Received webhook payload:', body.substring(0, 500))
+  console.log('Received webhook payload:', body.substring(0, 1000))
 
   try {
     const rawPayload = JSON.parse(body)
 
-    // VAPI sends different event types - handle them appropriately
-    const messageType = rawPayload.message?.type || rawPayload.type
+    // VAPI sends data in message wrapper
+    const message = rawPayload.message || rawPayload
+    const messageType = message.type || rawPayload.type
     console.log('Webhook message type:', messageType)
 
-    // Handle different VAPI webhook events
-    if (messageType === 'status-update' || messageType === 'end-of-call-report') {
-      // Process the call data
-    } else if (messageType === 'hang' || messageType === 'function-call') {
-      // These are real-time events during the call, just acknowledge
-      return new Response(JSON.stringify({ success: true }), {
+    // Only process end-of-call-report events (contains transcript and analysis)
+    if (messageType !== 'end-of-call-report') {
+      console.log('Skipping non-end-of-call-report event:', messageType)
+      return new Response(JSON.stringify({ success: true, message: `Skipped ${messageType}` }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       })
     }
 
-    // Extract call data - VAPI payload structure varies by event type
-    const callData = rawPayload.message || rawPayload
-    const call_id = callData.call?.id || callData.callId || rawPayload.id
-    const status = callData.call?.status || callData.status || 'unknown'
-    const transcript = callData.transcript || callData.call?.transcript || ''
-    const duration = callData.call?.duration || callData.duration || 0
+    // Extract call object - VAPI structure: message.call
+    const call = message.call || {}
+    const call_id = call.id || message.callId || rawPayload.id
+    const status = call.status || message.status || 'ended'
+    const endedReason = message.endedReason || call.endedReason || 'unknown'
 
-    // Extract analysis if present (from end-of-call-report)
-    const analysis = callData.analysis || callData.call?.analysis || {
-      summary: callData.summary || '',
-      crisis_detected: false,
-      needs_follow_up: false,
-      needs_pastoral_care: false,
-      priority: 'medium',
-      prayer_requests: [],
-      interests: [],
-      response_type: 'neutral'
+    // Duration is in seconds
+    const duration = call.duration || message.duration || 0
+
+    // Extract artifact (contains transcript and messages)
+    const artifact = message.artifact || {}
+    const transcript = artifact.transcript || message.transcript || ''
+    const messages = artifact.messages || []
+
+    // Format messages into readable transcript if raw transcript is empty
+    let formattedTranscript = transcript
+    if (!formattedTranscript && messages.length > 0) {
+      formattedTranscript = messages.map((m: any) =>
+        `${m.role === 'assistant' ? 'AI' : 'User'}: ${m.message || m.content || ''}`
+      ).join('\n')
     }
 
-    // Extract metadata - may be in assistantOverrides or call metadata
-    const metadata = callData.call?.assistantOverrides?.metadata ||
-                     callData.assistantOverrides?.metadata ||
-                     callData.metadata ||
-                     { organization_id: null, person_id: null }
+    // Extract analysis (contains summary and structuredData)
+    const analysis = message.analysis || call.analysis || {}
+    const summary = analysis.summary || ''
+    const structuredData = analysis.structuredData || {}
+    const successEvaluation = analysis.successEvaluation || ''
 
-    console.log('Extracted call data:', { call_id, status, duration, metadata })
+    // Extract our custom structured data fields
+    const crisis_detected = structuredData.crisis_detected || false
+    const crisis_reason = structuredData.crisis_reason || null
+    const needs_follow_up = structuredData.needs_follow_up || false
+    const needs_pastoral_care = structuredData.needs_pastoral_care || false
+    const response_type = structuredData.response_type || 'neutral'
+    const prayer_requests = structuredData.prayer_requests || []
+    const interests = structuredData.interests || []
+    const priority = structuredData.priority || 'medium'
 
-    // Skip if we don't have minimum required data
+    // Extract metadata from assistantOverrides
+    const assistantOverrides = call.assistantOverrides || message.assistantOverrides || {}
+    const metadata = assistantOverrides.metadata || {}
+    const organization_id = metadata.organization_id || null
+    const person_id = metadata.person_id || null
+
+    // Extract recording URL
+    const recording = artifact.recording || {}
+    const recordingUrl = recording.url || recording.stereoUrl || call.recordingUrl || null
+
+    // Extract phone number
+    const customer = call.customer || message.customer || {}
+    const phoneNumber = customer.number || call.phoneNumber || null
+
+    console.log('Extracted call data:', {
+      call_id,
+      status,
+      endedReason,
+      duration,
+      hasTranscript: !!formattedTranscript,
+      hasSummary: !!summary,
+      hasStructuredData: Object.keys(structuredData).length > 0,
+      organization_id,
+      person_id
+    })
+
+    // Skip if we don't have call_id
     if (!call_id) {
       console.log('No call_id found, skipping processing')
       return new Response(JSON.stringify({ success: true, message: 'No call_id, skipped' }), {
@@ -81,115 +117,166 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // 1. Store call log (only if we have organization_id and member_id)
+    // 1. Store or update call log
     let callLog = null
-    if (metadata.organization_id && metadata.person_id) {
-      const { data, error: callError } = await supabaseAdmin
+
+    if (organization_id && person_id) {
+      // Check if this call already exists (from initial creation in send-group-call)
+      const { data: existingLog } = await supabaseAdmin
         .from('vapi_call_logs')
-        .insert({
-          organization_id: metadata.organization_id,
-          member_id: metadata.person_id,
-          vapi_call_id: call_id,
-          call_status: status,
-          call_duration: duration,
-          full_transcript: transcript,
-          call_summary: analysis.summary || '',
-          crisis_indicators: analysis.crisis_detected || false,
-          crisis_details: analysis.crisis_reason || null,
-          follow_up_needed: analysis.needs_follow_up || false,
-          needs_pastoral_care: analysis.needs_pastoral_care || false,
-          escalation_priority: analysis.priority || 'medium',
-          prayer_requests: analysis.prayer_requests || [],
-          specific_interests: analysis.interests || [],
-          member_response_type: analysis.response_type || 'neutral',
-          raw_vapi_data: rawPayload
-        })
-        .select()
+        .select('id')
+        .eq('vapi_call_id', call_id)
         .single()
 
-      if (callError) {
-        console.error('Error storing call log:', callError)
+      if (existingLog) {
+        // Update existing record with full data
+        const { data, error: updateError } = await supabaseAdmin
+          .from('vapi_call_logs')
+          .update({
+            call_status: status,
+            call_duration: duration,
+            full_transcript: formattedTranscript,
+            call_summary: summary,
+            crisis_indicators: crisis_detected,
+            crisis_details: crisis_reason,
+            follow_up_needed: needs_follow_up,
+            needs_pastoral_care: needs_pastoral_care,
+            escalation_priority: priority,
+            prayer_requests: prayer_requests,
+            specific_interests: interests,
+            member_response_type: response_type,
+            raw_vapi_data: rawPayload,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingLog.id)
+          .select()
+          .single()
+
+        if (updateError) {
+          console.error('Error updating call log:', updateError)
+        } else {
+          callLog = data
+          console.log('Updated existing call log:', existingLog.id)
+        }
       } else {
-        callLog = data
+        // Insert new record
+        const { data, error: insertError } = await supabaseAdmin
+          .from('vapi_call_logs')
+          .insert({
+            organization_id: organization_id,
+            member_id: person_id,
+            vapi_call_id: call_id,
+            phone_number_used: phoneNumber,
+            call_status: status,
+            call_duration: duration,
+            full_transcript: formattedTranscript,
+            call_summary: summary,
+            crisis_indicators: crisis_detected,
+            crisis_details: crisis_reason,
+            follow_up_needed: needs_follow_up,
+            needs_pastoral_care: needs_pastoral_care,
+            escalation_priority: priority,
+            prayer_requests: prayer_requests,
+            specific_interests: interests,
+            member_response_type: response_type,
+            raw_vapi_data: rawPayload
+          })
+          .select()
+          .single()
+
+        if (insertError) {
+          console.error('Error inserting call log:', insertError)
+        } else {
+          callLog = data
+          console.log('Inserted new call log:', data.id)
+        }
       }
     } else {
-      console.log('Missing metadata, skipping vapi_call_logs insert')
+      console.log('Missing organization_id or person_id, skipping vapi_call_logs')
     }
 
-    // 2. Update corresponding call_attempt (if present) with final status and details
+    // 2. Update corresponding call_attempt with final status
     try {
-      const mappedStatus = (s: string) => {
+      const mappedStatus = (s: string, reason: string) => {
         const st = s?.toLowerCase()
-        if (!st) return null
-        if (st.includes('comp') || st === 'completed') return 'completed'
-        if (st.includes('fail') || st === 'failed' || st.includes('error')) return 'failed'
-        if (st.includes('no') && st.includes('answer')) return 'no_answer'
-        if (st.includes('busy')) return 'busy'
-        return null
+        const r = reason?.toLowerCase()
+        if (st === 'ended' && (r === 'assistant-ended-call' || r === 'customer-ended-call')) return 'completed'
+        if (st === 'ended' || st === 'completed') return 'completed'
+        if (r?.includes('no-answer') || r?.includes('unanswered')) return 'no_answer'
+        if (r?.includes('busy')) return 'busy'
+        if (r?.includes('fail') || r?.includes('error')) return 'failed'
+        return 'completed'
       }
 
-      const updateValues: any = {}
-      const mapped = mappedStatus(status)
-      if (mapped) updateValues.status = mapped
-      if (typeof duration === 'number') {
-        updateValues.duration = duration
-      }
-      if (transcript) {
-        updateValues.response_notes = transcript
-      }
-      if (analysis && analysis.response_type) {
-        updateValues.response_category = analysis.response_type
-      }
-      if (status === 'completed') {
-        updateValues.completed_at = new Date().toISOString()
+      const updateValues: any = {
+        status: mappedStatus(status, endedReason),
+        duration: duration,
+        completed_at: new Date().toISOString()
       }
 
-      // If webhook provides recording_url or recordingLocation, set recording_url
-      // (Vapi naming may vary — attempt to read common keys)
-      const recordingUrl = rawPayload?.recording_url || rawPayload?.recordingLocation || rawPayload?.recordingUrl ||
-                          callData?.call?.recordingUrl || callData?.recordingUrl
-      if (recordingUrl) updateValues.recording_url = recordingUrl
+      if (formattedTranscript) {
+        updateValues.response_notes = formattedTranscript.substring(0, 5000) // Limit size
+      }
+      if (response_type && response_type !== 'neutral') {
+        updateValues.response_category = response_type
+      }
+      if (recordingUrl) {
+        updateValues.recording_url = recordingUrl
+      }
 
-      if (Object.keys(updateValues).length > 0) {
-        await supabaseAdmin
-          .from('call_attempts')
-          .update(updateValues)
-          .eq('call_sid', call_id)
+      const { error: attemptError } = await supabaseAdmin
+        .from('call_attempts')
+        .update(updateValues)
+        .eq('call_sid', call_id)
+
+      if (attemptError) {
+        console.error('Error updating call_attempt:', attemptError)
+      } else {
+        console.log('Updated call_attempt for call_sid:', call_id)
       }
     } catch (e) {
-      console.error('Failed updating call_attempts from webhook', e)
+      console.error('Failed updating call_attempts from webhook:', e)
     }
 
-    // 3. Create escalation alert if needed
-    if ((analysis.crisis_detected || analysis.needs_pastoral_care) && metadata.organization_id && metadata.person_id) {
-      await supabaseAdmin.from('escalation_alerts').insert({
-        organization_id: metadata.organization_id,
-        member_id: metadata.person_id,
-        vapi_call_log_id: callLog?.id || null,
-        priority: analysis.priority || 'medium',
-        alert_type: analysis.crisis_detected ? 'crisis_detected' : 'pastoral_care_needed',
-        alert_message: analysis.crisis_details || 'Member needs pastoral follow-up',
-        status: 'open'
-      })
+    // 3. Create escalation alert if crisis detected or pastoral care needed
+    if ((crisis_detected || needs_pastoral_care) && organization_id && person_id && callLog) {
+      const { error: escalationError } = await supabaseAdmin
+        .from('escalation_alerts')
+        .insert({
+          organization_id: organization_id,
+          member_id: person_id,
+          vapi_call_log_id: callLog.id,
+          status: 'open',
+          priority: priority,
+          alert_type: crisis_detected ? 'crisis_detected' : 'pastoral_care_needed',
+          alert_message: crisis_reason || (crisis_detected
+            ? 'Crisis indicators detected during call - immediate attention required'
+            : 'Member expressed need for pastoral care or follow-up')
+        })
 
-      // TODO V1: Create send-escalation-notification function
-      // Commented out for V1 - can implement later
-      // await supabaseAdmin.functions.invoke('send-escalation-notification', {
-      //   body: {
-      //     organization_id: metadata.organization_id,
-      //     person_id: metadata.person_id,
-      //     escalation_type: analysis.crisis_detected ? 'crisis' : 'pastoral_care',
-      //     priority: analysis.priority
-      //   }
-      // })
+      if (escalationError) {
+        console.error('Error creating escalation alert:', escalationError)
+      } else {
+        console.log('Created escalation alert for call:', call_id)
+      }
     }
 
-    return new Response(JSON.stringify({ success: true }), {
+    console.log('Webhook processing completed successfully for call:', call_id)
+
+    return new Response(JSON.stringify({
+      success: true,
+      call_id,
+      status,
+      duration,
+      has_summary: !!summary,
+      has_transcript: !!formattedTranscript
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
 
   } catch (error) {
+    console.error('Webhook error:', error)
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,

@@ -50,28 +50,30 @@ import { cn } from '@/lib/utils';
 
 interface CallLog {
   id: string;
-  vapi_call_id: string;
-  call_status: string;
-  call_duration: number;
-  call_summary: string;
-  full_transcript: string;
+  vapi_call_id: string | null;
+  call_status: string | null;
+  call_duration: number | null;
+  call_summary: string | null;
+  full_transcript: string | null;
   member_response_type: 'positive' | 'neutral' | 'negative' | 'unclear' | 'no_response' | null;
-  crisis_indicators: boolean;
+  crisis_indicators: boolean | null;
   crisis_details: string | null;
-  follow_up_needed: boolean;
-  needs_pastoral_care: boolean;
-  prayer_requests: string[];
-  specific_interests: string[];
+  follow_up_needed: boolean | null;
+  needs_pastoral_care: boolean | null;
+  prayer_requests: string[] | null;
+  specific_interests: string[] | null;
   escalation_priority: 'low' | 'medium' | 'high' | 'urgent' | null;
   created_at: string;
+  updated_at: string | null;
   member_id: string;
+  phone_number_used: string | null;
   people?: {
     id: string;
-    first_name: string;
-    last_name: string;
-    phone_number: string;
-    email: string;
-  };
+    first_name: string | null;
+    last_name: string | null;
+    phone_number: string | null;
+    email: string | null;
+  } | null;
 }
 
 interface CallStats {
@@ -118,11 +120,12 @@ export default function CallHistory() {
 
     setLoading(true);
     try {
+      // Query vapi_call_logs with people join via member_id foreign key
       const { data, error } = await supabase
         .from('vapi_call_logs')
         .select(`
           *,
-          people (
+          people:member_id (
             id,
             first_name,
             last_name,
@@ -133,19 +136,23 @@ export default function CallHistory() {
         .eq('organization_id', currentOrganization.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching call logs:', error);
+        throw error;
+      }
 
-      const logs = data || [];
+      console.log('Loaded call logs:', data?.length || 0);
+      const logs = (data || []) as CallLog[];
       setCallLogs(logs);
 
-      // Calculate stats
+      // Calculate stats with null safety
       const completed = logs.filter(l => l.call_status === 'completed' || l.call_status === 'ended').length;
-      const totalDuration = logs.reduce((sum, l) => sum + (l.call_duration || 0), 0);
+      const totalDuration = logs.reduce((sum, l) => sum + (l.call_duration ?? 0), 0);
       const positive = logs.filter(l => l.member_response_type === 'positive').length;
-      const neutral = logs.filter(l => l.member_response_type === 'neutral').length;
+      const neutral = logs.filter(l => l.member_response_type === 'neutral' || !l.member_response_type).length;
       const negative = logs.filter(l => l.member_response_type === 'negative').length;
-      const escalations = logs.filter(l => l.crisis_indicators || l.needs_pastoral_care).length;
-      const followUps = logs.filter(l => l.follow_up_needed).length;
+      const escalations = logs.filter(l => l.crisis_indicators === true || l.needs_pastoral_care === true).length;
+      const followUps = logs.filter(l => l.follow_up_needed === true).length;
 
       setStats({
         totalCalls: logs.length,
@@ -170,17 +177,22 @@ export default function CallHistory() {
   };
 
   const filteredCalls = callLogs.filter(call => {
+    const personName = `${call.people?.first_name || ''} ${call.people?.last_name || ''}`.toLowerCase();
+    const phoneNum = call.phone_number_used || call.people?.phone_number || '';
+
     const matchesSearch = searchQuery === '' ||
-      call.people?.first_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      call.people?.last_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      personName.includes(searchQuery.toLowerCase()) ||
+      phoneNum.includes(searchQuery) ||
       call.call_summary?.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesStatus = statusFilter === 'all' || call.call_status === statusFilter;
-    const matchesSentiment = sentimentFilter === 'all' || call.member_response_type === sentimentFilter;
+    const matchesSentiment = sentimentFilter === 'all' ||
+      call.member_response_type === sentimentFilter ||
+      (sentimentFilter === 'neutral' && !call.member_response_type);
 
     const matchesTab = activeTab === 'all' ||
-      (activeTab === 'escalations' && (call.crisis_indicators || call.needs_pastoral_care)) ||
-      (activeTab === 'follow-ups' && call.follow_up_needed) ||
+      (activeTab === 'escalations' && (call.crisis_indicators === true || call.needs_pastoral_care === true)) ||
+      (activeTab === 'follow-ups' && call.follow_up_needed === true) ||
       (activeTab === 'completed' && (call.call_status === 'completed' || call.call_status === 'ended'));
 
     return matchesSearch && matchesStatus && matchesSentiment && matchesTab;
@@ -475,16 +487,18 @@ export default function CallHistory() {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between gap-2">
                                   <h4 className="font-medium truncate">
-                                    {call.people?.first_name} {call.people?.last_name}
+                                    {call.people?.first_name || call.people?.last_name
+                                      ? `${call.people?.first_name || ''} ${call.people?.last_name || ''}`.trim()
+                                      : call.phone_number_used || 'Unknown Caller'}
                                   </h4>
                                   <div className="flex items-center gap-2 shrink-0">
-                                    {getStatusIcon(call.call_status)}
+                                    {getStatusIcon(call.call_status || 'unknown')}
                                     {getSentimentIcon(call.member_response_type)}
                                   </div>
                                 </div>
 
                                 <p className="text-sm text-muted-foreground truncate mt-0.5">
-                                  {call.people?.phone_number}
+                                  {call.phone_number_used || call.people?.phone_number || 'No phone number'}
                                 </p>
 
                                 {call.call_summary && (
@@ -502,29 +516,29 @@ export default function CallHistory() {
                                     <Clock className="h-3 w-3" />
                                     {format(new Date(call.created_at), 'h:mm a')}
                                   </span>
-                                  {call.call_duration > 0 && (
+                                  {(call.call_duration ?? 0) > 0 && (
                                     <span className="flex items-center gap-1">
                                       <Timer className="h-3 w-3" />
-                                      {formatDuration(call.call_duration)}
+                                      {formatDuration(call.call_duration ?? 0)}
                                     </span>
                                   )}
                                 </div>
 
                                 {/* Tags */}
                                 <div className="flex flex-wrap gap-2 mt-2">
-                                  {call.crisis_indicators && (
+                                  {call.crisis_indicators === true && (
                                     <Badge variant="destructive" className="text-xs">
                                       <AlertTriangle className="h-3 w-3 mr-1" />
                                       Crisis
                                     </Badge>
                                   )}
-                                  {call.needs_pastoral_care && (
+                                  {call.needs_pastoral_care === true && (
                                     <Badge className="bg-pink-500/10 text-pink-600 border-pink-500/20 text-xs">
                                       <Heart className="h-3 w-3 mr-1" />
                                       Pastoral Care
                                     </Badge>
                                   )}
-                                  {call.follow_up_needed && (
+                                  {call.follow_up_needed === true && (
                                     <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-xs">
                                       <PhoneCall className="h-3 w-3 mr-1" />
                                       Follow-up
@@ -713,16 +727,18 @@ export default function CallHistory() {
             <DialogTitle className="flex items-center gap-3">
               <Avatar className="h-10 w-10">
                 <AvatarFallback>
-                  {getInitials(selectedCall?.people?.first_name, selectedCall?.people?.last_name)}
+                  {getInitials(selectedCall?.people?.first_name ?? undefined, selectedCall?.people?.last_name ?? undefined)}
                 </AvatarFallback>
               </Avatar>
               <div>
                 <div className="flex items-center gap-2">
-                  {selectedCall?.people?.first_name} {selectedCall?.people?.last_name}
+                  {selectedCall?.people?.first_name || selectedCall?.people?.last_name
+                    ? `${selectedCall?.people?.first_name || ''} ${selectedCall?.people?.last_name || ''}`.trim()
+                    : selectedCall?.phone_number_used || 'Unknown Caller'}
                   {getSentimentBadge(selectedCall?.member_response_type || null)}
                 </div>
                 <p className="text-sm font-normal text-muted-foreground">
-                  {selectedCall?.people?.phone_number}
+                  {selectedCall?.phone_number_used || selectedCall?.people?.phone_number || 'No phone number'}
                 </p>
               </div>
             </DialogTitle>
