@@ -12,7 +12,9 @@ import {
   ChevronLeft,
   ChevronDown,
   LogOut,
-  UsersRound
+  UsersRound,
+  PhoneCall,
+  History
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
@@ -36,7 +38,7 @@ interface NavigationItem {
 export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const location = useLocation();
   const { signOut, currentOrganization } = useAuthStore();
-  const [expandedItems, setExpandedItems] = useState<string[]>(['people']);
+  const [expandedItems, setExpandedItems] = useState<string[]>(['people', 'communications']);
 
   const navigation: NavigationItem[] = [
     {
@@ -54,8 +56,11 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     },
     {
       name: "Communications",
-      href: "/communications",
-      icon: MessageSquare
+      icon: MessageSquare,
+      children: [
+        { name: "Send Messages", href: "/communications", icon: MessageSquare },
+        { name: "Call History", href: "/call-history", icon: PhoneCall }
+      ]
     }
   ];
 

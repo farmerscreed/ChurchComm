@@ -7,6 +7,7 @@ import Dashboard from '@/pages/Dashboard';
 import People from '@/pages/People';
 import Groups from '@/pages/Groups';
 import Communications from '@/pages/Communications';
+import CallHistory from '@/pages/CallHistory';
 import Settings from '@/pages/Settings';
 import SystemTest from '@/pages/SystemTest';
 import { Toaster } from '@/components/ui/toaster';
@@ -48,6 +49,7 @@ function App() {
           <Route path="people" element={<People />} />
           <Route path="groups" element={<Groups />} />
           <Route path="communications" element={<Communications />} />
+          <Route path="call-history" element={<CallHistory />} />
           <Route path="settings" element={<Settings />} />
           <Route path="system-test" element={<SystemTest />} />
         </Route>

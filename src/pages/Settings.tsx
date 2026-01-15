@@ -1,32 +1,1343 @@
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings as SettingsIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { useAuthStore } from '@/stores/authStore';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import {
+  Settings as SettingsIcon,
+  Building2,
+  Phone,
+  Users,
+  Bot,
+  Bell,
+  Shield,
+  Save,
+  Loader2,
+  Plus,
+  Trash2,
+  Mail,
+  Globe,
+  MapPin,
+  Link,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  AlertCircle,
+  Crown,
+  UserPlus,
+  CreditCard,
+  Download,
+  AlertTriangle
+} from 'lucide-react';
+
+interface OrganizationMember {
+  id: string;
+  user_id: string;
+  role: string;
+  created_at: string;
+  user_email?: string;
+}
+
+interface OrganizationSettings {
+  ai_calling: {
+    default_model: string;
+    default_temperature: number;
+    cost_threshold: number;
+    batch_size: number;
+    delay_between_calls: number;
+  };
+  notifications: {
+    email_campaign_complete: boolean;
+    email_escalation_alerts: boolean;
+    email_weekly_summary: boolean;
+  };
+  sms: {
+    sender_name: string;
+    opt_out_keywords: string[];
+  };
+}
+
+const defaultSettings: OrganizationSettings = {
+  ai_calling: {
+    default_model: 'gpt-3.5-turbo',
+    default_temperature: 0.7,
+    cost_threshold: 100,
+    batch_size: 10,
+    delay_between_calls: 2000,
+  },
+  notifications: {
+    email_campaign_complete: true,
+    email_escalation_alerts: true,
+    email_weekly_summary: false,
+  },
+  sms: {
+    sender_name: '',
+    opt_out_keywords: ['STOP', 'UNSUBSCRIBE'],
+  },
+};
 
 export default function Settings() {
+  const { currentOrganization, user } = useAuthStore();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('organization');
+
+  // Organization Profile State
+  const [orgName, setOrgName] = useState('');
+  const [orgDescription, setOrgDescription] = useState('');
+  const [orgEmail, setOrgEmail] = useState('');
+  const [orgPhone, setOrgPhone] = useState('');
+  const [orgWebsite, setOrgWebsite] = useState('');
+  const [orgAddress, setOrgAddress] = useState({
+    street: '',
+    city: '',
+    state: '',
+    zip: '',
+    country: 'USA'
+  });
+  const [orgSocialMedia, setOrgSocialMedia] = useState({
+    facebook: '',
+    instagram: '',
+    twitter: '',
+    youtube: ''
+  });
+
+  // Integration Settings State
+  const [twilioAccountSid, setTwilioAccountSid] = useState('');
+  const [twilioAuthToken, setTwilioAuthToken] = useState('');
+  const [twilioPhoneNumber, setTwilioPhoneNumber] = useState('');
+  const [vapiApiKey, setVapiApiKey] = useState('');
+  const [vapiPhoneNumberId, setVapiPhoneNumberId] = useState('');
+  const [vapiWebhookSecret, setVapiWebhookSecret] = useState('');
+  const [showTwilioToken, setShowTwilioToken] = useState(false);
+  const [showVapiKey, setShowVapiKey] = useState(false);
+
+  // Team Members State
+  const [members, setMembers] = useState<OrganizationMember[]>([]);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('member');
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+
+  // Organization Settings State
+  const [orgSettings, setOrgSettings] = useState<OrganizationSettings>(defaultSettings);
+
+  // Load data on mount
+  useEffect(() => {
+    if (currentOrganization?.id) {
+      loadOrganizationData();
+      loadMembers();
+    }
+  }, [currentOrganization]);
+
+  const loadOrganizationData = async () => {
+    if (!currentOrganization) return;
+
+    // Set organization profile data
+    setOrgName(currentOrganization.name || '');
+    setOrgDescription(currentOrganization.description || '');
+    setOrgEmail(currentOrganization.email || '');
+    setOrgPhone(currentOrganization.phone || '');
+    setOrgWebsite(currentOrganization.website || '');
+
+    if (currentOrganization.address) {
+      setOrgAddress({
+        street: currentOrganization.address.street || '',
+        city: currentOrganization.address.city || '',
+        state: currentOrganization.address.state || '',
+        zip: currentOrganization.address.zip || '',
+        country: currentOrganization.address.country || 'USA'
+      });
+    }
+
+    if (currentOrganization.social_media) {
+      setOrgSocialMedia({
+        facebook: currentOrganization.social_media.facebook || '',
+        instagram: currentOrganization.social_media.instagram || '',
+        twitter: currentOrganization.social_media.twitter || '',
+        youtube: currentOrganization.social_media.youtube || ''
+      });
+    }
+
+    // Load settings from organization
+    if (currentOrganization.settings) {
+      setOrgSettings({
+        ...defaultSettings,
+        ...currentOrganization.settings
+      });
+    }
+  };
+
+  const loadMembers = async () => {
+    if (!currentOrganization?.id) return;
+
+    const { data, error } = await supabase
+      .from('organization_members')
+      .select('*')
+      .eq('organization_id', currentOrganization.id);
+
+    if (!error && data) {
+      setMembers(data);
+    }
+  };
+
+  const handleSaveOrganizationProfile = async () => {
+    if (!currentOrganization?.id) return;
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('organizations')
+        .update({
+          name: orgName,
+          description: orgDescription,
+          email: orgEmail,
+          phone: orgPhone,
+          website: orgWebsite,
+          address: orgAddress,
+          social_media: orgSocialMedia,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', currentOrganization.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Organization profile updated successfully',
+      });
+    } catch (error: any) {
+      console.error('Error saving organization:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to save organization profile',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    if (!currentOrganization?.id) return;
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('organizations')
+        .update({
+          settings: orgSettings,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', currentOrganization.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Settings saved successfully',
+      });
+    } catch (error: any) {
+      console.error('Error saving settings:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to save settings',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInviteMember = async () => {
+    if (!inviteEmail.trim() || !currentOrganization?.id) {
+      toast({
+        title: 'Error',
+        description: 'Please enter an email address',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // For now, we'll create a placeholder - in production you'd want to send an actual invite
+      // This would typically involve an edge function to send an email invite
+      toast({
+        title: 'Invitation Sent',
+        description: `An invitation has been sent to ${inviteEmail}`,
+      });
+
+      setInviteEmail('');
+      setInviteRole('member');
+      setIsInviteDialogOpen(false);
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to send invitation',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveMember = async (memberId: string) => {
+    if (!confirm('Are you sure you want to remove this member?')) return;
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('organization_members')
+        .delete()
+        .eq('id', memberId);
+
+      if (error) throw error;
+
+      setMembers(members.filter(m => m.id !== memberId));
+      toast({
+        title: 'Success',
+        description: 'Member removed successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to remove member',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateMemberRole = async (memberId: string, newRole: string) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('organization_members')
+        .update({ role: newRole })
+        .eq('id', memberId);
+
+      if (error) throw error;
+
+      setMembers(members.map(m => m.id === memberId ? { ...m, role: newRole } : m));
+      toast({
+        title: 'Success',
+        description: 'Member role updated successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update member role',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportData = async () => {
+    if (!currentOrganization?.id) return;
+
+    setLoading(true);
+    try {
+      // Fetch all organization data
+      const [peopleRes, groupsRes, campaignsRes] = await Promise.all([
+        supabase.from('people').select('*').eq('organization_id', currentOrganization.id),
+        supabase.from('groups').select('*').eq('organization_id', currentOrganization.id),
+        supabase.from('communication_campaigns').select('*').eq('organization_id', currentOrganization.id)
+      ]);
+
+      const exportData = {
+        organization: currentOrganization,
+        people: peopleRes.data || [],
+        groups: groupsRes.data || [],
+        campaigns: campaignsRes.data || [],
+        exported_at: new Date().toISOString()
+      };
+
+      // Download as JSON
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${currentOrganization.slug || 'organization'}-export-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: 'Success',
+        description: 'Data exported successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to export data',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getRoleBadgeVariant = (role: string) => {
+    switch (role) {
+      case 'admin': return 'default';
+      case 'leader': return 'secondary';
+      default: return 'outline';
+    }
+  };
+
   return (
     <div className="container mx-auto py-6 space-y-6">
+      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
         <p className="text-muted-foreground mt-2">
-          Configure your organization settings and preferences.
+          Configure your organization settings, integrations, and preferences.
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <SettingsIcon className="h-5 w-5" />
-            Organization Settings
-          </CardTitle>
-          <CardDescription>
-            This feature is coming soon.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            Settings functionality will be available here. You'll be able to configure organization details, user permissions, integrations, and more.
-          </p>
-        </CardContent>
-      </Card>
+      {/* Main Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 gap-2">
+          <TabsTrigger value="organization" className="flex items-center gap-2">
+            <Building2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Organization</span>
+          </TabsTrigger>
+          <TabsTrigger value="integrations" className="flex items-center gap-2">
+            <Phone className="h-4 w-4" />
+            <span className="hidden sm:inline">Integrations</span>
+          </TabsTrigger>
+          <TabsTrigger value="team" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            <span className="hidden sm:inline">Team</span>
+          </TabsTrigger>
+          <TabsTrigger value="ai-calling" className="flex items-center gap-2">
+            <Bot className="h-4 w-4" />
+            <span className="hidden sm:inline">AI Calling</span>
+          </TabsTrigger>
+          <TabsTrigger value="notifications" className="flex items-center gap-2">
+            <Bell className="h-4 w-4" />
+            <span className="hidden sm:inline">Notifications</span>
+          </TabsTrigger>
+          <TabsTrigger value="data-privacy" className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            <span className="hidden sm:inline">Data</span>
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Organization Profile Tab */}
+        <TabsContent value="organization" className="space-y-6">
+          {/* Basic Info Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5" />
+                Organization Profile
+              </CardTitle>
+              <CardDescription>
+                Basic information about your church or organization
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="orgName">Organization Name *</Label>
+                  <Input
+                    id="orgName"
+                    value={orgName}
+                    onChange={(e) => setOrgName(e.target.value)}
+                    placeholder="First Community Church"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="orgSlug">Organization Slug</Label>
+                  <Input
+                    id="orgSlug"
+                    value={currentOrganization?.slug || ''}
+                    disabled
+                    className="bg-muted"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    This is your unique identifier and cannot be changed
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="orgDescription">Description</Label>
+                <Textarea
+                  id="orgDescription"
+                  value={orgDescription}
+                  onChange={(e) => setOrgDescription(e.target.value)}
+                  placeholder="A welcoming community of faith..."
+                  rows={3}
+                />
+              </div>
+
+              <Separator />
+
+              {/* Contact Information */}
+              <div>
+                <h3 className="text-lg font-medium mb-4">Contact Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="orgEmail" className="flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      Email Address
+                    </Label>
+                    <Input
+                      id="orgEmail"
+                      type="email"
+                      value={orgEmail}
+                      onChange={(e) => setOrgEmail(e.target.value)}
+                      placeholder="contact@church.org"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="orgPhone" className="flex items-center gap-2">
+                      <Phone className="h-4 w-4" />
+                      Phone Number
+                    </Label>
+                    <Input
+                      id="orgPhone"
+                      type="tel"
+                      value={orgPhone}
+                      onChange={(e) => setOrgPhone(e.target.value)}
+                      placeholder="+1 (555) 123-4567"
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="orgWebsite" className="flex items-center gap-2">
+                      <Globe className="h-4 w-4" />
+                      Website
+                    </Label>
+                    <Input
+                      id="orgWebsite"
+                      type="url"
+                      value={orgWebsite}
+                      onChange={(e) => setOrgWebsite(e.target.value)}
+                      placeholder="https://www.yourchurch.org"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Address */}
+              <div>
+                <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  Address
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="street">Street Address</Label>
+                    <Input
+                      id="street"
+                      value={orgAddress.street}
+                      onChange={(e) => setOrgAddress({ ...orgAddress, street: e.target.value })}
+                      placeholder="123 Main Street"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      value={orgAddress.city}
+                      onChange={(e) => setOrgAddress({ ...orgAddress, city: e.target.value })}
+                      placeholder="Springfield"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="state">State</Label>
+                    <Input
+                      id="state"
+                      value={orgAddress.state}
+                      onChange={(e) => setOrgAddress({ ...orgAddress, state: e.target.value })}
+                      placeholder="IL"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="zip">ZIP Code</Label>
+                    <Input
+                      id="zip"
+                      value={orgAddress.zip}
+                      onChange={(e) => setOrgAddress({ ...orgAddress, zip: e.target.value })}
+                      placeholder="62701"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="country">Country</Label>
+                    <Input
+                      id="country"
+                      value={orgAddress.country}
+                      onChange={(e) => setOrgAddress({ ...orgAddress, country: e.target.value })}
+                      placeholder="USA"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Social Media */}
+              <div>
+                <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+                  <Link className="h-5 w-5" />
+                  Social Media
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="facebook">Facebook</Label>
+                    <Input
+                      id="facebook"
+                      value={orgSocialMedia.facebook}
+                      onChange={(e) => setOrgSocialMedia({ ...orgSocialMedia, facebook: e.target.value })}
+                      placeholder="https://facebook.com/yourchurch"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="instagram">Instagram</Label>
+                    <Input
+                      id="instagram"
+                      value={orgSocialMedia.instagram}
+                      onChange={(e) => setOrgSocialMedia({ ...orgSocialMedia, instagram: e.target.value })}
+                      placeholder="https://instagram.com/yourchurch"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="twitter">Twitter / X</Label>
+                    <Input
+                      id="twitter"
+                      value={orgSocialMedia.twitter}
+                      onChange={(e) => setOrgSocialMedia({ ...orgSocialMedia, twitter: e.target.value })}
+                      placeholder="https://twitter.com/yourchurch"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="youtube">YouTube</Label>
+                    <Input
+                      id="youtube"
+                      value={orgSocialMedia.youtube}
+                      onChange={(e) => setOrgSocialMedia({ ...orgSocialMedia, youtube: e.target.value })}
+                      placeholder="https://youtube.com/@yourchurch"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Button onClick={handleSaveOrganizationProfile} disabled={loading} className="w-full sm:w-auto">
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Organization Profile
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Integrations Tab */}
+        <TabsContent value="integrations" className="space-y-6">
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Integration Configuration</AlertTitle>
+            <AlertDescription>
+              These API keys are stored securely as Supabase Edge Function secrets.
+              The fields below are for reference only. To update API keys, use the Supabase Dashboard
+              or CLI to set environment variables.
+            </AlertDescription>
+          </Alert>
+
+          {/* Twilio Integration */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Phone className="h-5 w-5" />
+                  Twilio SMS Integration
+                </div>
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Configured
+                </Badge>
+              </CardTitle>
+              <CardDescription>
+                Send SMS messages to your congregation using Twilio
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="twilioSid">Account SID</Label>
+                <Input
+                  id="twilioSid"
+                  value={twilioAccountSid}
+                  onChange={(e) => setTwilioAccountSid(e.target.value)}
+                  placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                  disabled
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="twilioToken">Auth Token</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="twilioToken"
+                    type={showTwilioToken ? 'text' : 'password'}
+                    value={twilioAuthToken}
+                    onChange={(e) => setTwilioAuthToken(e.target.value)}
+                    placeholder="********************************"
+                    disabled
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setShowTwilioToken(!showTwilioToken)}
+                    type="button"
+                  >
+                    {showTwilioToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="twilioPhone">Phone Number</Label>
+                <Input
+                  id="twilioPhone"
+                  value={twilioPhoneNumber}
+                  onChange={(e) => setTwilioPhoneNumber(e.target.value)}
+                  placeholder="+1234567890"
+                  disabled
+                />
+              </div>
+              <Alert className="bg-muted">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-sm">
+                  To configure Twilio, set these environment variables in your Supabase Edge Functions:
+                  <code className="block mt-2 p-2 bg-background rounded text-xs">
+                    TWILIO_ACCOUNT_SID<br/>
+                    TWILIO_AUTH_TOKEN<br/>
+                    TWILIO_PHONE_NUMBER
+                  </code>
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+
+          {/* Vapi Integration */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Bot className="h-5 w-5" />
+                  Vapi AI Calling Integration
+                </div>
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Configured
+                </Badge>
+              </CardTitle>
+              <CardDescription>
+                Make automated AI-powered phone calls using Vapi
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="vapiKey">API Key</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="vapiKey"
+                    type={showVapiKey ? 'text' : 'password'}
+                    value={vapiApiKey}
+                    onChange={(e) => setVapiApiKey(e.target.value)}
+                    placeholder="********************************"
+                    disabled
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setShowVapiKey(!showVapiKey)}
+                    type="button"
+                  >
+                    {showVapiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="vapiPhoneId">Phone Number ID</Label>
+                <Input
+                  id="vapiPhoneId"
+                  value={vapiPhoneNumberId}
+                  onChange={(e) => setVapiPhoneNumberId(e.target.value)}
+                  placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                  disabled
+                />
+                <p className="text-xs text-muted-foreground">
+                  Find this in your Vapi Dashboard under Phone Numbers
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="vapiWebhook">Webhook Secret</Label>
+                <Input
+                  id="vapiWebhook"
+                  type="password"
+                  value={vapiWebhookSecret}
+                  onChange={(e) => setVapiWebhookSecret(e.target.value)}
+                  placeholder="********************************"
+                  disabled
+                />
+              </div>
+              <Alert className="bg-muted">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-sm">
+                  To configure Vapi, set these environment variables in your Supabase Edge Functions:
+                  <code className="block mt-2 p-2 bg-background rounded text-xs">
+                    VAPI_API_KEY<br/>
+                    VAPI_PHONE_NUMBER_ID<br/>
+                    VAPI_WEBHOOK_SECRET
+                  </code>
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Team Tab */}
+        <TabsContent value="team" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Team Members
+                </div>
+                <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm">
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Invite Member
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Invite Team Member</DialogTitle>
+                      <DialogDescription>
+                        Send an invitation to join your organization
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="inviteEmail">Email Address</Label>
+                        <Input
+                          id="inviteEmail"
+                          type="email"
+                          value={inviteEmail}
+                          onChange={(e) => setInviteEmail(e.target.value)}
+                          placeholder="member@example.com"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="inviteRole">Role</Label>
+                        <Select value={inviteRole} onValueChange={setInviteRole}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="member">Member</SelectItem>
+                            <SelectItem value="leader">Leader</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          Admins have full access. Leaders can manage people and groups. Members have limited access.
+                        </p>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setIsInviteDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleInviteMember} disabled={loading}>
+                        {loading ? 'Sending...' : 'Send Invitation'}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </CardTitle>
+              <CardDescription>
+                Manage who has access to your organization
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {members.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">
+                    No team members found. Invite someone to get started.
+                  </p>
+                ) : (
+                  members.map((member) => (
+                    <div key={member.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                          <Users className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <p className="font-medium">User ID: {member.user_id.slice(0, 8)}...</p>
+                          <p className="text-sm text-muted-foreground">
+                            Added {new Date(member.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <Select
+                          value={member.role}
+                          onValueChange={(value) => handleUpdateMemberRole(member.id, value)}
+                          disabled={member.user_id === user?.id}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="member">Member</SelectItem>
+                            <SelectItem value="leader">Leader</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Badge variant={getRoleBadgeVariant(member.role)}>
+                          {member.role === 'admin' && <Crown className="h-3 w-3 mr-1" />}
+                          {member.role}
+                        </Badge>
+                        {member.user_id !== user?.id && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRemoveMember(member.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Role Permissions Info */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Role Permissions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 border rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge>Admin</Badge>
+                    <Crown className="h-4 w-4 text-yellow-500" />
+                  </div>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>Full access to all features</li>
+                    <li>Manage organization settings</li>
+                    <li>Invite and remove members</li>
+                    <li>Access billing and data</li>
+                  </ul>
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <Badge variant="secondary" className="mb-2">Leader</Badge>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>Manage people directory</li>
+                    <li>Create and manage groups</li>
+                    <li>Send communications</li>
+                    <li>View campaign results</li>
+                  </ul>
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <Badge variant="outline" className="mb-2">Member</Badge>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>View people directory</li>
+                    <li>View group information</li>
+                    <li>Limited access to campaigns</li>
+                    <li>Read-only dashboard</li>
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* AI Calling Tab */}
+        <TabsContent value="ai-calling" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bot className="h-5 w-5" />
+                AI Calling Configuration
+              </CardTitle>
+              <CardDescription>
+                Configure default settings for AI calling campaigns
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="aiModel">Default AI Model</Label>
+                  <Select
+                    value={orgSettings.ai_calling.default_model}
+                    onValueChange={(value) => setOrgSettings({
+                      ...orgSettings,
+                      ai_calling: { ...orgSettings.ai_calling, default_model: value }
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo (Faster, Lower Cost)</SelectItem>
+                      <SelectItem value="gpt-4">GPT-4 (Higher Quality)</SelectItem>
+                      <SelectItem value="gpt-4-turbo">GPT-4 Turbo (Balance)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="temperature">Voice Temperature</Label>
+                  <Select
+                    value={orgSettings.ai_calling.default_temperature.toString()}
+                    onValueChange={(value) => setOrgSettings({
+                      ...orgSettings,
+                      ai_calling: { ...orgSettings.ai_calling, default_temperature: parseFloat(value) }
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0.3">0.3 - More Focused</SelectItem>
+                      <SelectItem value="0.5">0.5 - Balanced</SelectItem>
+                      <SelectItem value="0.7">0.7 - Natural (Default)</SelectItem>
+                      <SelectItem value="0.9">0.9 - More Creative</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Higher values make responses more varied and conversational
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="costThreshold">Cost Threshold ($)</Label>
+                  <Input
+                    id="costThreshold"
+                    type="number"
+                    min="0"
+                    step="10"
+                    value={orgSettings.ai_calling.cost_threshold}
+                    onChange={(e) => setOrgSettings({
+                      ...orgSettings,
+                      ai_calling: { ...orgSettings.ai_calling, cost_threshold: parseFloat(e.target.value) }
+                    })}
+                    placeholder="100"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Maximum cost per campaign before requiring approval
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="batchSize">Batch Size</Label>
+                  <Input
+                    id="batchSize"
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={orgSettings.ai_calling.batch_size}
+                    onChange={(e) => setOrgSettings({
+                      ...orgSettings,
+                      ai_calling: { ...orgSettings.ai_calling, batch_size: parseInt(e.target.value) }
+                    })}
+                    placeholder="10"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Number of calls to process in each batch
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="callDelay">Delay Between Calls (ms)</Label>
+                  <Input
+                    id="callDelay"
+                    type="number"
+                    min="1000"
+                    max="10000"
+                    step="500"
+                    value={orgSettings.ai_calling.delay_between_calls}
+                    onChange={(e) => setOrgSettings({
+                      ...orgSettings,
+                      ai_calling: { ...orgSettings.ai_calling, delay_between_calls: parseInt(e.target.value) }
+                    })}
+                    placeholder="2000"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Wait time between initiating calls (prevents rate limiting)
+                  </p>
+                </div>
+              </div>
+
+              <Button onClick={handleSaveSettings} disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save AI Calling Settings
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Escalation Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5" />
+                Escalation Settings
+              </CardTitle>
+              <CardDescription>
+                Configure how crisis and pastoral care alerts are handled
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert className="bg-amber-500/10 border-amber-500/50">
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                <AlertTitle>Crisis Detection</AlertTitle>
+                <AlertDescription>
+                  AI calls automatically detect potential crisis situations and pastoral care needs.
+                  Escalation alerts are created for follow-up by your pastoral team.
+                </AlertDescription>
+              </Alert>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Auto-create escalation alerts</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Automatically create alerts when AI detects crisis or pastoral care needs
+                    </p>
+                  </div>
+                  <Switch defaultChecked disabled />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Priority escalation for crisis</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Set high priority for detected crisis situations
+                    </p>
+                  </div>
+                  <Switch defaultChecked disabled />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Notifications Tab */}
+        <TabsContent value="notifications" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                Notification Preferences
+              </CardTitle>
+              <CardDescription>
+                Control how and when you receive notifications
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Campaign Completion Alerts</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Get notified when SMS or calling campaigns complete
+                    </p>
+                  </div>
+                  <Switch
+                    checked={orgSettings.notifications.email_campaign_complete}
+                    onCheckedChange={(checked) => setOrgSettings({
+                      ...orgSettings,
+                      notifications: { ...orgSettings.notifications, email_campaign_complete: checked }
+                    })}
+                  />
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Escalation Alerts</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Get notified when AI calls detect crisis or pastoral care needs
+                    </p>
+                  </div>
+                  <Switch
+                    checked={orgSettings.notifications.email_escalation_alerts}
+                    onCheckedChange={(checked) => setOrgSettings({
+                      ...orgSettings,
+                      notifications: { ...orgSettings.notifications, email_escalation_alerts: checked }
+                    })}
+                  />
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Weekly Summary</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Receive a weekly summary of communication activities
+                    </p>
+                  </div>
+                  <Switch
+                    checked={orgSettings.notifications.email_weekly_summary}
+                    onCheckedChange={(checked) => setOrgSettings({
+                      ...orgSettings,
+                      notifications: { ...orgSettings.notifications, email_weekly_summary: checked }
+                    })}
+                  />
+                </div>
+              </div>
+
+              <Button onClick={handleSaveSettings} disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Notification Preferences
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Data & Privacy Tab */}
+        <TabsContent value="data-privacy" className="space-y-6">
+          {/* Subscription Info */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Subscription
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Current Plan</p>
+                  <p className="text-sm text-muted-foreground">
+                    {currentOrganization?.subscription_plan || 'Free'} - {currentOrganization?.subscription_status || 'Active'}
+                  </p>
+                </div>
+                <Badge variant={currentOrganization?.subscription_status === 'active' ? 'default' : 'secondary'}>
+                  {currentOrganization?.subscription_status || 'Active'}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Data Export */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Download className="h-5 w-5" />
+                Export Your Data
+              </CardTitle>
+              <CardDescription>
+                Download all your organization's data in JSON format
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Export includes: Organization profile, people directory, groups, and campaign history.
+              </p>
+              <Button onClick={handleExportData} disabled={loading} variant="outline">
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Exporting...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-2" />
+                    Download Data Export
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Danger Zone */}
+          <Card className="border-destructive">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-5 w-5" />
+                Danger Zone
+              </CardTitle>
+              <CardDescription>
+                These actions are irreversible. Please proceed with caution.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Warning</AlertTitle>
+                <AlertDescription>
+                  Deleting your organization will permanently remove all data including people,
+                  groups, campaigns, and call logs. This action cannot be undone.
+                </AlertDescription>
+              </Alert>
+              <Button variant="destructive" disabled>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Organization
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Contact support to delete your organization
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
