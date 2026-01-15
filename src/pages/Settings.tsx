@@ -7,7 +7,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -15,7 +14,6 @@ import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
-  Settings as SettingsIcon,
   Building2,
   Phone,
   Users,
@@ -24,18 +22,12 @@ import {
   Shield,
   Save,
   Loader2,
-  Plus,
   Trash2,
   Mail,
   Globe,
   MapPin,
   Link,
-  Eye,
-  EyeOff,
-  CheckCircle2,
-  AlertCircle,
   Crown,
-  UserPlus,
   CreditCard,
   Download,
   AlertTriangle
@@ -113,21 +105,8 @@ export default function Settings() {
     youtube: ''
   });
 
-  // Integration Settings State
-  const [twilioAccountSid, setTwilioAccountSid] = useState('');
-  const [twilioAuthToken, setTwilioAuthToken] = useState('');
-  const [twilioPhoneNumber, setTwilioPhoneNumber] = useState('');
-  const [vapiApiKey, setVapiApiKey] = useState('');
-  const [vapiPhoneNumberId, setVapiPhoneNumberId] = useState('');
-  const [vapiWebhookSecret, setVapiWebhookSecret] = useState('');
-  const [showTwilioToken, setShowTwilioToken] = useState(false);
-  const [showVapiKey, setShowVapiKey] = useState(false);
-
   // Team Members State
   const [members, setMembers] = useState<OrganizationMember[]>([]);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState('member');
-  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
 
   // Organization Settings State
   const [orgSettings, setOrgSettings] = useState<OrganizationSettings>(defaultSettings);
@@ -259,39 +238,6 @@ export default function Settings() {
     }
   };
 
-  const handleInviteMember = async () => {
-    if (!inviteEmail.trim() || !currentOrganization?.id) {
-      toast({
-        title: 'Error',
-        description: 'Please enter an email address',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      // For now, we'll create a placeholder - in production you'd want to send an actual invite
-      // This would typically involve an edge function to send an email invite
-      toast({
-        title: 'Invitation Sent',
-        description: `An invitation has been sent to ${inviteEmail}`,
-      });
-
-      setInviteEmail('');
-      setInviteRole('member');
-      setIsInviteDialogOpen(false);
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to send invitation',
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleRemoveMember = async (memberId: string) => {
     if (!confirm('Are you sure you want to remove this member?')) return;
 
@@ -412,14 +358,10 @@ export default function Settings() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 gap-2">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-5 gap-2">
           <TabsTrigger value="organization" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             <span className="hidden sm:inline">Organization</span>
-          </TabsTrigger>
-          <TabsTrigger value="integrations" className="flex items-center gap-2">
-            <Phone className="h-4 w-4" />
-            <span className="hidden sm:inline">Integrations</span>
           </TabsTrigger>
           <TabsTrigger value="team" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
@@ -658,230 +600,13 @@ export default function Settings() {
           </Card>
         </TabsContent>
 
-        {/* Integrations Tab */}
-        <TabsContent value="integrations" className="space-y-6">
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Integration Configuration</AlertTitle>
-            <AlertDescription>
-              These API keys are stored securely as Supabase Edge Function secrets.
-              The fields below are for reference only. To update API keys, use the Supabase Dashboard
-              or CLI to set environment variables.
-            </AlertDescription>
-          </Alert>
-
-          {/* Twilio Integration */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Phone className="h-5 w-5" />
-                  Twilio SMS Integration
-                </div>
-                <Badge variant="outline" className="flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3" />
-                  Configured
-                </Badge>
-              </CardTitle>
-              <CardDescription>
-                Send SMS messages to your congregation using Twilio
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="twilioSid">Account SID</Label>
-                <Input
-                  id="twilioSid"
-                  value={twilioAccountSid}
-                  onChange={(e) => setTwilioAccountSid(e.target.value)}
-                  placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                  disabled
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="twilioToken">Auth Token</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="twilioToken"
-                    type={showTwilioToken ? 'text' : 'password'}
-                    value={twilioAuthToken}
-                    onChange={(e) => setTwilioAuthToken(e.target.value)}
-                    placeholder="********************************"
-                    disabled
-                  />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setShowTwilioToken(!showTwilioToken)}
-                    type="button"
-                  >
-                    {showTwilioToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="twilioPhone">Phone Number</Label>
-                <Input
-                  id="twilioPhone"
-                  value={twilioPhoneNumber}
-                  onChange={(e) => setTwilioPhoneNumber(e.target.value)}
-                  placeholder="+1234567890"
-                  disabled
-                />
-              </div>
-              <Alert className="bg-muted">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="text-sm">
-                  To configure Twilio, set these environment variables in your Supabase Edge Functions:
-                  <code className="block mt-2 p-2 bg-background rounded text-xs">
-                    TWILIO_ACCOUNT_SID<br/>
-                    TWILIO_AUTH_TOKEN<br/>
-                    TWILIO_PHONE_NUMBER
-                  </code>
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
-
-          {/* Vapi Integration */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Bot className="h-5 w-5" />
-                  Vapi AI Calling Integration
-                </div>
-                <Badge variant="outline" className="flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3" />
-                  Configured
-                </Badge>
-              </CardTitle>
-              <CardDescription>
-                Make automated AI-powered phone calls using Vapi
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="vapiKey">API Key</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="vapiKey"
-                    type={showVapiKey ? 'text' : 'password'}
-                    value={vapiApiKey}
-                    onChange={(e) => setVapiApiKey(e.target.value)}
-                    placeholder="********************************"
-                    disabled
-                  />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setShowVapiKey(!showVapiKey)}
-                    type="button"
-                  >
-                    {showVapiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="vapiPhoneId">Phone Number ID</Label>
-                <Input
-                  id="vapiPhoneId"
-                  value={vapiPhoneNumberId}
-                  onChange={(e) => setVapiPhoneNumberId(e.target.value)}
-                  placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                  disabled
-                />
-                <p className="text-xs text-muted-foreground">
-                  Find this in your Vapi Dashboard under Phone Numbers
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="vapiWebhook">Webhook Secret</Label>
-                <Input
-                  id="vapiWebhook"
-                  type="password"
-                  value={vapiWebhookSecret}
-                  onChange={(e) => setVapiWebhookSecret(e.target.value)}
-                  placeholder="********************************"
-                  disabled
-                />
-              </div>
-              <Alert className="bg-muted">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="text-sm">
-                  To configure Vapi, set these environment variables in your Supabase Edge Functions:
-                  <code className="block mt-2 p-2 bg-background rounded text-xs">
-                    VAPI_API_KEY<br/>
-                    VAPI_PHONE_NUMBER_ID<br/>
-                    VAPI_WEBHOOK_SECRET
-                  </code>
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         {/* Team Tab */}
         <TabsContent value="team" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Team Members
-                </div>
-                <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button size="sm">
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      Invite Member
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Invite Team Member</DialogTitle>
-                      <DialogDescription>
-                        Send an invitation to join your organization
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="inviteEmail">Email Address</Label>
-                        <Input
-                          id="inviteEmail"
-                          type="email"
-                          value={inviteEmail}
-                          onChange={(e) => setInviteEmail(e.target.value)}
-                          placeholder="member@example.com"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="inviteRole">Role</Label>
-                        <Select value={inviteRole} onValueChange={setInviteRole}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="member">Member</SelectItem>
-                            <SelectItem value="leader">Leader</SelectItem>
-                            <SelectItem value="admin">Admin</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <p className="text-xs text-muted-foreground">
-                          Admins have full access. Leaders can manage people and groups. Members have limited access.
-                        </p>
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button variant="outline" onClick={() => setIsInviteDialogOpen(false)}>
-                        Cancel
-                      </Button>
-                      <Button onClick={handleInviteMember} disabled={loading}>
-                        {loading ? 'Sending...' : 'Send Invitation'}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Team Members
               </CardTitle>
               <CardDescription>
                 Manage who has access to your organization
@@ -891,7 +616,7 @@ export default function Settings() {
               <div className="space-y-4">
                 {members.length === 0 ? (
                   <p className="text-muted-foreground text-center py-8">
-                    No team members found. Invite someone to get started.
+                    No team members found.
                   </p>
                 ) : (
                   members.map((member) => (
@@ -961,7 +686,7 @@ export default function Settings() {
                   <ul className="text-sm text-muted-foreground space-y-1">
                     <li>Full access to all features</li>
                     <li>Manage organization settings</li>
-                    <li>Invite and remove members</li>
+                    <li>Manage team members</li>
                     <li>Access billing and data</li>
                   </ul>
                 </div>
@@ -1121,50 +846,6 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          {/* Escalation Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5" />
-                Escalation Settings
-              </CardTitle>
-              <CardDescription>
-                Configure how crisis and pastoral care alerts are handled
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Alert className="bg-amber-500/10 border-amber-500/50">
-                <AlertTriangle className="h-4 w-4 text-amber-500" />
-                <AlertTitle>Crisis Detection</AlertTitle>
-                <AlertDescription>
-                  AI calls automatically detect potential crisis situations and pastoral care needs.
-                  Escalation alerts are created for follow-up by your pastoral team.
-                </AlertDescription>
-              </Alert>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Auto-create escalation alerts</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Automatically create alerts when AI detects crisis or pastoral care needs
-                    </p>
-                  </div>
-                  <Switch defaultChecked disabled />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Priority escalation for crisis</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Set high priority for detected crisis situations
-                    </p>
-                  </div>
-                  <Switch defaultChecked disabled />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
 
         {/* Notifications Tab */}
