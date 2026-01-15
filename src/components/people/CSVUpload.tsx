@@ -378,7 +378,7 @@ Jane,Smith,jane.smith@email.com,555-234-5678,456 Oak Ave,Somewhere,NY,67890,1985
         {preview.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-medium">File Preview (first 5 rows)</h4>
-            <div className="max-h-48 overflow-y-auto border rounded-lg">
+            <div className="max-h-48 overflow-y-auto border rounded-lg overflow-x-auto">
               <table className="w-full text-xs table-auto">
                 <thead className="bg-muted">
                   <tr>

@@ -340,7 +340,7 @@ export default function Settings() {
         .select('id')
         .eq('organization_id', currentOrganization.id)
         .eq('user_id', profile.id)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         toast({
@@ -463,10 +463,10 @@ export default function Settings() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Settings</h1>
         <p className="text-muted-foreground mt-2">
           Configure your organization settings, integrations, and preferences.
         </p>
@@ -720,14 +720,14 @@ export default function Settings() {
         <TabsContent value="team" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
+              <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center gap-2">
                   <Users className="h-5 w-5" />
                   Team Members
                 </div>
                 <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
                   <DialogTrigger asChild>
-                    <Button size="sm">
+                    <Button size="sm" className="w-full sm:w-auto">
                       <UserPlus className="h-4 w-4 mr-2" />
                       Add Member
                     </Button>
@@ -791,23 +791,27 @@ export default function Settings() {
                   </p>
                 ) : (
                   members.map((member) => (
-                    <div key={member.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <div key={member.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border rounded-lg">
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                           <span className="text-sm font-medium text-primary">
                             {(member.profiles?.full_name || member.profiles?.email || 'U')[0].toUpperCase()}
                           </span>
                         </div>
-                        <div>
-                          <p className="font-medium">
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">
                             {member.profiles?.full_name || member.profiles?.email?.split('@')[0] || 'Unknown User'}
                           </p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-muted-foreground truncate">
                             {member.profiles?.email || `Added ${new Date(member.created_at).toLocaleDateString()}`}
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2 sm:gap-4 self-end sm:self-center">
+                         <Badge variant={getRoleBadgeVariant(member.role)} className="shrink-0">
+                          {member.role === 'admin' && <Crown className="h-3 w-3 mr-1" />}
+                          {member.role}
+                        </Badge>
                         <Select
                           value={member.role}
                           onValueChange={(value) => handleUpdateMemberRole(member.id, value)}
@@ -822,15 +826,12 @@ export default function Settings() {
                             <SelectItem value="admin">Admin</SelectItem>
                           </SelectContent>
                         </Select>
-                        <Badge variant={getRoleBadgeVariant(member.role)}>
-                          {member.role === 'admin' && <Crown className="h-3 w-3 mr-1" />}
-                          {member.role}
-                        </Badge>
                         {member.user_id !== user?.id && (
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => handleRemoveMember(member.id)}
+                            className="shrink-0"
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -1037,7 +1038,7 @@ export default function Settings() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div>
                     <Label>Campaign Completion Alerts</Label>
                     <p className="text-sm text-muted-foreground">
@@ -1050,12 +1051,13 @@ export default function Settings() {
                       ...orgSettings,
                       notifications: { ...orgSettings.notifications, email_campaign_complete: checked }
                     })}
+                    className="self-start sm:self-center"
                   />
                 </div>
 
                 <Separator />
 
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div>
                     <Label>Escalation Alerts</Label>
                     <p className="text-sm text-muted-foreground">
@@ -1068,12 +1070,13 @@ export default function Settings() {
                       ...orgSettings,
                       notifications: { ...orgSettings.notifications, email_escalation_alerts: checked }
                     })}
+                    className="self-start sm:self-center"
                   />
                 </div>
 
                 <Separator />
 
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div>
                     <Label>Weekly Summary</Label>
                     <p className="text-sm text-muted-foreground">
@@ -1086,6 +1089,7 @@ export default function Settings() {
                       ...orgSettings,
                       notifications: { ...orgSettings.notifications, email_weekly_summary: checked }
                     })}
+                    className="self-start sm:self-center"
                   />
                 </div>
               </div>

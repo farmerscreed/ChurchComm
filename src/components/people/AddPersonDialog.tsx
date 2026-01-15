@@ -144,7 +144,7 @@ export const AddPersonDialog: React.FC<AddPersonDialogProps> = ({ open, onOpenCh
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             {/* Name Fields */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="first_name"
@@ -175,7 +175,7 @@ export const AddPersonDialog: React.FC<AddPersonDialogProps> = ({ open, onOpenCh
             </div>
 
             {/* Contact Fields */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="email"
@@ -206,7 +206,7 @@ export const AddPersonDialog: React.FC<AddPersonDialogProps> = ({ open, onOpenCh
             </div>
 
             {/* Status and Birthday */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="member_status"
@@ -279,7 +279,7 @@ export const AddPersonDialog: React.FC<AddPersonDialogProps> = ({ open, onOpenCh
                     </FormItem>
                   )}
                 />
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <FormField
                     control={form.control}
                     name="address.city"

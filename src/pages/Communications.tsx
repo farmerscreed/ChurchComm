@@ -286,7 +286,7 @@ export default function Communications() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">Communications</h1>
+        <h1 className="text-2xl md:text-3xl font-bold">Communications</h1>
         <p className="text-muted-foreground mt-1">
           Send SMS messages and AI calls to your congregation
         </p>
@@ -309,7 +309,7 @@ export default function Communications() {
         <TabsContent value="sms">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-xl md:text-2xl">
                 <MessageSquare className="h-5 w-5" />
                 Send SMS Message
               </CardTitle>
@@ -354,11 +354,12 @@ export default function Communications() {
                         ))}
                       </SelectContent>
                     </Select>
-                    {groups.length === 0 && (
+                    {groups.length === 0 && !loadingGroups && (
                       <p className="text-sm text-muted-foreground">
                         No groups available. Create a group first.
                       </p>
                     )}
+                     {loadingGroups && <p className="text-sm text-muted-foreground">Loading groups...</p>}
                   </div>
                 )}
               </div>
@@ -374,7 +375,7 @@ export default function Communications() {
                   rows={6}
                   className="resize-none"
                 />
-                <div className="flex justify-between items-center text-sm">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-sm">
                   <p className="text-muted-foreground">
                     Characters: {smsMessage.length}/160 ({Math.ceil(smsMessage.length / 160) || 1} SMS)
                   </p>
@@ -424,7 +425,7 @@ export default function Communications() {
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-xl md:text-2xl">
                   <Phone className="h-5 w-5" />
                   AI Calling Campaign
                 </CardTitle>
@@ -448,11 +449,12 @@ export default function Communications() {
                       ))}
                     </SelectContent>
                   </Select>
-                  {groups.length === 0 && (
+                  {groups.length === 0 && !loadingGroups && (
                     <p className="text-sm text-muted-foreground">
                       No groups available. Create a group first.
                     </p>
                   )}
+                  {loadingGroups && <p className="text-sm text-muted-foreground">Loading groups...</p>}
                 </div>
 
                 {/* Script Selection */}
@@ -466,7 +468,7 @@ export default function Communications() {
                           New Script
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="sm:max-w-[600px]">
+                      <DialogContent className="sm:max-w-lg">
                         <DialogHeader>
                           <DialogTitle>Create Calling Script</DialogTitle>
                           <DialogDescription>
@@ -521,11 +523,12 @@ export default function Communications() {
                       ))}
                     </SelectContent>
                   </Select>
-                  {scripts.length === 0 && (
+                  {scripts.length === 0 && !loadingScripts && (
                     <p className="text-sm text-muted-foreground">
                       No scripts available. Create a new script to get started.
                     </p>
                   )}
+                  {loadingScripts && <p className="text-sm text-muted-foreground">Loading scripts...</p>}
                 </div>
 
                 {/* Script Preview */}

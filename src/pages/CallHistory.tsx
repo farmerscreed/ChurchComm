@@ -268,15 +268,15 @@ export default function CallHistory() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <PhoneCall className="h-8 w-8 text-primary" />
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
+            <PhoneCall className="h-7 w-7 md:h-8 md:w-8 text-primary" />
             Call History & Analytics
           </h1>
           <p className="text-muted-foreground mt-1">
             Track and analyze all AI calling activity
           </p>
         </div>
-        <Button onClick={loadCallData} variant="outline" className="gap-2">
+        <Button onClick={loadCallData} variant="outline" className="gap-2 self-start sm:self-auto">
           <RefreshCw className="h-4 w-4" />
           Refresh
         </Button>
@@ -292,7 +292,7 @@ export default function CallHistory() {
             <Phone className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats.totalCalls}</div>
+            <div className="text-2xl md:text-3xl font-bold">{stats.totalCalls}</div>
             <p className="text-xs text-muted-foreground mt-1">
               {stats.completedCalls} completed
             </p>
@@ -311,7 +311,7 @@ export default function CallHistory() {
             <Timer className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{formatDuration(stats.avgDuration)}</div>
+            <div className="text-2xl md:text-3xl font-bold">{formatDuration(stats.avgDuration)}</div>
             <p className="text-xs text-muted-foreground mt-1">
               minutes per call
             </p>
@@ -326,18 +326,18 @@ export default function CallHistory() {
             <Activity className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               <div className="flex items-center gap-1">
                 <ThumbsUp className="h-4 w-4 text-green-500" />
-                <span className="text-lg font-bold">{stats.positiveResponses}</span>
+                <span className="text-md md:text-lg font-bold">{stats.positiveResponses}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Minus className="h-4 w-4 text-yellow-500" />
-                <span className="text-lg font-bold">{stats.neutralResponses}</span>
+                <span className="text-md md:text-lg font-bold">{stats.neutralResponses}</span>
               </div>
               <div className="flex items-center gap-1">
                 <ThumbsDown className="h-4 w-4 text-red-500" />
-                <span className="text-lg font-bold">{stats.negativeResponses}</span>
+                <span className="text-md md:text-lg font-bold">{stats.negativeResponses}</span>
               </div>
             </div>
             <div className="flex gap-1 mt-2">
@@ -365,8 +365,8 @@ export default function CallHistory() {
             <AlertTriangle className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats.escalations + stats.followUpsNeeded}</div>
-            <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+            <div className="text-2xl md:text-3xl font-bold">{stats.escalations + stats.followUpsNeeded}</div>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-0 sm:gap-2 mt-1 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <AlertCircle className="h-3 w-3 text-red-500" />
                 {stats.escalations} escalations
@@ -398,7 +398,7 @@ export default function CallHistory() {
                   />
                 </div>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[140px]">
+                  <SelectTrigger className="w-full sm:w-[140px]">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -410,7 +410,7 @@ export default function CallHistory() {
                   </SelectContent>
                 </Select>
                 <Select value={sentimentFilter} onValueChange={setSentimentFilter}>
-                  <SelectTrigger className="w-[140px]">
+                  <SelectTrigger className="w-full sm:w-[140px]">
                     <SelectValue placeholder="Sentiment" />
                   </SelectTrigger>
                   <SelectContent>
@@ -426,7 +426,7 @@ export default function CallHistory() {
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
               <TabsTrigger value="all" className="gap-2">
                 <Phone className="h-4 w-4" />
                 All
@@ -464,15 +464,15 @@ export default function CallHistory() {
                         {filteredCalls.map((call) => (
                           <div
                             key={call.id}
-                            className="p-4 hover:bg-muted/50 cursor-pointer transition-colors"
+                            className="p-3 sm:p-4 hover:bg-muted/50 cursor-pointer transition-colors"
                             onClick={() => {
                               setSelectedCall(call);
                               setIsDetailOpen(true);
                             }}
                           >
-                            <div className="flex items-start gap-4">
+                            <div className="flex items-start gap-3 sm:gap-4">
                               {/* Avatar */}
-                              <Avatar className="h-12 w-12 border-2 border-background shadow">
+                              <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-background shadow">
                                 <AvatarFallback className={cn(
                                   "text-sm font-medium",
                                   call.member_response_type === 'positive' && "bg-green-500/10 text-green-600",
@@ -486,7 +486,7 @@ export default function CallHistory() {
                               {/* Content */}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between gap-2">
-                                  <h4 className="font-medium truncate">
+                                  <h4 className="font-medium truncate text-sm sm:text-base">
                                     {call.people?.first_name || call.people?.last_name
                                       ? `${call.people?.first_name || ''} ${call.people?.last_name || ''}`.trim()
                                       : call.phone_number_used || 'Unknown Caller'}
@@ -497,7 +497,7 @@ export default function CallHistory() {
                                   </div>
                                 </div>
 
-                                <p className="text-sm text-muted-foreground truncate mt-0.5">
+                                <p className="text-xs sm:text-sm text-muted-foreground truncate mt-0.5">
                                   {call.phone_number_used || call.people?.phone_number || 'No phone number'}
                                 </p>
 
@@ -507,7 +507,7 @@ export default function CallHistory() {
                                   </p>
                                 )}
 
-                                <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
                                   <span className="flex items-center gap-1">
                                     <Calendar className="h-3 w-3" />
                                     {format(new Date(call.created_at), 'MMM d, yyyy')}
@@ -553,7 +553,7 @@ export default function CallHistory() {
                                 </div>
                               </div>
 
-                              <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+                              <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 self-center" />
                             </div>
                           </div>
                         ))}
@@ -724,17 +724,19 @@ export default function CallHistory() {
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-3">
+            <DialogTitle className="flex items-start sm:items-center gap-3 flex-col sm:flex-row">
               <Avatar className="h-10 w-10">
                 <AvatarFallback>
                   {getInitials(selectedCall?.people?.first_name ?? undefined, selectedCall?.people?.last_name ?? undefined)}
                 </AvatarFallback>
               </Avatar>
-              <div>
-                <div className="flex items-center gap-2">
-                  {selectedCall?.people?.first_name || selectedCall?.people?.last_name
-                    ? `${selectedCall?.people?.first_name || ''} ${selectedCall?.people?.last_name || ''}`.trim()
-                    : selectedCall?.phone_number_used || 'Unknown Caller'}
+              <div className="flex-1">
+                <div className="flex items-center flex-wrap gap-2">
+                  <span className="text-lg">
+                    {selectedCall?.people?.first_name || selectedCall?.people?.last_name
+                      ? `${selectedCall?.people?.first_name || ''} ${selectedCall?.people?.last_name || ''}`.trim()
+                      : selectedCall?.phone_number_used || 'Unknown Caller'}
+                  </span>
                   {getSentimentBadge(selectedCall?.member_response_type || null)}
                 </div>
                 <p className="text-sm font-normal text-muted-foreground">
@@ -748,7 +750,7 @@ export default function CallHistory() {
           <ScrollArea className="flex-1 -mx-6 px-6">
             <div className="space-y-6 pb-4">
               {/* Call Info */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="text-center p-3 bg-muted rounded-lg">
                   <Calendar className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
                   <p className="text-xs text-muted-foreground">Date</p>

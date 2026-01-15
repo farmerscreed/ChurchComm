@@ -213,19 +213,19 @@ export function GroupManager() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Groups</h2>
+          <h2 className="text-xl md:text-2xl font-bold">Groups</h2>
           <p className="text-muted-foreground mt-1">Organize your members into groups</p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="w-full md:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               Create Group
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Create New Group</DialogTitle>
             </DialogHeader>
@@ -281,7 +281,7 @@ export function GroupManager() {
                   <span className="font-semibold">{group.name}</span>
                    <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-6 w-6">
+                      <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0">
                         <Trash2 className="h-4 w-4 text-red-500" />
                   </Button>
                     </AlertDialogTrigger>
@@ -308,9 +308,9 @@ export function GroupManager() {
                 </div>
               </CardContent>
               <CardFooter>
-                  <Button variant="secondary" className="w-full" onClick={() => openAddMembersDialog(group)}>
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Add / View Members
+                  <Button variant="secondary" className="w-full flex-col sm:flex-row h-auto sm:h-10" onClick={() => openAddMembersDialog(group)}>
+                    <UserPlus className="h-4 w-4 mb-1 sm:mb-0 sm:mr-2" />
+                    <span>Add / View Members</span>
                   </Button>
               </CardFooter>
             </Card>
@@ -320,21 +320,21 @@ export function GroupManager() {
 
       {/* Add Members Dialog */}
       <Dialog open={!!addMembersGroup} onOpenChange={() => { setAddMembersGroup(null); setSelectedPeople([]); setExistingMembers([]) }}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Manage Members for {addMembersGroup?.name}</DialogTitle>
+            <DialogTitle className="text-lg md:text-xl">Manage Members for {addMembersGroup?.name}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-6 py-4">
 
             {/* Existing Members List */}
             <div className="space-y-2">
                 <h4 className="font-medium">Current Members ({existingMembers.length})</h4>
-                 <div className="max-h-[200px] overflow-y-auto space-y-2 pr-2">
+                 <div className="max-h-[150px] md:max-h-[200px] overflow-y-auto space-y-2 pr-2">
                     {isLoading ? <p>Loading members...</p> :
                      existingMembers.length > 0 ? existingMembers.map(member => (
                         <div key={member.person_id} className="flex items-center justify-between bg-muted p-2 rounded-md">
-                           <span>{member.full_name}</span>
-                           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveMember(member.person_id)}>
+                           <span className="text-sm">{member.full_name}</span>
+                           <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => handleRemoveMember(member.person_id)}>
                                <Trash2 className="h-4 w-4 text-red-500" />
                            </Button>
                         </div>

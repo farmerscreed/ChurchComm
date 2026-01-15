@@ -18,9 +18,9 @@ export default function People() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">People Directory</h1>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">People Directory</h1>
         <p className="text-muted-foreground mt-2">
           Manage your church members, visitors, and prospects all in one place.
         </p>
