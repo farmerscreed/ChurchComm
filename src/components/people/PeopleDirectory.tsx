@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { Mail, Phone, Search, UserPlus } from 'lucide-react';
-import { AddPersonDialog } from './AddPersonDialog';
+import { PersonDialog } from './PersonDialog';
 
 interface Person {
   id: string;
@@ -32,11 +31,11 @@ interface PeopleDirectoryProps {
 }
 
 export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) => {
-  const navigate = useNavigate();
   const { currentOrganization } = useAuthStore();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
 
   const { data: people, isLoading, error, refetch } = useQuery({
     queryKey: ['people', currentOrganization?.id, search, statusFilter],
@@ -69,8 +68,21 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
     enabled: !!currentOrganization?.id,
   });
 
-  const handlePersonClick = (personId: string) => {
-    navigate(`/people/${personId}`);
+  const handlePersonClick = (person: Person) => {
+    setSelectedPerson(person);
+    setDialogOpen(true);
+  };
+
+  const handleAddPerson = () => {
+    setSelectedPerson(null);
+    setDialogOpen(true);
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    setDialogOpen(open);
+    if (!open) {
+      setSelectedPerson(null);
+    }
   };
 
   const handleRefresh = () => {
@@ -158,7 +170,7 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
             </SelectContent>
           </Select>
 
-          <Button onClick={() => setAddDialogOpen(true)} className="whitespace-nowrap">
+          <Button onClick={handleAddPerson} className="whitespace-nowrap">
             <UserPlus className="h-4 w-4 mr-2" />
             Add Person
           </Button>
@@ -175,7 +187,7 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
                 : 'No people in your directory yet. Add someone to get started!'}
             </p>
             {!search && statusFilter === 'all' && (
-              <Button onClick={() => setAddDialogOpen(true)}>
+              <Button onClick={handleAddPerson}>
                 <UserPlus className="h-4 w-4 mr-2" />
                 Add Your First Person
               </Button>
@@ -188,7 +200,7 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
             <Card
               key={person.id}
               className="hover:shadow-md hover:shadow-primary/20 transition-all duration-200 cursor-pointer hover:border-primary/50"
-              onClick={() => handlePersonClick(person.id)}
+              onClick={() => handlePersonClick(person)}
             >
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center justify-between">
@@ -242,11 +254,12 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
         </div>
       )}
 
-      {/* Add Person Dialog */}
-      <AddPersonDialog
-        open={addDialogOpen}
-        onOpenChange={setAddDialogOpen}
-        onPersonAdded={handleRefresh}
+      {/* Person Dialog - for both Add and Edit */}
+      <PersonDialog
+        open={dialogOpen}
+        onOpenChange={handleDialogClose}
+        person={selectedPerson}
+        onSuccess={handleRefresh}
       />
     </div>
   );

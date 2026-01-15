@@ -30,6 +30,8 @@ export default function Communications() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [scripts, setScripts] = useState<CallingScript[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingGroups, setLoadingGroups] = useState(false);
+  const [loadingScripts, setLoadingScripts] = useState(false);
 
   // SMS State
   const [smsMessage, setSmsMessage] = useState('');
@@ -53,30 +55,58 @@ export default function Communications() {
   const loadGroups = async () => {
     if (!currentOrganization?.id) return;
 
-    const { data, error } = await supabase
-      .from('groups')
-      .select('id, name, group_members(count)')
-      .eq('organization_id', currentOrganization.id);
+    setLoadingGroups(true);
+    try {
+      const { data, error } = await supabase
+        .from('groups')
+        .select('id, name, group_members(count)')
+        .eq('organization_id', currentOrganization.id);
 
-    if (!error && data) {
-      setGroups(data.map(group => ({
-        ...group,
-        member_count: (group as any).group_members[0]?.count || 0,
-      })));
+      if (error) throw error;
+
+      if (data) {
+        setGroups(data.map(group => ({
+          ...group,
+          member_count: (group as any).group_members[0]?.count || 0,
+        })));
+      }
+    } catch (error: any) {
+      console.error('Error loading groups:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load groups. Please refresh the page.',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoadingGroups(false);
     }
   };
 
   const loadScripts = async () => {
     if (!currentOrganization?.id) return;
 
-    const { data, error } = await supabase
-      .from('calling_scripts')
-      .select('id, name, content')
-      .eq('organization_id', currentOrganization.id)
-      .order('created_at', { ascending: false });
+    setLoadingScripts(true);
+    try {
+      const { data, error } = await supabase
+        .from('calling_scripts')
+        .select('id, name, content')
+        .eq('organization_id', currentOrganization.id)
+        .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      setScripts(data);
+      if (error) throw error;
+
+      if (data) {
+        setScripts(data);
+      }
+    } catch (error: any) {
+      console.error('Error loading scripts:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load calling scripts. Please refresh the page.',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoadingScripts(false);
     }
   };
 

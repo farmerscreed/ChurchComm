@@ -38,7 +38,10 @@ interface OrganizationMember {
   user_id: string;
   role: string;
   created_at: string;
-  user_email?: string;
+  profiles?: {
+    email: string | null;
+    full_name: string | null;
+  };
 }
 
 interface OrganizationSettings {
@@ -162,7 +165,13 @@ export default function Settings() {
 
     const { data, error } = await supabase
       .from('organization_members')
-      .select('*')
+      .select(`
+        *,
+        profiles:user_id (
+          email,
+          full_name
+        )
+      `)
       .eq('organization_id', currentOrganization.id);
 
     if (!error && data) {
@@ -622,13 +631,17 @@ export default function Settings() {
                   members.map((member) => (
                     <div key={member.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                          <Users className="h-5 w-5 text-muted-foreground" />
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-sm font-medium text-primary">
+                            {(member.profiles?.full_name || member.profiles?.email || 'U')[0].toUpperCase()}
+                          </span>
                         </div>
                         <div>
-                          <p className="font-medium">User ID: {member.user_id.slice(0, 8)}...</p>
+                          <p className="font-medium">
+                            {member.profiles?.full_name || member.profiles?.email?.split('@')[0] || 'Unknown User'}
+                          </p>
                           <p className="text-sm text-muted-foreground">
-                            Added {new Date(member.created_at).toLocaleDateString()}
+                            {member.profiles?.email || `Added ${new Date(member.created_at).toLocaleDateString()}`}
                           </p>
                         </div>
                       </div>

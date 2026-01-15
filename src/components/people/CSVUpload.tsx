@@ -215,6 +215,7 @@ export function CSVUpload({ onUploadComplete }: CSVUploadProps) {
 
                   if (membershipError) {
                     console.error('Error inserting group memberships:', membershipError);
+                    validationErrors.push(`Warning: Some group assignments failed - ${membershipError.message}`);
                   }
                 }
               }
@@ -222,10 +223,15 @@ export function CSVUpload({ onUploadComplete }: CSVUploadProps) {
 
             setUploadProgress(100);
 
+            const successMessages = [];
+            if (insertedPersons && insertedPersons.length > 0) {
+              successMessages.push(`Successfully imported ${insertedPersons.length} people.`);
+            }
+
             setResults({
               successCount: insertedPersons?.length || 0,
               errorCount: validationErrors.length,
-              errors: validationErrors.length > 0 ? validationErrors : [`Successfully imported ${insertedPersons?.length || 0} records.`],
+              errors: validationErrors.length > 0 ? validationErrors : successMessages,
             });
 
             if (insertedPersons && insertedPersons.length > 0) {
