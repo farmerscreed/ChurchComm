@@ -467,35 +467,37 @@ export default function Settings() {
       {/* Header */}
       <div>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground mt-2">
-          Configure your organization settings, integrations, and preferences.
+        <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">
+          Configure your organization settings and preferences.
         </p>
       </div>
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-5 gap-2">
-          <TabsTrigger value="organization" className="flex items-center gap-2">
-            <Building2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Organization</span>
-          </TabsTrigger>
-          <TabsTrigger value="team" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            <span className="hidden sm:inline">Team</span>
-          </TabsTrigger>
-          <TabsTrigger value="ai-calling" className="flex items-center gap-2">
-            <Bot className="h-4 w-4" />
-            <span className="hidden sm:inline">AI Calling</span>
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2">
-            <Bell className="h-4 w-4" />
-            <span className="hidden sm:inline">Notifications</span>
-          </TabsTrigger>
-          <TabsTrigger value="data-privacy" className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            <span className="hidden sm:inline">Data</span>
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+          <TabsList className="inline-flex w-auto min-w-full sm:grid sm:grid-cols-5 sm:w-full h-auto p-1 gap-1">
+            <TabsTrigger value="organization" className="flex items-center gap-2 px-3 py-2 whitespace-nowrap">
+              <Building2 className="h-4 w-4 shrink-0" />
+              <span className="text-xs sm:text-sm">Organization</span>
+            </TabsTrigger>
+            <TabsTrigger value="team" className="flex items-center gap-2 px-3 py-2 whitespace-nowrap">
+              <Users className="h-4 w-4 shrink-0" />
+              <span className="text-xs sm:text-sm">Team</span>
+            </TabsTrigger>
+            <TabsTrigger value="ai-calling" className="flex items-center gap-2 px-3 py-2 whitespace-nowrap">
+              <Bot className="h-4 w-4 shrink-0" />
+              <span className="text-xs sm:text-sm">AI</span>
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="flex items-center gap-2 px-3 py-2 whitespace-nowrap">
+              <Bell className="h-4 w-4 shrink-0" />
+              <span className="text-xs sm:text-sm">Alerts</span>
+            </TabsTrigger>
+            <TabsTrigger value="data-privacy" className="flex items-center gap-2 px-3 py-2 whitespace-nowrap">
+              <Shield className="h-4 w-4 shrink-0" />
+              <span className="text-xs sm:text-sm">Data</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Organization Profile Tab */}
         <TabsContent value="organization" className="space-y-6">
