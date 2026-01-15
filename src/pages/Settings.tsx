@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -30,7 +31,8 @@ import {
   Crown,
   CreditCard,
   Download,
-  AlertTriangle
+  AlertTriangle,
+  UserPlus
 } from 'lucide-react';
 
 interface OrganizationMember {
@@ -110,6 +112,9 @@ export default function Settings() {
 
   // Team Members State
   const [members, setMembers] = useState<OrganizationMember[]>([]);
+  const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
+  const [addMemberEmail, setAddMemberEmail] = useState('');
+  const [addMemberRole, setAddMemberRole] = useState('member');
 
   // Organization Settings State
   const [orgSettings, setOrgSettings] = useState<OrganizationSettings>(defaultSettings);
@@ -163,7 +168,8 @@ export default function Settings() {
   const loadMembers = async () => {
     if (!currentOrganization?.id) return;
 
-    const { data, error } = await supabase
+    // Try to load with profiles join first
+    let { data, error } = await supabase
       .from('organization_members')
       .select(`
         *,
@@ -173,6 +179,31 @@ export default function Settings() {
         )
       `)
       .eq('organization_id', currentOrganization.id);
+
+    // Fallback to simple query if profiles join fails (e.g., no FK relationship yet)
+    if (error) {
+      console.warn('Profiles join failed, using fallback query:', error.message);
+      const fallbackResult = await supabase
+        .from('organization_members')
+        .select('*')
+        .eq('organization_id', currentOrganization.id);
+
+      if (!fallbackResult.error && fallbackResult.data) {
+        // Try to fetch profiles separately
+        const userIds = fallbackResult.data.map(m => m.user_id);
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, email, full_name')
+          .in('id', userIds);
+
+        // Merge profiles data
+        data = fallbackResult.data.map(member => ({
+          ...member,
+          profiles: profiles?.find(p => p.id === member.user_id) || null
+        }));
+        error = null;
+      }
+    }
 
     if (!error && data) {
       setMembers(data);
@@ -268,6 +299,82 @@ export default function Settings() {
       toast({
         title: 'Error',
         description: error.message || 'Failed to remove member',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddMember = async () => {
+    if (!addMemberEmail.trim() || !currentOrganization?.id) {
+      toast({
+        title: 'Error',
+        description: 'Please enter an email address',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Find user by email in profiles table
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, email, full_name')
+        .eq('email', addMemberEmail.trim().toLowerCase())
+        .single();
+
+      if (profileError || !profile) {
+        toast({
+          title: 'User Not Found',
+          description: 'No user found with that email address. They need to sign up first.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Check if already a member
+      const { data: existing } = await supabase
+        .from('organization_members')
+        .select('id')
+        .eq('organization_id', currentOrganization.id)
+        .eq('user_id', profile.id)
+        .single();
+
+      if (existing) {
+        toast({
+          title: 'Already a Member',
+          description: 'This user is already a member of your organization.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Add member
+      const { error: insertError } = await supabase
+        .from('organization_members')
+        .insert({
+          organization_id: currentOrganization.id,
+          user_id: profile.id,
+          role: addMemberRole
+        });
+
+      if (insertError) throw insertError;
+
+      toast({
+        title: 'Success',
+        description: `${profile.full_name || profile.email} has been added to your organization.`,
+      });
+
+      setAddMemberEmail('');
+      setAddMemberRole('member');
+      setIsAddMemberOpen(false);
+      loadMembers(); // Refresh the list
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to add member',
         variant: 'destructive'
       });
     } finally {
@@ -613,9 +720,64 @@ export default function Settings() {
         <TabsContent value="team" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Team Members
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Team Members
+                </div>
+                <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm">
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Add Member
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add Team Member</DialogTitle>
+                      <DialogDescription>
+                        Add an existing user to your organization by their email address.
+                        They must have already signed up for an account.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="memberEmail">Email Address</Label>
+                        <Input
+                          id="memberEmail"
+                          type="email"
+                          value={addMemberEmail}
+                          onChange={(e) => setAddMemberEmail(e.target.value)}
+                          placeholder="member@example.com"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="memberRole">Role</Label>
+                        <Select value={addMemberRole} onValueChange={setAddMemberRole}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="member">Member</SelectItem>
+                            <SelectItem value="leader">Leader</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          Admins have full access. Leaders can manage people and groups. Members have limited access.
+                        </p>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setIsAddMemberOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleAddMember} disabled={loading}>
+                        {loading ? 'Adding...' : 'Add Member'}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </CardTitle>
               <CardDescription>
                 Manage who has access to your organization
