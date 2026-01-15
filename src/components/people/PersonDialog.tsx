@@ -157,10 +157,10 @@ export const PersonDialog: React.FC<PersonDialogProps> = ({
     try {
       const { data, error } = await supabase.functions.invoke('send-sms', {
         body: {
-          to: person.phone_number,
+          recipientType: 'individual',
+          recipientId: person.id,
           message: smsMessage,
-          organizationId: currentOrganization?.id,
-          personId: person.id
+          organizationId: currentOrganization?.id
         }
       });
 
@@ -198,12 +198,8 @@ export const PersonDialog: React.FC<PersonDialogProps> = ({
     try {
       const { data, error } = await supabase.functions.invoke('send-group-call', {
         body: {
-          recipients: [{
-            id: person.id,
-            phone_number: person.phone_number,
-            first_name: person.first_name,
-            last_name: person.last_name
-          }],
+          recipientType: 'individual',
+          recipientId: person.id,
           script: callScript || `Hello ${person.first_name}, this is a call from ${currentOrganization?.name || 'our church'}. How are you doing today?`,
           organizationId: currentOrganization?.id,
           campaignName: `Individual call to ${person.first_name} ${person.last_name}`

@@ -8,21 +8,40 @@ serve(async (req) => {
   }
 
   try {
+    const body = await req.json()
     const {
       groupId,
       scriptId,
       organizationId,
-      createdBy
-    } = await req.json()
+      createdBy,
+      // Individual call parameters
+      recipientType,
+      recipientId,
+      script: rawScript,
+      campaignName
+    } = body
 
-    console.log('Received request:', { groupId, scriptId, organizationId, createdBy })
+    console.log('Received request:', body)
 
-    if (!groupId || !scriptId || !organizationId) {
-      console.error('Missing required fields')
-      return new Response(JSON.stringify({ error: 'Missing required fields' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      })
+    const isIndividualCall = recipientType === 'individual'
+
+    // Validate based on call type
+    if (isIndividualCall) {
+      if (!recipientId || !organizationId) {
+        console.error('Missing required fields for individual call')
+        return new Response(JSON.stringify({ error: 'Missing required fields: recipientId and organizationId required for individual calls' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        })
+      }
+    } else {
+      if (!groupId || !scriptId || !organizationId) {
+        console.error('Missing required fields for group call')
+        return new Response(JSON.stringify({ error: 'Missing required fields: groupId, scriptId, and organizationId required' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        })
+      }
     }
 
     // Use the Service Role Key for admin-level access
@@ -43,35 +62,61 @@ serve(async (req) => {
       throw new Error('Vapi configuration incomplete')
     }
 
-    // Get calling script
-    const { data: script, error: scriptError } = await supabaseAdmin
-      .from('calling_scripts')
-      .select('*')
-      .eq('id', scriptId)
-      .single()
+    // Get script content - either from database or use raw script for individual calls
+    let scriptContent: string
 
-    if (scriptError) throw scriptError
+    if (isIndividualCall) {
+      // For individual calls, use the provided script or a default greeting
+      scriptContent = rawScript || 'Hello {Name}, this is a call from your church. How are you doing today?'
+    } else {
+      // For group calls, get script from database
+      const { data: script, error: scriptError } = await supabaseAdmin
+        .from('calling_scripts')
+        .select('*')
+        .eq('id', scriptId)
+        .single()
 
-    // Get all phone numbers from the group
-    const { data: members, error: membersError } = await supabaseAdmin
-      .from('group_members')
-      .select(`
-        people!inner (
-          id,
-          first_name,
-          last_name,
-          phone_number
-        )
-      `)
-      .eq('group_id', groupId)
+      if (scriptError) throw scriptError
+      scriptContent = script.content
+    }
 
-    if (membersError) throw membersError
+    // Get recipients based on call type
+    let recipients: any[] = []
 
-    const recipients = members
-      ?.map(m => m.people)
-      .filter(person => person.phone_number) || []
+    if (isIndividualCall) {
+      // Get individual person
+      const { data: person, error: personError } = await supabaseAdmin
+        .from('people')
+        .select('id, first_name, last_name, phone_number')
+        .eq('id', recipientId)
+        .single()
 
-    console.log('Found members:', members?.length || 0)
+      if (personError) throw personError
+      if (person?.phone_number) {
+        recipients = [person]
+      }
+    } else {
+      // Get all phone numbers from the group
+      const { data: members, error: membersError } = await supabaseAdmin
+        .from('group_members')
+        .select(`
+          people!inner (
+            id,
+            first_name,
+            last_name,
+            phone_number
+          )
+        `)
+        .eq('group_id', groupId)
+
+      if (membersError) throw membersError
+
+      recipients = members
+        ?.map(m => m.people)
+        .filter(person => person.phone_number) || []
+    }
+
+    console.log('Call type:', isIndividualCall ? 'individual' : 'group')
     console.log('Recipients with phone numbers:', recipients.length)
 
     if (recipients.length === 0) {
@@ -91,10 +136,12 @@ serve(async (req) => {
     const { data: campaign, error: campaignError } = await supabaseAdmin
       .from('calling_campaigns')
       .insert({
-        name: `AI Group Call - ${new Date().toLocaleDateString()}`,
+        name: campaignName || (isIndividualCall
+          ? `Individual Call - ${new Date().toLocaleDateString()}`
+          : `AI Group Call - ${new Date().toLocaleDateString()}`),
         provider: 'vapi',
         cost_threshold: 100.00,
-        target_filters: { group_id: groupId },
+        target_filters: isIndividualCall ? { person_id: recipientId } : { group_id: groupId },
         batch_size: 10,
         status: 'active',
         organization_id: organizationId,
@@ -127,7 +174,7 @@ serve(async (req) => {
           .single()
 
         // Process script variables
-        const processedScript = script.content
+        const processedScript = scriptContent
           .replace(/\[Name\]/g, recipient.first_name || 'Friend')
           .replace(/\{Name\}/g, recipient.first_name || 'Friend')
 
