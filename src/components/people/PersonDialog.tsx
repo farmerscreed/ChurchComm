@@ -155,12 +155,20 @@ export const PersonDialog: React.FC<PersonDialogProps> = ({
 
     setSendingSms(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('You must be logged in to send SMS');
+      }
+
       const { data, error } = await supabase.functions.invoke('send-sms', {
         body: {
           recipientType: 'individual',
           recipientId: person.id,
           message: smsMessage,
           organizationId: currentOrganization?.id
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 
@@ -196,6 +204,11 @@ export const PersonDialog: React.FC<PersonDialogProps> = ({
 
     setInitiatingCall(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('You must be logged in to initiate calls');
+      }
+
       const { data, error } = await supabase.functions.invoke('send-group-call', {
         body: {
           recipientType: 'individual',
@@ -203,6 +216,9 @@ export const PersonDialog: React.FC<PersonDialogProps> = ({
           script: callScript || `Hello ${person.first_name}, this is a call from ${currentOrganization?.name || 'our church'}. How are you doing today?`,
           organizationId: currentOrganization?.id,
           campaignName: `Individual call to ${person.first_name} ${person.last_name}`
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 
