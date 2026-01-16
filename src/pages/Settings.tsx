@@ -32,8 +32,16 @@ import {
   CreditCard,
   Download,
   AlertTriangle,
-  UserPlus
+  UserPlus,
+  Send,
+  MessageSquare,
+  Clock,
+  RefreshCw,
+  X,
+  Copy,
+  CheckCircle
 } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 interface OrganizationMember {
   id: string;
@@ -44,6 +52,17 @@ interface OrganizationMember {
     email: string | null;
     full_name: string | null;
   };
+}
+
+interface Invitation {
+  id: string;
+  email: string | null;
+  phone_number: string | null;
+  role: string;
+  invite_method: string;
+  status: string;
+  created_at: string;
+  expires_at: string;
 }
 
 interface OrganizationSettings {
@@ -116,6 +135,16 @@ export default function Settings() {
   const [addMemberEmail, setAddMemberEmail] = useState('');
   const [addMemberRole, setAddMemberRole] = useState('member');
 
+  // Invitation State
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+  const [inviteMethod, setInviteMethod] = useState<'email' | 'sms'>('email');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [invitePhone, setInvitePhone] = useState('');
+  const [inviteRole, setInviteRole] = useState('member');
+  const [sendingInvite, setSendingInvite] = useState(false);
+  const [copiedInviteUrl, setCopiedInviteUrl] = useState<string | null>(null);
+
   // Organization Settings State
   const [orgSettings, setOrgSettings] = useState<OrganizationSettings>(defaultSettings);
 
@@ -124,6 +153,7 @@ export default function Settings() {
     if (currentOrganization?.id) {
       loadOrganizationData();
       loadMembers();
+      loadInvitations();
     }
   }, [currentOrganization]);
 
@@ -208,6 +238,171 @@ export default function Settings() {
     if (!error && data) {
       setMembers(data);
     }
+  };
+
+  const loadInvitations = async () => {
+    if (!currentOrganization?.id) return;
+
+    const { data, error } = await supabase
+      .from('invitations')
+      .select('*')
+      .eq('organization_id', currentOrganization.id)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      setInvitations(data);
+    }
+  };
+
+  const handleSendInvitation = async () => {
+    if (!currentOrganization?.id) return;
+
+    if (inviteMethod === 'email' && !inviteEmail.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Please enter an email address',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (inviteMethod === 'sms' && !invitePhone.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Please enter a phone number',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setSendingInvite(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-invite', {
+        body: {
+          email: inviteMethod === 'email' ? inviteEmail.trim().toLowerCase() : null,
+          phoneNumber: inviteMethod === 'sms' ? invitePhone.trim() : null,
+          role: inviteRole,
+          inviteMethod,
+          organizationId: currentOrganization.id,
+          organizationName: currentOrganization.name,
+          invitedBy: user?.id,
+          inviterName: user?.user_metadata?.full_name || user?.email
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast({
+        title: 'Invitation Sent!',
+        description: `Invitation sent via ${inviteMethod.toUpperCase()} to ${inviteMethod === 'email' ? inviteEmail : invitePhone}`,
+      });
+
+      // Reset form
+      setInviteEmail('');
+      setInvitePhone('');
+      setInviteRole('member');
+      setIsInviteDialogOpen(false);
+      loadInvitations();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to send invitation',
+        variant: 'destructive'
+      });
+    } finally {
+      setSendingInvite(false);
+    }
+  };
+
+  const handleResendInvitation = async (invitation: Invitation) => {
+    if (!currentOrganization?.id) return;
+
+    setLoading(true);
+    try {
+      // Cancel the old invitation
+      await supabase
+        .from('invitations')
+        .update({ status: 'cancelled' })
+        .eq('id', invitation.id);
+
+      // Send a new one
+      const { data, error } = await supabase.functions.invoke('send-invite', {
+        body: {
+          email: invitation.email,
+          phoneNumber: invitation.phone_number,
+          role: invitation.role,
+          inviteMethod: invitation.invite_method,
+          organizationId: currentOrganization.id,
+          organizationName: currentOrganization.name,
+          invitedBy: user?.id,
+          inviterName: user?.user_metadata?.full_name || user?.email
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Invitation Resent',
+        description: 'A new invitation has been sent',
+      });
+
+      loadInvitations();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to resend invitation',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelInvitation = async (invitationId: string) => {
+    if (!confirm('Are you sure you want to cancel this invitation?')) return;
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('invitations')
+        .update({ status: 'cancelled' })
+        .eq('id', invitationId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Invitation Cancelled',
+        description: 'The invitation has been cancelled',
+      });
+
+      loadInvitations();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to cancel invitation',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getTimeRemaining = (expiresAt: string) => {
+    const now = new Date();
+    const expires = new Date(expiresAt);
+    const diff = expires.getTime() - now.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+    if (diff <= 0) return 'Expired';
+    if (days > 0) return `${days}d remaining`;
+    if (hours > 0) return `${hours}h remaining`;
+    return 'Expires soon';
   };
 
   const handleSaveOrganizationProfile = async () => {
@@ -727,59 +922,160 @@ export default function Settings() {
                   <Users className="h-5 w-5" />
                   Team Members
                 </div>
-                <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
-                  <DialogTrigger asChild>
-                    <Button size="sm" className="w-full sm:w-auto">
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      Add Member
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Add Team Member</DialogTitle>
-                      <DialogDescription>
-                        Add an existing user to your organization by their email address.
-                        They must have already signed up for an account.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="memberEmail">Email Address</Label>
-                        <Input
-                          id="memberEmail"
-                          type="email"
-                          value={addMemberEmail}
-                          onChange={(e) => setAddMemberEmail(e.target.value)}
-                          placeholder="member@example.com"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="memberRole">Role</Label>
-                        <Select value={addMemberRole} onValueChange={setAddMemberRole}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="member">Member</SelectItem>
-                            <SelectItem value="leader">Leader</SelectItem>
-                            <SelectItem value="admin">Admin</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <p className="text-xs text-muted-foreground">
-                          Admins have full access. Leaders can manage people and groups. Members have limited access.
-                        </p>
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button variant="outline" onClick={() => setIsAddMemberOpen(false)}>
-                        Cancel
+                <div className="flex gap-2 w-full sm:w-auto">
+                  {/* Add Existing User Dialog */}
+                  <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" variant="outline" className="flex-1 sm:flex-none">
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Add Existing
                       </Button>
-                      <Button onClick={handleAddMember} disabled={loading}>
-                        {loading ? 'Adding...' : 'Add Member'}
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add Existing User</DialogTitle>
+                        <DialogDescription>
+                          Add someone who already has an account to your organization.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="memberEmail">Email Address</Label>
+                          <Input
+                            id="memberEmail"
+                            type="email"
+                            value={addMemberEmail}
+                            onChange={(e) => setAddMemberEmail(e.target.value)}
+                            placeholder="member@example.com"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="memberRole">Role</Label>
+                          <Select value={addMemberRole} onValueChange={setAddMemberRole}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="member">Member</SelectItem>
+                              <SelectItem value="leader">Leader</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsAddMemberOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button onClick={handleAddMember} disabled={loading}>
+                          {loading ? 'Adding...' : 'Add Member'}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+
+                  {/* Send Invitation Dialog */}
+                  <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" className="flex-1 sm:flex-none">
+                        <Send className="h-4 w-4 mr-2" />
+                        Invite New
                       </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Invite Team Member</DialogTitle>
+                        <DialogDescription>
+                          Send an invitation to someone who doesn't have an account yet.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-3">
+                          <Label>Send invitation via</Label>
+                          <RadioGroup
+                            value={inviteMethod}
+                            onValueChange={(v) => setInviteMethod(v as 'email' | 'sms')}
+                            className="flex gap-4"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="email" id="email" />
+                              <Label htmlFor="email" className="flex items-center gap-2 cursor-pointer">
+                                <Mail className="h-4 w-4" />
+                                Email
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="sms" id="sms" />
+                              <Label htmlFor="sms" className="flex items-center gap-2 cursor-pointer">
+                                <MessageSquare className="h-4 w-4" />
+                                SMS
+                              </Label>
+                            </div>
+                          </RadioGroup>
+                        </div>
+
+                        {inviteMethod === 'email' ? (
+                          <div className="space-y-2">
+                            <Label htmlFor="inviteEmail">Email Address</Label>
+                            <Input
+                              id="inviteEmail"
+                              type="email"
+                              value={inviteEmail}
+                              onChange={(e) => setInviteEmail(e.target.value)}
+                              placeholder="newmember@example.com"
+                            />
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <Label htmlFor="invitePhone">Phone Number</Label>
+                            <Input
+                              id="invitePhone"
+                              type="tel"
+                              value={invitePhone}
+                              onChange={(e) => setInvitePhone(e.target.value)}
+                              placeholder="+1 (555) 123-4567"
+                            />
+                          </div>
+                        )}
+
+                        <div className="space-y-2">
+                          <Label htmlFor="inviteRole">Role</Label>
+                          <Select value={inviteRole} onValueChange={setInviteRole}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="member">Member</SelectItem>
+                              <SelectItem value="leader">Leader</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            Admins have full access. Leaders can manage people and groups. Members have limited access.
+                          </p>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsInviteDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button onClick={handleSendInvitation} disabled={sendingInvite}>
+                          {sendingInvite ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Sending...
+                            </>
+                          ) : (
+                            <>
+                              <Send className="h-4 w-4 mr-2" />
+                              Send Invitation
+                            </>
+                          )}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </CardTitle>
               <CardDescription>
                 Manage who has access to your organization
@@ -845,6 +1141,62 @@ export default function Settings() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Pending Invitations */}
+          {invitations.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Pending Invitations
+                </CardTitle>
+                <CardDescription>
+                  These people have been invited but have not yet joined.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {invitations.map((invite) => (
+                    <div key={invite.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border rounded-lg">
+                      <div className="flex items-center gap-4 flex-1">
+                         <div className="h-10 w-10 rounded-full bg-secondary/80 flex items-center justify-center flex-shrink-0">
+                           <Mail className="h-5 w-5 text-secondary-foreground" />
+                         </div>
+                         <div className="min-w-0">
+                           <p className="font-medium truncate">
+                             {invite.email || invite.phone_number}
+                           </p>
+                           <p className="text-sm text-muted-foreground">
+                             Invited as <span className="font-semibold">{invite.role}</span> &middot; {getTimeRemaining(invite.expires_at)}
+                           </p>
+                         </div>
+                       </div>
+                       <div className="flex items-center gap-2 sm:gap-4 self-end sm:self-center">
+                         <Button
+                           variant="ghost"
+                           size="sm"
+                           onClick={() => handleResendInvitation(invite)}
+                           disabled={loading}
+                         >
+                           <RefreshCw className="h-4 w-4 mr-2" />
+                           Resend
+                         </Button>
+                         <Button
+                           variant="ghost"
+                           size="icon"
+                           onClick={() => handleCancelInvitation(invite.id)}
+                           className="shrink-0"
+                           disabled={loading}
+                         >
+                           <X className="h-4 w-4 text-destructive" />
+                         </Button>
+                       </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Role Permissions Info */}
           <Card>

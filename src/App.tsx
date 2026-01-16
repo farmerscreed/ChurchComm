@@ -10,6 +10,7 @@ import Communications from '@/pages/Communications';
 import CallHistory from '@/pages/CallHistory';
 import Settings from '@/pages/Settings';
 import SystemTest from '@/pages/SystemTest';
+import AcceptInvite from '@/pages/AcceptInvite';
 import { Toaster } from '@/components/ui/toaster';
 
 function App() {
@@ -33,10 +34,14 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public route - login */}
+        {/* Public routes */}
         <Route
           path="/login"
           element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />}
+        />
+        <Route
+          path="/invite/:token"
+          element={user ? <Navigate to="/dashboard" replace /> : <AcceptInvite />}
         />
 
         {/* Protected routes */}
