@@ -200,13 +200,23 @@ export default function Communications() {
 
       if (error) throw error;
 
-      toast({
-        title: 'Success!',
-        description: `SMS sent to ${data.sent || 0} people`,
-      });
-
-      setSmsMessage('');
-      setSmsSelectedGroupId('');
+      // Check if SMS was actually sent
+      if (data.sent === 0) {
+        toast({
+          title: 'SMS Failed',
+          description: data.failed > 0
+            ? 'Twilio authentication failed. Please check your Twilio credentials in Supabase Edge Function Secrets.'
+            : 'No recipients with phone numbers found.',
+          variant: 'destructive'
+        });
+      } else {
+        toast({
+          title: 'Success!',
+          description: `SMS sent to ${data.sent} people${data.failed > 0 ? ` (${data.failed} failed)` : ''}`,
+        });
+        setSmsMessage('');
+        setSmsSelectedGroupId('');
+      }
     } catch (error: any) {
       console.error('Error sending SMS:', error);
       toast({

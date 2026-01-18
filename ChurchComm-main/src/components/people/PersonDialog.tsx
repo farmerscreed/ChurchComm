@@ -172,12 +172,21 @@ export const PersonDialog: React.FC<PersonDialogProps> = ({
 
       if (error) throw error;
 
-      toast({
-        title: 'SMS Sent',
-        description: `Message sent to ${person.first_name} ${person.last_name}`,
-      });
-      setSmsMessage('');
-      setShowSmsForm(false);
+      // Check if SMS was actually sent
+      if (data.sent === 0) {
+        toast({
+          title: 'SMS Failed',
+          description: data.results?.[0]?.error ? 'Twilio authentication failed. Please check your Twilio credentials in Supabase Edge Function Secrets.' : 'Failed to send SMS. No messages were delivered.',
+          variant: 'destructive'
+        });
+      } else {
+        toast({
+          title: 'SMS Sent',
+          description: `Message sent to ${person.first_name} ${person.last_name}`,
+        });
+        setSmsMessage('');
+        setShowSmsForm(false);
+      }
     } catch (error: any) {
       toast({
         title: 'Error',

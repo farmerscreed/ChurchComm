@@ -80,6 +80,8 @@ interface CallStats {
   totalCalls: number;
   completedCalls: number;
   avgDuration: number;
+  callsWithDuration: number;
+  totalTalkTime: number;
   positiveResponses: number;
   neutralResponses: number;
   negativeResponses: number;
@@ -96,6 +98,8 @@ export default function CallHistory() {
     totalCalls: 0,
     completedCalls: 0,
     avgDuration: 0,
+    callsWithDuration: 0,
+    totalTalkTime: 0,
     positiveResponses: 0,
     neutralResponses: 0,
     negativeResponses: 0,
@@ -108,6 +112,20 @@ export default function CallHistory() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sentimentFilter, setSentimentFilter] = useState<string>('all');
   const [activeTab, setActiveTab] = useState('all');
+  const [expandedTranscripts, setExpandedTranscripts] = useState<Set<string>>(new Set());
+
+  const toggleTranscript = (callId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent opening the detail dialog
+    setExpandedTranscripts(prev => {
+      const next = new Set(prev);
+      if (next.has(callId)) {
+        next.delete(callId);
+      } else {
+        next.add(callId);
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (currentOrganization?.id) {
@@ -147,7 +165,9 @@ export default function CallHistory() {
 
       // Calculate stats with null safety
       const completed = logs.filter(l => l.call_status === 'completed' || l.call_status === 'ended').length;
-      const totalDuration = logs.reduce((sum, l) => sum + (l.call_duration ?? 0), 0);
+      // Only calculate avg duration from calls that have actual duration > 0
+      const callsWithDuration = logs.filter(l => (l.call_duration ?? 0) > 0);
+      const totalDuration = callsWithDuration.reduce((sum, l) => sum + (l.call_duration ?? 0), 0);
       const positive = logs.filter(l => l.member_response_type === 'positive').length;
       const neutral = logs.filter(l => l.member_response_type === 'neutral' || !l.member_response_type).length;
       const negative = logs.filter(l => l.member_response_type === 'negative').length;
@@ -157,7 +177,9 @@ export default function CallHistory() {
       setStats({
         totalCalls: logs.length,
         completedCalls: completed,
-        avgDuration: logs.length > 0 ? Math.round(totalDuration / logs.length) : 0,
+        avgDuration: callsWithDuration.length > 0 ? Math.round(totalDuration / callsWithDuration.length) : 0,
+        callsWithDuration: callsWithDuration.length,
+        totalTalkTime: totalDuration,
         positiveResponses: positive,
         neutralResponses: neutral,
         negativeResponses: negative,
@@ -221,6 +243,21 @@ export default function CallHistory() {
         return <Badge className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">Neutral</Badge>;
       default:
         return <Badge variant="outline">Unknown</Badge>;
+    }
+  };
+
+  const getPriorityBadge = (priority: string | null) => {
+    switch (priority) {
+      case 'urgent':
+        return <Badge className="bg-red-600 text-white border-red-700">Urgent</Badge>;
+      case 'high':
+        return <Badge className="bg-orange-500/10 text-orange-600 border-orange-500/20">High Priority</Badge>;
+      case 'medium':
+        return <Badge className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">Medium</Badge>;
+      case 'low':
+        return <Badge className="bg-green-500/10 text-green-600 border-green-500/20">Low</Badge>;
+      default:
+        return null;
     }
   };
 
@@ -303,18 +340,26 @@ export default function CallHistory() {
           </CardContent>
         </Card>
 
-        {/* Average Duration */}
-        <Card className="relative overflow-hidden">
+        {/* Average Duration - Prominent */}
+        <Card className="relative overflow-hidden border-blue-500/30 bg-gradient-to-br from-blue-500/5 to-transparent">
           <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-transparent rounded-bl-full" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Duration</CardTitle>
-            <Timer className="h-4 w-4 text-blue-500" />
+            <CardTitle className="text-sm font-medium text-blue-600">Avg Call Duration</CardTitle>
+            <Timer className="h-5 w-5 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl md:text-3xl font-bold">{formatDuration(stats.avgDuration)}</div>
+            <div className="text-3xl md:text-4xl font-bold text-blue-600">{formatDuration(stats.avgDuration)}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              minutes per call
+              {stats.callsWithDuration > 0
+                ? `Based on ${stats.callsWithDuration} call${stats.callsWithDuration !== 1 ? 's' : ''} with recorded duration`
+                : 'No calls with duration yet'}
             </p>
+            <div className="mt-2 flex items-center gap-2 text-xs">
+              <Clock className="h-3 w-3 text-blue-500" />
+              <span className="text-muted-foreground">
+                Total talk time: {formatDuration(stats.totalTalkTime)}
+              </span>
+            </div>
           </CardContent>
         </Card>
 
@@ -526,6 +571,9 @@ export default function CallHistory() {
 
                                 {/* Tags */}
                                 <div className="flex flex-wrap gap-2 mt-2">
+                                  {call.escalation_priority && call.escalation_priority !== 'low' && (
+                                    getPriorityBadge(call.escalation_priority)
+                                  )}
                                   {call.crisis_indicators === true && (
                                     <Badge variant="destructive" className="text-xs">
                                       <AlertTriangle className="h-3 w-3 mr-1" />
@@ -550,7 +598,34 @@ export default function CallHistory() {
                                       {call.prayer_requests.length} Prayer Request{call.prayer_requests.length > 1 ? 's' : ''}
                                     </Badge>
                                   )}
+                                  {/* View Transcript Button */}
+                                  {call.full_transcript && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-6 text-xs gap-1"
+                                      onClick={(e) => toggleTranscript(call.id, e)}
+                                    >
+                                      <FileText className="h-3 w-3" />
+                                      {expandedTranscripts.has(call.id) ? 'Hide' : 'View'} Transcript
+                                    </Button>
+                                  )}
                                 </div>
+
+                                {/* Expandable Transcript */}
+                                {expandedTranscripts.has(call.id) && call.full_transcript && (
+                                  <div className="mt-3 p-3 bg-muted/50 rounded-lg border" onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <FileText className="h-4 w-4 text-primary" />
+                                      <span className="text-sm font-medium">Call Transcript</span>
+                                    </div>
+                                    <div className="max-h-48 overflow-y-auto">
+                                      <p className="text-sm whitespace-pre-wrap font-mono text-muted-foreground">
+                                        {call.full_transcript}
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
 
                               <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 self-center" />
@@ -750,7 +825,7 @@ export default function CallHistory() {
           <ScrollArea className="flex-1 -mx-6 px-6">
             <div className="space-y-6 pb-4">
               {/* Call Info */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="text-center p-3 bg-muted rounded-lg">
                   <Calendar className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
                   <p className="text-xs text-muted-foreground">Date</p>
@@ -765,18 +840,34 @@ export default function CallHistory() {
                     {selectedCall && format(new Date(selectedCall.created_at), 'h:mm a')}
                   </p>
                 </div>
-                <div className="text-center p-3 bg-muted rounded-lg">
-                  <Timer className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
+                <div className="text-center p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                  <Timer className="h-5 w-5 mx-auto text-blue-500 mb-1" />
                   <p className="text-xs text-muted-foreground">Duration</p>
-                  <p className="font-medium text-sm">
+                  <p className="font-medium text-sm text-blue-600">
                     {formatDuration(selectedCall?.call_duration || 0)}
+                  </p>
+                </div>
+                <div className="text-center p-3 bg-muted rounded-lg">
+                  {getStatusIcon(selectedCall?.call_status || 'unknown')}
+                  <p className="text-xs text-muted-foreground mt-1">Status</p>
+                  <p className="font-medium text-sm capitalize">
+                    {selectedCall?.call_status || 'Unknown'}
                   </p>
                 </div>
               </div>
 
-              {/* Alerts */}
-              {(selectedCall?.crisis_indicators || selectedCall?.needs_pastoral_care || selectedCall?.follow_up_needed) && (
+              {/* Vapi Call ID - for reference */}
+              {selectedCall?.vapi_call_id && (
+                <div className="text-xs text-muted-foreground bg-muted/50 px-3 py-2 rounded flex items-center gap-2">
+                  <span className="font-medium">Vapi Call ID:</span>
+                  <code className="bg-background px-2 py-0.5 rounded text-xs">{selectedCall.vapi_call_id}</code>
+                </div>
+              )}
+
+              {/* Alerts & Priority */}
+              {(selectedCall?.crisis_indicators || selectedCall?.needs_pastoral_care || selectedCall?.follow_up_needed || selectedCall?.escalation_priority) && (
                 <div className="flex flex-wrap gap-2">
+                  {selectedCall?.escalation_priority && getPriorityBadge(selectedCall.escalation_priority)}
                   {selectedCall?.crisis_indicators && (
                     <Badge variant="destructive" className="gap-1">
                       <AlertTriangle className="h-3 w-3" />
