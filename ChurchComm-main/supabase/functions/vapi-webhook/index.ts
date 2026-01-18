@@ -114,7 +114,14 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false
+        }
+      }
     )
 
     // 1. Store or update call log
@@ -258,6 +265,32 @@ serve(async (req) => {
         console.error('Error creating escalation alert:', escalationError)
       } else {
         console.log('Created escalation alert for call:', call_id)
+      }
+    }
+
+    // 4. Create a follow-up record if needed
+    if ((needs_follow_up || crisis_detected || needs_pastoral_care) && organization_id && person_id && callLog) {
+      const { error: followupError } = await supabaseAdmin
+        .from('follow_ups')
+        .insert({
+          organization_id: organization_id,
+          person_id: person_id,
+          call_log_id: callLog.id,
+          status: 'new',
+          priority: priority,
+          notes: [{
+            timestamp: new Date().toISOString(),
+            type: 'system',
+            content: `Follow-up created automatically from call. Reason: ${
+              crisis_detected ? 'Crisis Detected' : (needs_pastoral_care ? 'Pastoral Care Needed' : 'Follow-up Requested')
+            }.`
+          }]
+        })
+
+      if (followupError) {
+        console.error('Error creating follow-up record:', followupError)
+      } else {
+        console.log('Created follow-up record for call:', call_id)
       }
     }
 

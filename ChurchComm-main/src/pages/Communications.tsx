@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,9 +42,6 @@ export default function Communications() {
   // AI Calling State
   const [callSelectedGroupId, setCallSelectedGroupId] = useState<string>('');
   const [selectedScriptId, setSelectedScriptId] = useState<string>('');
-  const [isCreateScriptOpen, setIsCreateScriptOpen] = useState(false);
-  const [newScriptName, setNewScriptName] = useState('');
-  const [newScriptContent, setNewScriptContent] = useState('');
 
   useEffect(() => {
     if (currentOrganization?.id) {
@@ -88,10 +86,10 @@ export default function Communications() {
     setLoadingScripts(true);
     try {
       const { data, error } = await supabase
-        .from('calling_scripts')
+        .from('call_scripts')
         .select('id, name, content')
         .eq('organization_id', currentOrganization.id)
-        .order('created_at', { ascending: false });
+        .order('name', { ascending: true });
 
       if (error) throw error;
 
@@ -107,52 +105,6 @@ export default function Communications() {
       });
     } finally {
       setLoadingScripts(false);
-    }
-  };
-
-  const handleCreateScript = async () => {
-    if (!newScriptName.trim() || !newScriptContent.trim()) {
-      toast({
-        title: 'Error',
-        description: 'Please enter script name and content',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('calling_scripts')
-        .insert({
-          name: newScriptName,
-          content: newScriptContent,
-          organization_id: currentOrganization?.id
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      toast({
-        title: 'Success!',
-        description: 'Calling script created successfully',
-      });
-
-      setScripts([data, ...scripts]);
-      setSelectedScriptId(data.id);
-      setNewScriptName('');
-      setNewScriptContent('');
-      setIsCreateScriptOpen(false);
-    } catch (error: any) {
-      console.error('Error creating script:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to create script',
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -471,55 +423,12 @@ export default function Communications() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label>Calling Script</Label>
-                    <Dialog open={isCreateScriptOpen} onOpenChange={setIsCreateScriptOpen}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm">
+                    <Link to="/settings" onClick={() => localStorage.setItem('settingsTab', 'scripts')}>
+                       <Button variant="outline" size="sm">
                           <Plus className="h-4 w-4 mr-1" />
-                          New Script
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-lg">
-                        <DialogHeader>
-                          <DialogTitle>Create Calling Script</DialogTitle>
-                          <DialogDescription>
-                            Create a new script for your AI calling assistant. Use {'{Name}'} to personalize with the recipient's name.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4 py-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="scriptName">Script Name</Label>
-                            <Input
-                              id="scriptName"
-                              value={newScriptName}
-                              onChange={(e) => setNewScriptName(e.target.value)}
-                              placeholder="e.g., Sunday Service Reminder"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="scriptContent">Script Content</Label>
-                            <Textarea
-                              id="scriptContent"
-                              value={newScriptContent}
-                              onChange={(e) => setNewScriptContent(e.target.value)}
-                              placeholder="Hello {Name}, this is a friendly reminder from First Community Church about our upcoming Sunday service at 10 AM. We would love to see you there! Is there anything we can pray for you about this week?"
-                              rows={8}
-                              className="resize-none"
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Tip: Use {'{Name}'} to personalize with the recipient's first name
-                            </p>
-                          </div>
-                        </div>
-                        <DialogFooter>
-                          <Button variant="outline" onClick={() => setIsCreateScriptOpen(false)}>
-                            Cancel
-                          </Button>
-                          <Button onClick={handleCreateScript} disabled={loading}>
-                            {loading ? 'Creating...' : 'Create Script'}
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
+                          Manage Scripts
+                       </Button>
+                    </Link>
                   </div>
                   <Select value={selectedScriptId} onValueChange={setSelectedScriptId}>
                     <SelectTrigger>
@@ -534,9 +443,9 @@ export default function Communications() {
                     </SelectContent>
                   </Select>
                   {scripts.length === 0 && !loadingScripts && (
-                    <p className="text-sm text-muted-foreground">
-                      No scripts available. Create a new script to get started.
-                    </p>
+                     <p className="text-sm text-muted-foreground">
+                       No scripts available. Go to <Link to="/settings" onClick={() => localStorage.setItem('settingsTab', 'scripts')} className="underline">Settings</Link> to create one.
+                     </p>
                   )}
                   {loadingScripts && <p className="text-sm text-muted-foreground">Loading scripts...</p>}
                 </div>

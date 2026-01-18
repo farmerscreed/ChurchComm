@@ -71,7 +71,7 @@ serve(async (req) => {
     } else {
       // For group calls, get script from database
       const { data: script, error: scriptError } = await supabaseAdmin
-        .from('calling_scripts')
+        .from('call_scripts')
         .select('*')
         .eq('id', scriptId)
         .single()

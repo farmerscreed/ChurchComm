@@ -29,3 +29,8 @@ dist-ssr
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Custom ignores
+google-chrome-stable_current_amd64.deb
+output.txt
+webhook_instructions.txt

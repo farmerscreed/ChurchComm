@@ -15,7 +15,8 @@ import {
   UsersRound,
   PhoneCall,
   History,
-  X
+  X,
+  PhoneForwarded
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
@@ -77,6 +78,11 @@ export function Sidebar({
         { name: 'Outreach', href: '/communications', icon: MessageSquare },
         { name: 'Call History', href: '/call-history', icon: PhoneCall },
       ],
+    },
+    {
+      name: 'Follow-ups',
+      href: '/follow-ups',
+      icon: PhoneForwarded,
     },
   ];
 

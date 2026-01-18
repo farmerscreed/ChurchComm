@@ -22,6 +22,7 @@ interface Person {
   created_at: string;
   updated_at: string;
   member_status: string;
+  stage: string | null;
   tags: string[] | null;
   birthday: string | null;
 }
@@ -46,7 +47,7 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
 
       let query = supabase
         .from('people')
-        .select('*')
+        .select('*, stage')
         .eq('organization_id', currentOrganization.id)
         .order('created_at', { ascending: false });
 
