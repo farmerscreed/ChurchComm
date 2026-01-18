@@ -74,7 +74,7 @@ export function Sidebar({
       name: 'Communications',
       icon: MessageSquare,
       children: [
-        { name: 'Send Messages', href: '/communications', icon: MessageSquare },
+        { name: 'Outreach', href: '/communications', icon: MessageSquare },
         { name: 'Call History', href: '/call-history', icon: PhoneCall },
       ],
     },
