@@ -469,9 +469,22 @@ export default function CallHistory() {
             </CardContent>
           </Card>
 
-          {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+          {/* Tab and Select Controls */}
+          <div className="sm:hidden">
+            <Select value={activeTab} onValueChange={setActiveTab}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="escalations">Escalations</SelectItem>
+                <SelectItem value="follow-ups">Follow-ups</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="hidden sm:block">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="all" className="gap-2">
                 <Phone className="h-4 w-4" />
                 All
@@ -489,156 +502,157 @@ export default function CallHistory() {
                 Follow-ups
               </TabsTrigger>
             </TabsList>
+          </Tabs>
 
-            <TabsContent value={activeTab} className="mt-4">
-              <Card>
-                <CardContent className="p-0">
-                  <ScrollArea className="h-[600px]">
-                    {filteredCalls.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <Phone className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                        <h3 className="text-lg font-medium">No calls found</h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {callLogs.length === 0
-                            ? "Start an AI calling campaign to see call history here"
-                            : "Try adjusting your filters"}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="divide-y">
-                        {filteredCalls.map((call) => (
-                          <div
-                            key={call.id}
-                            className="p-3 sm:p-4 hover:bg-muted/50 cursor-pointer transition-colors"
-                            onClick={() => {
-                              setSelectedCall(call);
-                              setIsDetailOpen(true);
-                            }}
-                          >
-                            <div className="flex items-start gap-3 sm:gap-4">
-                              {/* Avatar */}
-                              <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-background shadow">
-                                <AvatarFallback className={cn(
-                                  "text-sm font-medium",
-                                  call.member_response_type === 'positive' && "bg-green-500/10 text-green-600",
-                                  call.member_response_type === 'negative' && "bg-red-500/10 text-red-600",
-                                  call.member_response_type === 'neutral' && "bg-yellow-500/10 text-yellow-600"
-                                )}>
-                                  {getInitials(call.people?.first_name, call.people?.last_name)}
-                                </AvatarFallback>
-                              </Avatar>
+          {/* Content */}
+          <div className="mt-4">
+            <Card>
+              <CardContent className="p-0">
+                <ScrollArea className="h-[600px]">
+                  {filteredCalls.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <Phone className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                      <h3 className="text-lg font-medium">No calls found</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {callLogs.length === 0
+                          ? "Start an AI calling campaign to see call history here"
+                          : "Try adjusting your filters"}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="divide-y">
+                      {filteredCalls.map((call) => (
+                        <div
+                          key={call.id}
+                          className="p-3 sm:p-4 hover:bg-muted/50 cursor-pointer transition-colors"
+                          onClick={() => {
+                            setSelectedCall(call);
+                            setIsDetailOpen(true);
+                          }}
+                        >
+                          <div className="flex items-start gap-3 sm:gap-4">
+                            {/* Avatar */}
+                            <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-background shadow">
+                              <AvatarFallback className={cn(
+                                "text-sm font-medium",
+                                call.member_response_type === 'positive' && "bg-green-500/10 text-green-600",
+                                call.member_response_type === 'negative' && "bg-red-500/10 text-red-600",
+                                call.member_response_type === 'neutral' && "bg-yellow-500/10 text-yellow-600"
+                              )}>
+                                {getInitials(call.people?.first_name, call.people?.last_name)}
+                              </AvatarFallback>
+                            </Avatar>
 
-                              {/* Content */}
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between gap-2">
-                                  <h4 className="font-medium truncate text-sm sm:text-base">
-                                    {call.people?.first_name || call.people?.last_name
-                                      ? `${call.people?.first_name || ''} ${call.people?.last_name || ''}`.trim()
-                                      : call.phone_number_used || 'Unknown Caller'}
-                                  </h4>
-                                  <div className="flex items-center gap-2 shrink-0">
-                                    {getStatusIcon(call.call_status || 'unknown')}
-                                    {getSentimentIcon(call.member_response_type)}
-                                  </div>
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <h4 className="font-medium truncate text-sm sm:text-base">
+                                  {call.people?.first_name || call.people?.last_name
+                                    ? `${call.people?.first_name || ''} ${call.people?.last_name || ''}`.trim()
+                                    : call.phone_number_used || 'Unknown Caller'}
+                                </h4>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  {getStatusIcon(call.call_status || 'unknown')}
+                                  {getSentimentIcon(call.member_response_type)}
                                 </div>
+                              </div>
 
-                                <p className="text-xs sm:text-sm text-muted-foreground truncate mt-0.5">
-                                  {call.phone_number_used || call.people?.phone_number || 'No phone number'}
+                              <p className="text-xs sm:text-sm text-muted-foreground truncate mt-0.5">
+                                {call.phone_number_used || call.people?.phone_number || 'No phone number'}
+                              </p>
+
+                              {call.call_summary && (
+                                <p className="text-sm mt-2 line-clamp-2 text-foreground/80">
+                                  {call.call_summary}
                                 </p>
+                              )}
 
-                                {call.call_summary && (
-                                  <p className="text-sm mt-2 line-clamp-2 text-foreground/80">
-                                    {call.call_summary}
-                                  </p>
-                                )}
-
-                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
+                              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {format(new Date(call.created_at), 'MMM d, yyyy')}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {format(new Date(call.created_at), 'h:mm a')}
+                                </span>
+                                {(call.call_duration ?? 0) > 0 && (
                                   <span className="flex items-center gap-1">
-                                    <Calendar className="h-3 w-3" />
-                                    {format(new Date(call.created_at), 'MMM d, yyyy')}
+                                    <Timer className="h-3 w-3" />
+                                    {formatDuration(call.call_duration ?? 0)}
                                   </span>
-                                  <span className="flex items-center gap-1">
-                                    <Clock className="h-3 w-3" />
-                                    {format(new Date(call.created_at), 'h:mm a')}
-                                  </span>
-                                  {(call.call_duration ?? 0) > 0 && (
-                                    <span className="flex items-center gap-1">
-                                      <Timer className="h-3 w-3" />
-                                      {formatDuration(call.call_duration ?? 0)}
-                                    </span>
-                                  )}
-                                </div>
-
-                                {/* Tags */}
-                                <div className="flex flex-wrap gap-2 mt-2">
-                                  {call.escalation_priority && call.escalation_priority !== 'low' && (
-                                    getPriorityBadge(call.escalation_priority)
-                                  )}
-                                  {call.crisis_indicators === true && (
-                                    <Badge variant="destructive" className="text-xs">
-                                      <AlertTriangle className="h-3 w-3 mr-1" />
-                                      Crisis
-                                    </Badge>
-                                  )}
-                                  {call.needs_pastoral_care === true && (
-                                    <Badge className="bg-pink-500/10 text-pink-600 border-pink-500/20 text-xs">
-                                      <Heart className="h-3 w-3 mr-1" />
-                                      Pastoral Care
-                                    </Badge>
-                                  )}
-                                  {call.follow_up_needed === true && (
-                                    <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-xs">
-                                      <PhoneCall className="h-3 w-3 mr-1" />
-                                      Follow-up
-                                    </Badge>
-                                  )}
-                                  {call.prayer_requests && call.prayer_requests.length > 0 && (
-                                    <Badge variant="outline" className="text-xs">
-                                      <Sparkles className="h-3 w-3 mr-1" />
-                                      {call.prayer_requests.length} Prayer Request{call.prayer_requests.length > 1 ? 's' : ''}
-                                    </Badge>
-                                  )}
-                                  {/* View Transcript Button */}
-                                  {call.full_transcript && (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-6 text-xs gap-1"
-                                      onClick={(e) => toggleTranscript(call.id, e)}
-                                    >
-                                      <FileText className="h-3 w-3" />
-                                      {expandedTranscripts.has(call.id) ? 'Hide' : 'View'} Transcript
-                                    </Button>
-                                  )}
-                                </div>
-
-                                {/* Expandable Transcript */}
-                                {expandedTranscripts.has(call.id) && call.full_transcript && (
-                                  <div className="mt-3 p-3 bg-muted/50 rounded-lg border" onClick={(e) => e.stopPropagation()}>
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <FileText className="h-4 w-4 text-primary" />
-                                      <span className="text-sm font-medium">Call Transcript</span>
-                                    </div>
-                                    <div className="max-h-48 overflow-y-auto">
-                                      <p className="text-sm whitespace-pre-wrap font-mono text-muted-foreground">
-                                        {call.full_transcript}
-                                      </p>
-                                    </div>
-                                  </div>
                                 )}
                               </div>
 
-                              <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 self-center" />
+                              {/* Tags */}
+                              <div className="flex flex-wrap gap-2 mt-2">
+                                {call.escalation_priority && call.escalation_priority !== 'low' && (
+                                  getPriorityBadge(call.escalation_priority)
+                                )}
+                                {call.crisis_indicators === true && (
+                                  <Badge variant="destructive" className="text-xs">
+                                    <AlertTriangle className="h-3 w-3 mr-1" />
+                                    Crisis
+                                  </Badge>
+                                )}
+                                {call.needs_pastoral_care === true && (
+                                  <Badge className="bg-pink-500/10 text-pink-600 border-pink-500/20 text-xs">
+                                    <Heart className="h-3 w-3 mr-1" />
+                                    Pastoral Care
+                                  </Badge>
+                                )}
+                                {call.follow_up_needed === true && (
+                                  <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-xs">
+                                    <PhoneCall className="h-3 w-3 mr-1" />
+                                    Follow-up
+                                  </Badge>
+                                )}
+                                {call.prayer_requests && call.prayer_requests.length > 0 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    <Sparkles className="h-3 w-3 mr-1" />
+                                    {call.prayer_requests.length} Prayer Request{call.prayer_requests.length > 1 ? 's' : ''}
+                                  </Badge>
+                                )}
+                                {/* View Transcript Button */}
+                                {call.full_transcript && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-6 text-xs gap-1"
+                                    onClick={(e) => toggleTranscript(call.id, e)}
+                                  >
+                                    <FileText className="h-3 w-3" />
+                                    {expandedTranscripts.has(call.id) ? 'Hide' : 'View'} Transcript
+                                  </Button>
+                                )}
+                              </div>
+
+                              {/* Expandable Transcript */}
+                              {expandedTranscripts.has(call.id) && call.full_transcript && (
+                                <div className="mt-3 p-3 bg-muted/50 rounded-lg border" onClick={(e) => e.stopPropagation()}>
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <FileText className="h-4 w-4 text-primary" />
+                                    <span className="text-sm font-medium">Call Transcript</span>
+                                  </div>
+                                  <div className="max-h-48 overflow-y-auto">
+                                    <p className="text-sm whitespace-pre-wrap font-mono text-muted-foreground">
+                                      {call.full_transcript}
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
                             </div>
+
+                            <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 self-center" />
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Quick Insights */}
@@ -797,7 +811,7 @@ export default function CallHistory() {
 
       {/* Call Detail Dialog */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="w-[90vw] max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-start sm:items-center gap-3 flex-col sm:flex-row">
               <Avatar className="h-10 w-10">
@@ -822,7 +836,7 @@ export default function CallHistory() {
             <DialogDescription className="sr-only">Call details and transcript</DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 -mx-6 px-6">
+          <div className="flex-1 overflow-y-auto -mx-6 px-6">
             <div className="space-y-6 pb-4">
               {/* Call Info */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -960,7 +974,7 @@ export default function CallHistory() {
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
