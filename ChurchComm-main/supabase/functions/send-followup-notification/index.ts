@@ -25,7 +25,7 @@ serve(async (req) => {
       });
     }
 
-    const { organization_id, person_id, priority, status } = followUp;
+    const { organization_id, person_id, priority, status, reason } = followUp;
 
     if (!organization_id || !person_id) {
         throw new Error('Missing organization_id or person_id in the follow-up record.');
@@ -143,6 +143,10 @@ serve(async (req) => {
                 <td style="padding: 8px 0; font-weight: bold;">Status:</td>
                 <td style="padding: 8px 0; text-transform: capitalize;">${status}</td>
               </tr>
+              ${reason ? `<tr>
+                <td style="padding: 8px 0; font-weight: bold; vertical-align: top;">Reason:</td>
+                <td style="padding: 8px 0; background: #fef3c7; border-radius: 4px; padding: 8px;">${reason}</td>
+              </tr>` : ''}
               <tr>
                 <td style="padding: 8px 0; font-weight: bold;">Organization:</td>
                 <td style="padding: 8px 0;">${org.name}</td>
@@ -172,7 +176,8 @@ A new follow-up task has been created and requires your attention.
 
 Person: ${personName}
 Priority: ${priorityLabel}
-Status: ${status}
+Status: ${status}${reason ? `
+Reason: ${reason}` : ''}
 Organization: ${org.name}
 
 View the follow-up pipeline: ${followUpUrl}

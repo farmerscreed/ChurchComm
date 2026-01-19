@@ -27,6 +27,7 @@ interface FollowUp {
   created_at: string;
   assigned_to: string | null;
   notes: Note[] | null;
+  reason: string | null;
   person: {
     id: string;
     first_name: string | null;
@@ -61,7 +62,7 @@ const getInitials = (name?: string) => {
 const FollowUpCard = ({ item, onUpdateStatus, members, onAssign, onOpenNotes }: { item: FollowUp; onUpdateStatus: (id: string, newStatus: FollowUp['status']) => void; members: OrganizationMember[]; onAssign: (id: string, userId: string) => void; onOpenNotes: (item: FollowUp) => void; }) => {
     const nextStatus = item.status === 'new' ? 'in_progress' : 'completed';
     const noteCount = item.notes?.length || 0;
-    
+
     return (
         <Card className={`mb-4 ${getPriorityClass(item.priority)}`}>
             <CardContent className="p-4 space-y-4">
@@ -75,6 +76,14 @@ const FollowUpCard = ({ item, onUpdateStatus, members, onAssign, onOpenNotes }: 
                     </div>
                     {item.priority === 'urgent' && <AlertTriangle className="h-5 w-5 text-red-500" />}
                 </div>
+
+                {/* Reason for follow-up - displayed prominently */}
+                {item.reason && (
+                    <div className="bg-muted/50 rounded-md p-2 border-l-4 border-primary">
+                        <p className="text-sm font-medium text-foreground">{item.reason}</p>
+                    </div>
+                )}
+
                 <div className="flex items-center gap-2 flex-wrap">
                     <Badge variant="secondary">{item.person?.stage || 'Prospect'}</Badge>
                     <Badge variant="outline">{item.priority}</Badge>
