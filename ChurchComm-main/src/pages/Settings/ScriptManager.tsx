@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -43,7 +43,7 @@ export default function ScriptManager() {
 
       if (error) throw error;
       setScripts(data);
-    } catch (error: any) {
+    } catch {
       toast({ title: "Error", description: "Could not load scripts.", variant: "destructive" });
     } finally {
       setLoading(false);
@@ -52,7 +52,8 @@ export default function ScriptManager() {
 
   useEffect(() => {
     loadScripts();
-  }, [currentOrganization]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentOrganization?.id]);
 
   const handleOpenDialog = (script: Script | null = null) => {
     setEditingScript(script);
@@ -100,8 +101,8 @@ export default function ScriptManager() {
       
       handleCloseDialog();
       loadScripts();
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message || "Failed to save script.", variant: "destructive" });
+    } catch (error) {
+      toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to save script.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -116,8 +117,8 @@ export default function ScriptManager() {
           if (error) throw error;
           toast({ title: "Success", description: "Script deleted successfully." });
           loadScripts();
-      } catch (error: any) {
-          toast({ title: "Error", description: error.message || "Failed to delete script.", variant: "destructive" });
+      } catch (error) {
+          toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to delete script.", variant: "destructive" });
       } finally {
           setLoading(false);
       }

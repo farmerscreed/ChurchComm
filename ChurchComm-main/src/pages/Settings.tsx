@@ -37,9 +37,11 @@ import {
   MessageSquare,
   Clock,
   RefreshCw,
-  X
+  X,
+  FileText
 } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import ScriptManager from './Settings/ScriptManager';
 
 interface OrganizationMember {
   id: string;
@@ -668,7 +670,7 @@ export default function Settings() {
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-          <TabsList className="inline-flex w-auto min-w-full sm:grid sm:grid-cols-5 sm:w-full h-auto p-1 gap-1">
+          <TabsList className="inline-flex w-auto min-w-full sm:grid sm:grid-cols-6 sm:w-full h-auto p-1 gap-1">
             <TabsTrigger value="organization" className="flex items-center gap-2 px-3 py-2 whitespace-nowrap">
               <Building2 className="h-4 w-4 shrink-0" />
               <span className="text-xs sm:text-sm">Organization</span>
@@ -676,6 +678,10 @@ export default function Settings() {
             <TabsTrigger value="team" className="flex items-center gap-2 px-3 py-2 whitespace-nowrap">
               <Users className="h-4 w-4 shrink-0" />
               <span className="text-xs sm:text-sm">Team</span>
+            </TabsTrigger>
+            <TabsTrigger value="scripts" className="flex items-center gap-2 px-3 py-2 whitespace-nowrap">
+              <FileText className="h-4 w-4 shrink-0" />
+              <span className="text-xs sm:text-sm">Scripts</span>
             </TabsTrigger>
             <TabsTrigger value="ai-calling" className="flex items-center gap-2 px-3 py-2 whitespace-nowrap">
               <Bot className="h-4 w-4 shrink-0" />
@@ -1239,6 +1245,11 @@ export default function Settings() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Scripts Tab */}
+        <TabsContent value="scripts" className="space-y-6">
+          <ScriptManager />
         </TabsContent>
 
         {/* AI Calling Tab */}
