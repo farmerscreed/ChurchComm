@@ -11,9 +11,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 import {
   Building2,
   Phone,
@@ -38,7 +42,9 @@ import {
   Clock,
   RefreshCw,
   X,
-  FileText
+  FileText,
+  ChevronsUpDown,
+  Check
 } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import ScriptManager from './Settings/ScriptManager';
@@ -77,6 +83,7 @@ interface OrganizationSettings {
     email_campaign_complete: boolean;
     email_escalation_alerts: boolean;
     email_weekly_summary: boolean;
+    follow_up_recipients: string[];
   };
   sms: {
     sender_name: string;
@@ -96,11 +103,81 @@ const defaultSettings: OrganizationSettings = {
     email_campaign_complete: true,
     email_escalation_alerts: true,
     email_weekly_summary: false,
+    follow_up_recipients: [],
   },
   sms: {
     sender_name: '',
     opt_out_keywords: ['STOP', 'UNSUBSCRIBE'],
   },
+};
+
+// MultiSelect component for selecting multiple team members
+const MultiSelect = ({
+  items,
+  selected,
+  onChange,
+  placeholder
+}: {
+  items: { value: string; label: string }[];
+  selected: string[];
+  onChange: (selected: string[]) => void;
+  placeholder: string;
+}) => {
+  const [open, setOpen] = useState(false);
+
+  const handleSelect = (value: string) => {
+    onChange(
+      selected.includes(value)
+        ? selected.filter((item) => item !== value)
+        : [...selected, value]
+    );
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between"
+        >
+          <span className="truncate">
+            {selected.length > 0
+              ? selected
+                  .map((val) => items.find((it) => it.value === val)?.label)
+                  .join(', ')
+              : placeholder}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+        <Command>
+          <CommandInput placeholder="Search members..." />
+          <CommandEmpty>No members found.</CommandEmpty>
+          <CommandGroup>
+            <ScrollArea className="h-48">
+              {items.map((item) => (
+                <CommandItem
+                  key={item.value}
+                  onSelect={() => handleSelect(item.value)}
+                >
+                  <Check
+                    className={cn(
+                      'mr-2 h-4 w-4',
+                      selected.includes(item.value) ? 'opacity-100' : 'opacity-0'
+                    )}
+                  />
+                  {item.label}
+                </CommandItem>
+              ))}
+            </ScrollArea>
+          </CommandGroup>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
 };
 
 export default function Settings() {
@@ -157,6 +234,15 @@ export default function Settings() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentOrganization?.id]);
 
+  // Handle deep-linking to specific tabs (e.g., from follow-ups page)
+  useEffect(() => {
+    const tab = localStorage.getItem('settingsTab');
+    if (tab) {
+      setActiveTab(tab);
+      localStorage.removeItem('settingsTab');
+    }
+  }, []);
+
   const loadOrganizationData = async () => {
     if (!currentOrganization) return;
 
@@ -186,11 +272,13 @@ export default function Settings() {
       });
     }
 
-    // Load settings from organization
+    // Load settings from organization with deep merge for each section
     if (currentOrganization.settings) {
+      const settings = currentOrganization.settings as Partial<OrganizationSettings>;
       setOrgSettings({
-        ...defaultSettings,
-        ...currentOrganization.settings
+        ai_calling: { ...defaultSettings.ai_calling, ...settings.ai_calling },
+        notifications: { ...defaultSettings.notifications, ...settings.notifications },
+        sms: { ...defaultSettings.sms, ...settings.sms },
       });
     }
   };
@@ -1396,11 +1484,38 @@ export default function Settings() {
                 Notification Preferences
               </CardTitle>
               <CardDescription>
-                Control how and when you receive notifications
+                Control how and when you and your team receive notifications
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-4">
+              <div className="space-y-6">
+                {/* Follow-up Recipients Selection */}
+                <div className="space-y-2">
+                  <Label>Follow-up & Escalation Recipients</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Select team members who should receive email alerts for new follow-ups and escalations.
+                  </p>
+                  <MultiSelect
+                    items={members.map((m) => ({
+                      value: m.user_id,
+                      label: m.profiles?.full_name || m.profiles?.email || 'Unknown User',
+                    }))}
+                    selected={orgSettings.notifications.follow_up_recipients || []}
+                    onChange={(selected) =>
+                      setOrgSettings({
+                        ...orgSettings,
+                        notifications: {
+                          ...orgSettings.notifications,
+                          follow_up_recipients: selected,
+                        },
+                      })
+                    }
+                    placeholder="Select team members..."
+                  />
+                </div>
+
+                <Separator />
+
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div>
                     <Label>Campaign Completion Alerts</Label>
