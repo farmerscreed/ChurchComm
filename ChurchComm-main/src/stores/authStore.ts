@@ -106,52 +106,41 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   fetchSession: async () => {
-    console.log('fetchSession: Starting');
     set({ loading: true, error: null });
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
       if (error) {
-        console.error('fetchSession: getSession error', error);
         throw error;
       }
 
-      console.log('fetchSession: Session data:', session);
       if (session?.user) {
-        console.log('fetchSession: User found in session, setting user and loading organization.');
         set({ user: session.user, session: session });
         await get().fetchOrganizations();
       } else {
-        console.log('fetchSession: No user in session, setting loading to false.');
         set({ user: null, session: null, loading: false });
       }
     } catch (error: any) {
-      console.error('fetchSession: CATCH block error:', error);
       set({ error: error.message, loading: false, user: null, session: null });
     }
   },
 
   fetchOrganizations: async () => {
-    console.log('--- loadUserOrganization START ---');
     const { user, currentOrganization } = get();
 
     // Prevent re-fetching if organization is already loaded
     if (currentOrganization && currentOrganization.id) {
-      console.log('Organization already in store. Skipping fetch.');
       set({ loading: false }); // Ensure loading is false if we skip
       return;
     }
 
     if (!user) {
-      console.error('loadUserOrganization: No user found, aborting.');
       set({ loading: false });
       return;
     }
 
     set({ loading: true, error: null });
-    console.log('Set loading to true. User ID:', user.id);
 
     try {
-      console.log("Step 1: Fetching memberships from 'organization_members'");
       const { data: memberships, error: membershipError } = await supabase
         .from('organization_members')
         .select('organization_id, role, created_at')
@@ -159,22 +148,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .order('created_at', { ascending: true });
 
       if (membershipError) {
-        console.error('loadUserOrganization ERROR at Step 1:', membershipError);
         throw new Error(`Failed to find your organization membership: ${membershipError.message}`);
       }
       if (!memberships || memberships.length === 0) {
         // User has no organization - this is OK for new users
-        console.log('No organization membership found. User needs to create or join an organization.');
         set({ loading: false, organization: null, currentOrganization: null });
         return;
       }
       // Use the first (oldest) membership as the default
       const membership = memberships[0];
-      console.log('Step 1 SUCCESS. Found', memberships.length, 'membership(s). Using Org ID:', membership.organization_id);
-
       const organizationId = membership.organization_id;
 
-      console.log("Step 2: Fetching organization details from 'organizations'");
       const { data: org, error: orgError } = await supabase
         .from('organizations')
         .select('*')
@@ -182,23 +166,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .single();
 
       if (orgError) {
-        console.error('loadUserOrganization ERROR at Step 2:', orgError);
         throw new Error(`Failed to load your organization details: ${orgError.message}`);
       }
       if (!org) {
-        console.error('loadUserOrganization ERROR: No organization record found for ID:', organizationId);
         throw new Error('Could not load your organization details.');
       }
-      console.log('Step 2 SUCCESS. Organization found:', org.name);
-
-      console.log('Step 3: Setting organization in store.');
       set({ organization: org, currentOrganization: org, loading: false, error: null });
-      console.log('--- loadUserOrganization END ---');
 
     } catch (error: any) {
-      console.error('loadUserOrganization: CATCH block error:', error);
       set({ error: error.message, loading: false });
-      console.log('--- loadUserOrganization END with ERROR ---');
     }
   },
 
@@ -240,17 +216,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 }));
 
-// Listen to auth changes
+// Listen to auth changes to keep the store and Supabase client in sync
 supabase.auth.onAuthStateChange((event, session) => {
-  const store = useAuthStore.getState();
-
-  if (event === 'SIGNED_IN' && session) {
-    store.fetchSession();
+  if (event === 'SIGNED_IN') {
+    useAuthStore.setState({ session, user: session?.user || null });
+    // We fetch organizations after a successful sign-in
+    useAuthStore.getState().fetchOrganizations();
+  } else if (event === 'TOKEN_REFRESHED') {
+    // When the token is refreshed, we update the session in the client and the store
+    if (session) {
+      supabase.auth.setSession(session);
+      useAuthStore.setState({ session, user: session.user });
+    }
   } else if (event === 'SIGNED_OUT') {
-    useAuthStore.setState({
-      user: null,
-      organization: null,
-      currentOrganization: null,
-    });
+    // When the user signs out, we clear the session from the client and the store
+    useAuthStore.setState({ session: null, user: null, organization: null, currentOrganization: null });
   }
 });

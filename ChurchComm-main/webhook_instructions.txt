@@ -1,0 +1,22 @@
+I have created the new Edge Function (`send-followup-notification`) to handle email notifications for new follow-ups.
+
+**Action Required:** To make this function work, you need to create a "Database Webhook" in your Supabase project. This will automatically trigger the function every time a new follow-up task is created.
+
+Here are the steps to set it up in your Supabase Dashboard:
+
+1.  Navigate to **Database** > **Webhooks**.
+2.  Click **Create a new webhook**.
+3.  **Name:** Give it a descriptive name, like `Trigger Follow-up Notification`.
+4.  **Table:** Select the `follow_ups` table.
+5.  **Events:** Check the **Insert** event.
+6.  **Webhook URL:**
+    *   Choose **HTTP Request**.
+    *   **HTTP Method:** `POST`
+    *   **URL:** Enter the URL for your new function. It will be: `[Your Supabase Project URL]/functions/v1/send-followup-notification`
+      * (Replace `[Your Supabase Project URL]` with your actual Supabase URL, e.g., `https://xyz.supabase.co`)
+7.  **HTTP Headers:** Leave this as default. The function does not require special headers.
+8.  Click **Confirm** to save the webhook.
+
+Once this is done, the notification system will be active. New follow-up tasks will automatically trigger an email to the recipients you configured in the Settings.
+
+Please let me know when you are ready to proceed, and I will continue with enhancing the Follow-up Pipeline page.
