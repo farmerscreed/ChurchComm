@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -43,7 +43,7 @@ export default function ScriptManager() {
 
       if (error) throw error;
       setScripts(data);
-    } catch (error: any) {
+    } catch {
       toast({ title: "Error", description: "Could not load scripts.", variant: "destructive" });
     } finally {
       setLoading(false);
@@ -52,7 +52,8 @@ export default function ScriptManager() {
 
   useEffect(() => {
     loadScripts();
-  }, [currentOrganization]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentOrganization?.id]);
 
   const handleOpenDialog = (script: Script | null = null) => {
     setEditingScript(script);
@@ -100,8 +101,8 @@ export default function ScriptManager() {
       
       handleCloseDialog();
       loadScripts();
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message || "Failed to save script.", variant: "destructive" });
+    } catch (error) {
+      toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to save script.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -116,8 +117,8 @@ export default function ScriptManager() {
           if (error) throw error;
           toast({ title: "Success", description: "Script deleted successfully." });
           loadScripts();
-      } catch (error: any) {
-          toast({ title: "Error", description: error.message || "Failed to delete script.", variant: "destructive" });
+      } catch (error) {
+          toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to delete script.", variant: "destructive" });
       } finally {
           setLoading(false);
       }
@@ -186,16 +187,29 @@ export default function ScriptManager() {
               <Input id="script-description" value={scriptDescription} onChange={(e) => setScriptDescription(e.target.value)} placeholder="A short description of this script's purpose." />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="script-content">Script Content</Label>
+              <Label htmlFor="script-content">Script Content (Conversation Guide)</Label>
               <Textarea
                 id="script-content"
                 value={scriptContent}
                 onChange={(e) => setScriptContent(e.target.value)}
-                placeholder="You are a friendly assistant from [Your Church Name]. Your goal is to..."
+                placeholder={`Goals: Welcome them as a new member and make them feel valued.
+
+Topics to cover:
+- Congratulate them on joining
+- Ask how they're settling in
+- Mention ways to connect (small groups, serving teams, classes)
+- Offer to have someone reach out to help them
+
+Tone: Warm, friendly, conversational
+
+Escalation triggers:
+- Wants to serve or join a group → Medium priority
+- Has questions about beliefs → Medium priority
+- Expresses any concerns → High priority`}
                 rows={10}
               />
               <p className="text-xs text-muted-foreground">
-                This is the prompt that will be given to the AI calling agent. You can use variables like {"{{person.first_name}}"}.
+                Write this as a <strong>conversation guide</strong>, not a script to be read word-for-word. Include goals, topics to cover, and the desired tone. The AI will use this as guidance to have a natural conversation. You can use {"{{person.first_name}}"} for the person's name.
               </p>
             </div>
           </div>

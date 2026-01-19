@@ -177,6 +177,11 @@ serve(async (req) => {
         const processedScript = scriptContent
           .replace(/\[Name\]/g, recipient.first_name || 'Friend')
           .replace(/\{Name\}/g, recipient.first_name || 'Friend')
+          .replace(/\{\{person\.first_name\}\}/g, recipient.first_name || 'Friend')
+
+        // Generate a natural first message (greeting) - the script content guides the AI, not gets read verbatim
+        const firstName = recipient.first_name || 'Friend'
+        const naturalFirstMessage = `Hi ${firstName}, this is a call from your church. How are you doing today?`
 
         // Clean phone number
         const cleanPhone = recipient.phone_number.replace(/\D/g, '')
@@ -203,7 +208,7 @@ serve(async (req) => {
           },
           assistant: {
             name: 'Church Connect Assistant',
-            firstMessage: processedScript,
+            firstMessage: naturalFirstMessage,
             model: {
               provider: 'openai',
               model: 'gpt-3.5-turbo',
@@ -211,7 +216,21 @@ serve(async (req) => {
               messages: [
                 {
                   role: 'system',
-                  content: `You are a friendly church assistant making a caring outreach call. Be warm, empathetic, and conversational. Listen actively and respond appropriately. If the person mentions any crisis, distress, or need for pastoral care, note it carefully. Keep the conversation natural and supportive.`
+                  content: `You are a friendly church assistant making a caring outreach call. Be warm, empathetic, and conversational. Listen actively and respond appropriately. If the person mentions any crisis, distress, or need for pastoral care, note it carefully. Keep the conversation natural and supportive.
+
+IMPORTANT: The following is your CALL GUIDE - use it as guidance for the conversation topics and goals. Do NOT read it word-for-word. Instead, use it to inform your conversation naturally:
+
+---
+${processedScript}
+---
+
+Remember:
+- Have a natural, warm conversation - don't read from a script
+- Use the guide above to know what topics to cover and what goals to achieve
+- Adapt based on how the person responds
+- Keep it conversational, not robotic
+- If they're busy, offer to call back at a better time
+- Listen more than you talk`
                 }
               ]
             },

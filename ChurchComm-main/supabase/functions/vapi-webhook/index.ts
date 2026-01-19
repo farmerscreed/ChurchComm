@@ -45,8 +45,52 @@ serve(async (req) => {
     const status = call.status || message.status || 'ended'
     const endedReason = message.endedReason || call.endedReason || 'unknown'
 
-    // Duration is in seconds
-    const duration = call.duration || message.duration || 0
+    // Duration extraction - try multiple fields as Vapi may send it in different formats
+    let duration = 0
+
+    // Helper to safely parse duration value (might be number or string)
+    const parseDuration = (val: any): number => {
+      if (typeof val === 'number' && val > 0) return Math.round(val)
+      if (typeof val === 'string') {
+        const parsed = parseFloat(val)
+        if (!isNaN(parsed) && parsed > 0) return Math.round(parsed)
+      }
+      return 0
+    }
+
+    // Try direct duration fields (in seconds)
+    duration = parseDuration(call.duration) ||
+               parseDuration(message.duration) ||
+               parseDuration(call.durationSeconds) ||
+               parseDuration(message.durationSeconds)
+
+    // Try millisecond fields and convert
+    if (duration === 0) {
+      const durationMs = parseDuration(call.durationMs) || parseDuration(message.durationMs)
+      if (durationMs > 0) {
+        duration = Math.round(durationMs / 1000)
+      }
+    }
+
+    // If still no duration, try calculating from timestamps
+    if (duration === 0) {
+      const startedAt = call.startedAt || message.startedAt
+      const endedAt = call.endedAt || message.endedAt
+
+      if (startedAt && endedAt) {
+        try {
+          const startTime = new Date(startedAt).getTime()
+          const endTime = new Date(endedAt).getTime()
+          if (startTime > 0 && endTime > 0 && endTime > startTime) {
+            duration = Math.round((endTime - startTime) / 1000)
+          }
+        } catch (e) {
+          console.log('Could not parse timestamps for duration calculation')
+        }
+      }
+    }
+
+    console.log('Extracted duration (seconds):', duration)
 
     // Extract artifact (contains transcript and messages)
     const artifact = message.artifact || {}
@@ -96,6 +140,15 @@ serve(async (req) => {
       status,
       endedReason,
       duration,
+      durationSource: duration > 0 ? 'extracted' : 'not_found',
+      rawDurationFields: {
+        'call.duration': call.duration,
+        'message.duration': message.duration,
+        'call.durationSeconds': call.durationSeconds,
+        'call.durationMs': call.durationMs,
+        'call.startedAt': call.startedAt,
+        'call.endedAt': call.endedAt
+      },
       hasTranscript: !!formattedTranscript,
       hasSummary: !!summary,
       hasStructuredData: Object.keys(structuredData).length > 0,
@@ -270,6 +323,26 @@ serve(async (req) => {
 
     // 4. Create a follow-up record if needed
     if ((needs_follow_up || crisis_detected || needs_pastoral_care) && organization_id && person_id && callLog) {
+      // Build a detailed reason for the follow-up
+      const reasonParts: string[] = []
+      if (crisis_detected) {
+        reasonParts.push('Crisis Detected')
+        if (crisis_reason) reasonParts.push(`- ${crisis_reason}`)
+      }
+      if (needs_pastoral_care) {
+        reasonParts.push('Pastoral Care Needed')
+      }
+      if (needs_follow_up && !crisis_detected && !needs_pastoral_care) {
+        reasonParts.push('Follow-up Requested by Member')
+      }
+
+      // Include interests if available
+      if (interests && interests.length > 0) {
+        reasonParts.push(`Interests: ${interests.join(', ')}`)
+      }
+
+      const followUpReason = reasonParts.join('. ')
+
       const { error: followupError } = await supabaseAdmin
         .from('follow_ups')
         .insert({
@@ -278,12 +351,11 @@ serve(async (req) => {
           call_log_id: callLog.id,
           status: 'new',
           priority: priority,
+          reason: followUpReason,
           notes: [{
             timestamp: new Date().toISOString(),
             type: 'system',
-            content: `Follow-up created automatically from call. Reason: ${
-              crisis_detected ? 'Crisis Detected' : (needs_pastoral_care ? 'Pastoral Care Needed' : 'Follow-up Requested')
-            }.`
+            content: `Follow-up created automatically from AI call.\n\nReason: ${followUpReason}${summary ? `\n\nCall Summary: ${summary}` : ''}`
           }]
         })
 
