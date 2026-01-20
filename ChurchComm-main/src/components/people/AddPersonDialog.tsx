@@ -31,7 +31,7 @@ const addPersonSchema = z.object({
   last_name: z.string().min(1, 'Last name is required'),
   email: z.string().email('Invalid email').optional().or(z.literal('')),
   phone_number: z.string().optional(),
-  member_status: z.enum(['visitor', 'first_time_visitor', 'prospect', 'member', 'inactive', 'child']),
+  member_status: z.enum(['visitor', 'first_time_visitor', 'prospect', 'member', 'inactive', 'child', 'hod', 'minister', 'usher', 'sanctuary', 'technical', 'choir']),
   tags: z.string().optional(),
   address: z.object({
     street: z.string().optional(),
@@ -226,6 +226,12 @@ export const AddPersonDialog: React.FC<AddPersonDialogProps> = ({ open, onOpenCh
                         <SelectItem value="member">Member</SelectItem>
                         <SelectItem value="inactive">Inactive</SelectItem>
                         <SelectItem value="child">Child</SelectItem>
+                        <SelectItem value="hod">HOD (Head of Department)</SelectItem>
+                        <SelectItem value="minister">Minister</SelectItem>
+                        <SelectItem value="usher">Usher</SelectItem>
+                        <SelectItem value="sanctuary">Sanctuary</SelectItem>
+                        <SelectItem value="technical">Technical</SelectItem>
+                        <SelectItem value="choir">Choir</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

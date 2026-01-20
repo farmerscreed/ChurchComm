@@ -16,7 +16,7 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
-import { Plus, Users, UserPlus, Trash2, X } from 'lucide-react';
+import { Plus, Users, UserPlus, Trash2, X, Pencil } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -57,6 +57,10 @@ export function GroupManager() {
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newGroup, setNewGroup] = useState({ name: '', description: '' });
+
+  // Edit group state
+  const [editingGroup, setEditingGroup] = useState<Group | null>(null);
+  const [editGroupData, setEditGroupData] = useState({ name: '', description: '' });
 
   const [addMembersGroup, setAddMembersGroup] = useState<Group | null>(null);
   const [selectedPeople, setSelectedPeople] = useState<Person[]>([]);
@@ -173,6 +177,37 @@ export function GroupManager() {
     }
   };
 
+  const openEditDialog = (group: Group) => {
+    setEditingGroup(group);
+    setEditGroupData({ name: group.name, description: group.description || '' });
+  };
+
+  const handleEditGroup = async () => {
+    if (!editingGroup || !editGroupData.name.trim()) {
+      toast({ title: 'Error', description: 'Group name is required.', variant: 'destructive' });
+      return;
+    }
+
+    setIsLoading(true);
+    const { error } = await supabase
+      .from('groups')
+      .update({ name: editGroupData.name, description: editGroupData.description })
+      .eq('id', editingGroup.id);
+
+    if (error) {
+      toast({ title: 'Error updating group', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Success', description: 'Group updated successfully.' });
+      setGroups(groups.map(g =>
+        g.id === editingGroup.id
+          ? { ...g, name: editGroupData.name, description: editGroupData.description }
+          : g
+      ));
+      setEditingGroup(null);
+    }
+    setIsLoading(false);
+  };
+
   const handleAddMembers = async () => {
     if (!addMembersGroup || selectedPeople.length === 0) return;
 
@@ -279,25 +314,35 @@ export function GroupManager() {
               <CardHeader>
                 <CardTitle className="flex justify-between items-start">
                   <span className="font-semibold">{group.name}</span>
-                   <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0">
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                  </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will permanently delete the "{group.name}" group. This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDeleteGroup(group.id)}>Delete</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 flex-shrink-0"
+                      onClick={() => openEditDialog(group)}
+                    >
+                      <Pencil className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0">
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete the "{group.name}" group. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteGroup(group.id)}>Delete</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </CardTitle>
                 <p className="text-sm text-muted-foreground pt-1">{group.description || 'No description.'}</p>
               </CardHeader>
@@ -387,6 +432,43 @@ export function GroupManager() {
                 {isLoading ? 'Adding...' : `Add ${selectedPeople.length} Members`}
               </Button>
             </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Group Dialog */}
+      <Dialog open={!!editingGroup} onOpenChange={() => setEditingGroup(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Group</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Group Name</Label>
+              <Input
+                id="edit-name"
+                value={editGroupData.name}
+                onChange={(e) => setEditGroupData({ ...editGroupData, name: e.target.value })}
+                placeholder="e.g., 'First Timers' or 'Youth Ministry'"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description (Optional)</Label>
+              <Textarea
+                id="edit-description"
+                value={editGroupData.description}
+                onChange={(e) => setEditGroupData({ ...editGroupData, description: e.target.value })}
+                placeholder="A brief summary of the group's purpose"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingGroup(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditGroup} disabled={isLoading}>
+              {isLoading ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

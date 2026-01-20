@@ -99,6 +99,12 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
       case 'inactive': return 'bg-gray-100 text-gray-800';
       case 'child': return 'bg-yellow-100 text-yellow-800';
       case 'first_time_visitor': return 'bg-pink-100 text-pink-800';
+      case 'hod': return 'bg-indigo-100 text-indigo-800';
+      case 'minister': return 'bg-violet-100 text-violet-800';
+      case 'usher': return 'bg-orange-100 text-orange-800';
+      case 'sanctuary': return 'bg-teal-100 text-teal-800';
+      case 'technical': return 'bg-cyan-100 text-cyan-800';
+      case 'choir': return 'bg-rose-100 text-rose-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -168,6 +174,12 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
               <SelectItem value="prospect">Prospects</SelectItem>
               <SelectItem value="inactive">Inactive</SelectItem>
               <SelectItem value="child">Children</SelectItem>
+              <SelectItem value="hod">HOD</SelectItem>
+              <SelectItem value="minister">Ministers</SelectItem>
+              <SelectItem value="usher">Ushers</SelectItem>
+              <SelectItem value="sanctuary">Sanctuary</SelectItem>
+              <SelectItem value="technical">Technical</SelectItem>
+              <SelectItem value="choir">Choir</SelectItem>
             </SelectContent>
           </Select>
 

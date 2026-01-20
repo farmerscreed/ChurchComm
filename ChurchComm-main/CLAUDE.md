@@ -268,8 +268,8 @@ Create a `.env` file in the root directory:
 
 ```env
 # Supabase
-VITE_SUPABASE_URL=https://your_project_ref.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh4ZXFxZ3djZG56eHB3dHN1dXZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxNzU4ODcsImV4cCI6MjA4Mzc1MTg4N30.5BrO35dGc3qryxEqnMBdm97zoIbX9kXRu3Y1TK-UqH4
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 # Twilio (SMS)
 TWILIO_ACCOUNT_SID=your_twilio_account_sid
@@ -281,7 +281,7 @@ VAPI_API_KEY=your_vapi_api_key
 VAPI_PHONE_NUMBER_ID=your_vapi_phone_number_id
 
 # OpenAI (Memory System)
-OPENAI_API_KEY=xxx
+OPENAI_API_KEY=your_openai_api_key
 ```
 
 ---
