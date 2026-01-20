@@ -144,6 +144,9 @@ export default function Communications() {
           message: smsMessage,
           organizationId: currentOrganization?.id,
           createdBy: user?.id
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 
@@ -213,6 +216,9 @@ export default function Communications() {
           scriptId: selectedScriptId,
           organizationId: currentOrganization?.id,
           createdBy: user?.id
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 

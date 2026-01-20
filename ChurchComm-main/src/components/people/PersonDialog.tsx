@@ -161,7 +161,9 @@ export const PersonDialog: React.FC<PersonDialogProps> = ({
     setSendingSms(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!user || !session) {
         throw new Error('You must be logged in to send SMS');
       }
 
@@ -172,6 +174,9 @@ export const PersonDialog: React.FC<PersonDialogProps> = ({
           message: smsMessage,
           organizationId: currentOrganization?.id,
           createdBy: user.id
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 
@@ -217,7 +222,8 @@ export const PersonDialog: React.FC<PersonDialogProps> = ({
     setInitiatingCall(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!user || !session) {
         throw new Error('You must be logged in to initiate calls');
       }
 
@@ -229,6 +235,9 @@ export const PersonDialog: React.FC<PersonDialogProps> = ({
           organizationId: currentOrganization?.id,
           campaignName: `Individual call to ${person.first_name} ${person.last_name}`,
           createdBy: user.id
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 

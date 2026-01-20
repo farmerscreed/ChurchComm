@@ -216,20 +216,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 }));
 
-// Listen to auth changes to keep the store and Supabase client in sync
+// Listen to auth changes
 supabase.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_IN') {
-    useAuthStore.setState({ session, user: session?.user || null });
-    // We fetch organizations after a successful sign-in
-    useAuthStore.getState().fetchOrganizations();
-  } else if (event === 'TOKEN_REFRESHED') {
-    // When the token is refreshed, we update the session in the client and the store
-    if (session) {
-      supabase.auth.setSession(session);
-      useAuthStore.setState({ session, user: session.user });
-    }
+  const store = useAuthStore.getState();
+
+  if (event === 'SIGNED_IN' && session) {
+    store.fetchSession();
   } else if (event === 'SIGNED_OUT') {
-    // When the user signs out, we clear the session from the client and the store
-    useAuthStore.setState({ session: null, user: null, organization: null, currentOrganization: null });
+    useAuthStore.setState({
+      user: null,
+      organization: null,
+      currentOrganization: null,
+    });
   }
 });
