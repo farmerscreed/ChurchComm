@@ -31,6 +31,7 @@ interface NavigationItem {
   name: string;
   href?: string;
   icon: any;
+  dataTour?: string;
   children?: {
     name:string;
     href: string;
@@ -65,6 +66,7 @@ export function Sidebar({
     {
       name: 'People',
       icon: Users,
+      dataTour: 'people-nav',
       children: [
         { name: 'Directory', href: '/people', icon: Users },
         { name: 'Groups', href: '/groups', icon: UsersRound },
@@ -73,6 +75,7 @@ export function Sidebar({
     {
       name: 'Communications',
       icon: MessageSquare,
+      dataTour: 'communications-nav',
       children: [
         { name: 'Send Messages', href: '/communications', icon: MessageSquare },
         { name: 'Call History', href: '/call-history', icon: PhoneCall },
@@ -149,6 +152,7 @@ export function Sidebar({
                   key={item.name}
                   open={isExpanded && (isMobile || !isCollapsed)}
                   onOpenChange={() => toggleExpanded(item.name.toLowerCase())}
+                  {...(item.dataTour ? { 'data-tour': item.dataTour } : {})}
                 >
                   <CollapsibleTrigger asChild>
                     <Button
@@ -229,6 +233,7 @@ export function Sidebar({
       <div className={cn('border-t p-3 space-y-1', !isMobile && isCollapsed && 'hidden')}>
         <Link
           to="/settings"
+          data-tour="settings-nav"
           className={cn(
             'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
             'hover:bg-accent hover:text-accent-foreground',

@@ -44,6 +44,7 @@ interface AuthState {
   signUp: (email: string, password: string, firstName: string, lastName: string, organizationName?: string) => Promise<void>;
   fetchSession: () => Promise<void>;
   fetchOrganizations: () => Promise<void>;
+  refreshOrganization: () => Promise<void>;
   setCurrentOrganization: (organizationId: string) => Promise<void>;
   hasPermission: (action: string, subject: string) => boolean;
   clearError: () => void;
@@ -207,6 +208,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ currentOrganization: organization });
       // You might want to fetch organization-specific data here
     }
+  },
+
+  refreshOrganization: async () => {
+    // Clear current organization to force a refetch
+    set({ currentOrganization: null, organization: null });
+    await get().fetchOrganizations();
   },
 
   hasPermission: (action: string, subject: string) => {

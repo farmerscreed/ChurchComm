@@ -39,9 +39,21 @@ import {
   RefreshCw,
   X,
   Copy,
-  CheckCircle
+  CheckCircle,
+  FileText,
+  Edit,
+  Volume2,
+  Wand2,
+  Brain,
+  RotateCcw
 } from 'lucide-react';
+import { ScriptTemplateGallery } from '@/components/communications/ScriptTemplateGallery';
+import { ScriptBuilder } from '@/components/communications/ScriptBuilder';
+import { VariableReference } from '@/components/communications/VariableReference';
+import { ScriptList } from '@/components/communications/ScriptList';
+import { VOICE_PRESETS, DEFAULT_VOICE } from '@/lib/voice-presets';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { ChurchContextManager } from '@/components/settings/ChurchContextManager';
 
 interface OrganizationMember {
   id: string;
@@ -649,6 +661,37 @@ export default function Settings() {
     }
   };
 
+  const handleRestartTour = async () => {
+    if (!currentOrganization?.id || !user?.id) return;
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('organization_members')
+        .update({ tour_completed: false })
+        .eq('organization_id', currentOrganization.id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Tour restarted',
+        description: 'The guided tour will start on your next page load.',
+      });
+
+      // Reload to trigger the tour
+      window.location.reload();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to restart tour',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
       case 'admin': return 'default';
@@ -670,7 +713,7 @@ export default function Settings() {
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-          <TabsList className="inline-flex w-auto min-w-full sm:grid sm:grid-cols-5 sm:w-full h-auto p-1 gap-1">
+          <TabsList className="inline-flex w-auto min-w-full sm:grid sm:grid-cols-7 sm:w-full h-auto p-1 gap-1">
             <TabsTrigger value="organization" className="flex items-center gap-2 px-3 py-2 whitespace-nowrap">
               <Building2 className="h-4 w-4 shrink-0" />
               <span className="text-xs sm:text-sm">Organization</span>
@@ -683,6 +726,10 @@ export default function Settings() {
               <Bot className="h-4 w-4 shrink-0" />
               <span className="text-xs sm:text-sm">AI</span>
             </TabsTrigger>
+            <TabsTrigger value="scripts" className="flex items-center gap-2 px-3 py-2 whitespace-nowrap">
+              <FileText className="h-4 w-4 shrink-0" />
+              <span className="text-xs sm:text-sm">Scripts</span>
+            </TabsTrigger>
             <TabsTrigger value="notifications" className="flex items-center gap-2 px-3 py-2 whitespace-nowrap">
               <Bell className="h-4 w-4 shrink-0" />
               <span className="text-xs sm:text-sm">Alerts</span>
@@ -690,6 +737,10 @@ export default function Settings() {
             <TabsTrigger value="data-privacy" className="flex items-center gap-2 px-3 py-2 whitespace-nowrap">
               <Shield className="h-4 w-4 shrink-0" />
               <span className="text-xs sm:text-sm">Data</span>
+            </TabsTrigger>
+            <TabsTrigger value="ai-context" className="flex items-center gap-2 px-3 py-2 whitespace-nowrap">
+              <Brain className="h-4 w-4 shrink-0" />
+              <span className="text-xs sm:text-sm">Context</span>
             </TabsTrigger>
           </TabsList>
         </div>
@@ -1106,7 +1157,7 @@ export default function Settings() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2 sm:gap-4 self-end sm:self-center">
-                         <Badge variant={getRoleBadgeVariant(member.role)} className="shrink-0">
+                        <Badge variant={getRoleBadgeVariant(member.role)} className="shrink-0">
                           {member.role === 'admin' && <Crown className="h-3 w-3 mr-1" />}
                           {member.role}
                         </Badge>
@@ -1159,38 +1210,38 @@ export default function Settings() {
                   {invitations.map((invite) => (
                     <div key={invite.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border rounded-lg">
                       <div className="flex items-center gap-4 flex-1">
-                         <div className="h-10 w-10 rounded-full bg-secondary/80 flex items-center justify-center flex-shrink-0">
-                           <Mail className="h-5 w-5 text-secondary-foreground" />
-                         </div>
-                         <div className="min-w-0">
-                           <p className="font-medium truncate">
-                             {invite.email || invite.phone_number}
-                           </p>
-                           <p className="text-sm text-muted-foreground">
-                             Invited as <span className="font-semibold">{invite.role}</span> &middot; {getTimeRemaining(invite.expires_at)}
-                           </p>
-                         </div>
-                       </div>
-                       <div className="flex items-center gap-2 sm:gap-4 self-end sm:self-center">
-                         <Button
-                           variant="ghost"
-                           size="sm"
-                           onClick={() => handleResendInvitation(invite)}
-                           disabled={loading}
-                         >
-                           <RefreshCw className="h-4 w-4 mr-2" />
-                           Resend
-                         </Button>
-                         <Button
-                           variant="ghost"
-                           size="icon"
-                           onClick={() => handleCancelInvitation(invite.id)}
-                           className="shrink-0"
-                           disabled={loading}
-                         >
-                           <X className="h-4 w-4 text-destructive" />
-                         </Button>
-                       </div>
+                        <div className="h-10 w-10 rounded-full bg-secondary/80 flex items-center justify-center flex-shrink-0">
+                          <Mail className="h-5 w-5 text-secondary-foreground" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">
+                            {invite.email || invite.phone_number}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Invited as <span className="font-semibold">{invite.role}</span> &middot; {getTimeRemaining(invite.expires_at)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 sm:gap-4 self-end sm:self-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleResendInvitation(invite)}
+                          disabled={loading}
+                        >
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          Resend
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleCancelInvitation(invite.id)}
+                          className="shrink-0"
+                          disabled={loading}
+                        >
+                          <X className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1378,6 +1429,47 @@ export default function Settings() {
 
         </TabsContent>
 
+        {/* Scripts Tab */}
+        <TabsContent value="scripts" className="space-y-6">
+          {/* AI Script Builder */}
+          <ScriptBuilder onSave={() => { }} />
+
+          {/* Template Gallery */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Copy className="h-5 w-5" />
+                Template Gallery
+              </CardTitle>
+              <CardDescription>
+                Start with a pre-built template and customize it for your needs.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScriptTemplateGallery onClone={() => { }} />
+            </CardContent>
+          </Card>
+
+          {/* My Scripts */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                My Scripts
+              </CardTitle>
+              <CardDescription>
+                Manage your custom scripts for AI calling campaigns.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScriptList onRefresh={() => { }} />
+            </CardContent>
+          </Card>
+
+          {/* Variable Reference */}
+          <VariableReference />
+        </TabsContent>
+
         {/* Notifications Tab */}
         <TabsContent value="notifications" className="space-y-6">
           <Card>
@@ -1521,6 +1613,34 @@ export default function Settings() {
             </CardContent>
           </Card>
 
+          {/* Guided Tour */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <RotateCcw className="h-5 w-5" />
+                Guided Tour
+              </CardTitle>
+              <CardDescription>
+                Replay the guided walkthrough of ChurchComm features
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={handleRestartTour} disabled={loading} variant="outline">
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Restarting...
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Restart Tour
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
           {/* Danger Zone */}
           <Card className="border-destructive">
             <CardHeader>
@@ -1548,6 +1668,24 @@ export default function Settings() {
               <p className="text-xs text-muted-foreground">
                 Contact support to delete your organization
               </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* AI Context Tab */}
+        <TabsContent value="ai-context" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5" />
+                AI Context Management
+              </CardTitle>
+              <CardDescription>
+                Configure information that the AI will use during phone calls
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ChurchContextManager />
             </CardContent>
           </Card>
         </TabsContent>

@@ -1,7 +1,7 @@
 ---
 name: frontend-developer
 description: "Use this agent when the user needs to create, modify, or refactor frontend code including React pages, components, hooks, and stores within the `src/` directory. This includes building new UI features, updating existing components, creating custom hooks, managing state stores, styling components, and handling frontend-specific logic.\\n\\nExamples:\\n\\n- User: \"Create a new dashboard page with a sidebar and main content area\"\\n  Assistant: \"I'll use the frontend-developer agent to build the dashboard page with the sidebar and main content area.\"\\n  (Uses Task tool to launch frontend-developer agent)\\n\\n- User: \"Add a custom hook for managing form validation\"\\n  Assistant: \"Let me use the frontend-developer agent to create a custom form validation hook.\"\\n  (Uses Task tool to launch frontend-developer agent)\\n\\n- User: \"Refactor the user profile component to use the new design system\"\\n  Assistant: \"I'll launch the frontend-developer agent to refactor the user profile component.\"\\n  (Uses Task tool to launch frontend-developer agent)\\n\\n- User: \"Create a Zustand store for managing the shopping cart state\"\\n  Assistant: \"I'll use the frontend-developer agent to create the shopping cart state store.\"\\n  (Uses Task tool to launch frontend-developer agent)\\n\\n- User: \"Build a reusable modal component with animations\"\\n  Assistant: \"Let me use the frontend-developer agent to build the reusable modal component.\"\\n  (Uses Task tool to launch frontend-developer agent)"
-model: opus
+model: sonnet
 color: blue
 ---
 

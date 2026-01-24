@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +11,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { MessageSquare, Phone, Send, Loader2, Plus, PhoneCall } from 'lucide-react';
+import { MessageSquare, Phone, Send, Loader2, Plus, PhoneCall, Rocket } from 'lucide-react';
+import { CampaignBuilder } from '@/components/communications/CampaignBuilder';
+import { DemoDataNotice } from '@/components/demo/DemoDataNotice';
 
 interface Group {
   id: string;
@@ -25,13 +28,17 @@ interface CallingScript {
 }
 
 export default function Communications() {
+  const navigate = useNavigate();
   const { currentOrganization } = useAuthStore();
   const { toast } = useToast();
+  const [showBuilder, setShowBuilder] = useState(false);
   const [groups, setGroups] = useState<Group[]>([]);
   const [scripts, setScripts] = useState<CallingScript[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [loadingScripts, setLoadingScripts] = useState(false);
+  const [hasDemoData, setHasDemoData] = useState(false);
+
 
   // SMS State
   const [smsMessage, setSmsMessage] = useState('');
@@ -49,8 +56,19 @@ export default function Communications() {
     if (currentOrganization?.id) {
       loadGroups();
       loadScripts();
+      checkDemoData();
     }
   }, [currentOrganization]);
+
+  const checkDemoData = async () => {
+    if (!currentOrganization?.id) return;
+    const { count } = await supabase
+      .from("people")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", currentOrganization.id)
+      .eq("is_demo", true);
+    setHasDemoData((count || 0) > 0);
+  };
 
   const loadGroups = async () => {
     if (!currentOrganization?.id) return;
@@ -282,14 +300,42 @@ export default function Communications() {
 
   const selectedScript = scripts.find(s => s.id === selectedScriptId);
 
+  // Show Campaign Builder if active
+  if (showBuilder) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold">New Campaign</h1>
+            <p className="text-muted-foreground mt-1">Create a new Voice or SMS campaign</p>
+          </div>
+        </div>
+        <CampaignBuilder
+          onComplete={(campaign) => {
+            setShowBuilder(false);
+            toast({ title: "Campaign created!", description: `ID: ${campaign.id}` });
+          }}
+          onCancel={() => setShowBuilder(false)}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {hasDemoData && <DemoDataNotice />}
       {/* Header */}
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold">Communications</h1>
-        <p className="text-muted-foreground mt-1">
-          Send SMS messages and AI calls to your congregation
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold">Communications</h1>
+          <p className="text-muted-foreground mt-1">
+            Send SMS messages and AI calls to your congregation
+          </p>
+        </div>
+        <Button onClick={() => setShowBuilder(true)} size="lg" className="bg-primary">
+          <Rocket className="h-4 w-4 mr-2" />
+          New Campaign
+        </Button>
       </div>
 
       {/* Main Tabs */}
@@ -359,7 +405,7 @@ export default function Communications() {
                         No groups available. Create a group first.
                       </p>
                     )}
-                     {loadingGroups && <p className="text-sm text-muted-foreground">Loading groups...</p>}
+                    {loadingGroups && <p className="text-sm text-muted-foreground">Loading groups...</p>}
                   </div>
                 )}
               </div>

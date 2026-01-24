@@ -15,7 +15,9 @@
       "Bash(cmd.exe /c \"where gh 2>&1 && gh auth status 2>&1\")",
       "Bash(git remote add:*)",
       "Bash(git push:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(git add:*)",
+      "mcp__plugin_supabase_supabase__deploy_edge_function"
     ]
   }
 }

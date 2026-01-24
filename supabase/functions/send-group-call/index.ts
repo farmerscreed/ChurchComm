@@ -1,6 +1,8 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
+import { substituteVariables, calculateMembershipDuration } from '../_shared/substitute-variables.ts'
+import { buildEnhancedPrompt } from '../_shared/context-injection.ts'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -50,6 +52,28 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    // Check minute usage before allowing calls
+    const { data: usage } = await supabaseAdmin
+      .from('minute_usage')
+      .select('minutes_used, minutes_included, overage_approved')
+      .eq('organization_id', organizationId)
+      .order('billing_period_start', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (usage) {
+      const minutesUsed = parseFloat(String(usage.minutes_used)) || 0
+      if (minutesUsed >= (usage.minutes_included || 0) && !usage.overage_approved) {
+        return new Response(JSON.stringify({
+          error: 'Monthly minute limit reached. Upgrade plan or approve overage in Settings.',
+          code: 'MINUTE_LIMIT_REACHED'
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 403,
+        })
+      }
+    }
+
     // Get Vapi configuration from environment variables
     const VAPI_API_KEY = Deno.env.get('VAPI_API_KEY')
     const VAPI_PHONE_NUMBER_ID = Deno.env.get('VAPI_PHONE_NUMBER_ID')
@@ -65,19 +89,22 @@ serve(async (req) => {
     // Get script content - either from database or use raw script for individual calls
     let scriptContent: string
 
+    let scriptVoiceId = 'paula' // Default voice
+
     if (isIndividualCall) {
       // For individual calls, use the provided script or a default greeting
-      scriptContent = rawScript || 'Hello {Name}, this is a call from your church. How are you doing today?'
+      scriptContent = rawScript || 'Hello {first_name}, this is a call from your church. How are you doing today?'
     } else {
       // For group calls, get script from database
       const { data: script, error: scriptError } = await supabaseAdmin
-        .from('calling_scripts')
+        .from('call_scripts')
         .select('*')
         .eq('id', scriptId)
         .single()
 
       if (scriptError) throw scriptError
       scriptContent = script.content
+      scriptVoiceId = script.voice_id || 'paula'
     }
 
     // Get recipients based on call type
@@ -104,7 +131,8 @@ serve(async (req) => {
             id,
             first_name,
             last_name,
-            phone_number
+            phone_number,
+            created_at
           )
         `)
         .eq('group_id', groupId)
@@ -173,10 +201,41 @@ serve(async (req) => {
           .select()
           .single()
 
-        // Process script variables
-        const processedScript = scriptContent
-          .replace(/\[Name\]/g, recipient.first_name || 'Friend')
-          .replace(/\{Name\}/g, recipient.first_name || 'Friend')
+        // Get organization name for variable substitution
+        let orgName = 'your church'
+        if (!isIndividualCall) {
+          const { data: orgData } = await supabaseAdmin
+            .from('organizations')
+            .select('name')
+            .eq('id', organizationId)
+            .single()
+          if (orgData) orgName = orgData.name
+        }
+
+        // Process script variables using shared substitution engine
+        const processedScript = substituteVariables(scriptContent, {
+          first_name: recipient.first_name || 'Friend',
+          last_name: recipient.last_name || '',
+          church_name: orgName,
+          pastor_name: '',
+          day_of_week: new Date().toLocaleDateString('en-US', { weekday: 'long' }),
+          membership_duration: recipient.created_at
+            ? calculateMembershipDuration(new Date(recipient.created_at))
+            : '',
+        })
+
+        // Enhanced prompt with memory injection (Epic 6)
+        let finalPrompt = processedScript
+        try {
+          finalPrompt = await buildEnhancedPrompt(
+            processedScript,
+            supabaseAdmin,
+            recipient.id,
+            organizationId
+          )
+        } catch (err) {
+          console.error('Failed to build enhanced prompt:', err)
+        }
 
         // Clean phone number
         const cleanPhone = recipient.phone_number.replace(/\D/g, '')
@@ -203,7 +262,7 @@ serve(async (req) => {
           },
           assistant: {
             name: 'Church Connect Assistant',
-            firstMessage: processedScript,
+            firstMessage: finalPrompt,
             model: {
               provider: 'openai',
               model: 'gpt-3.5-turbo',
@@ -217,7 +276,7 @@ serve(async (req) => {
             },
             voice: {
               provider: '11labs',
-              voiceId: 'paula'
+              voiceId: scriptVoiceId
             },
             serverUrl: webhookUrl,
             endCallMessage: 'Thank you so much for talking with me today. God bless you!',
@@ -369,7 +428,7 @@ serve(async (req) => {
         } else {
           const errorText = await vapiResponse.text()
           let parsedError: any = errorText
-          try { parsedError = JSON.parse(errorText) } catch (e) {}
+          try { parsedError = JSON.parse(errorText) } catch (e) { }
 
           // If HTTP 402 (payment required) or the provider reports a balance issue, pause the campaign
           try {

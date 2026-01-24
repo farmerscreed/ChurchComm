@@ -11,6 +11,8 @@ import CallHistory from '@/pages/CallHistory';
 import Settings from '@/pages/Settings';
 import SystemTest from '@/pages/SystemTest';
 import AcceptInvite from '@/pages/AcceptInvite';
+import OnboardingPage from '@/pages/OnboardingPage';
+import PricingPage from '@/pages/PricingPage';
 import { Toaster } from '@/components/ui/toaster';
 
 function App() {
@@ -42,6 +44,13 @@ function App() {
         <Route
           path="/invite/:token"
           element={user ? <Navigate to="/dashboard" replace /> : <AcceptInvite />}
+        />
+        <Route path="/pricing" element={<PricingPage />} />
+
+        {/* Onboarding route (authenticated but outside AppLayout) */}
+        <Route
+          path="/onboarding"
+          element={user ? <OnboardingPage /> : <Navigate to="/login" replace />}
         />
 
         {/* Protected routes */}

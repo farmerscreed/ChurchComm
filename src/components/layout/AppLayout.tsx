@@ -2,9 +2,12 @@ import { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
+import { SubscriptionBanner } from './SubscriptionBanner';
 import { useAuthStore } from '@/stores/authStore';
+import { useOnboardingRedirect } from '@/hooks/useOnboardingRedirect';
+import { GuidedTour } from '@/components/onboarding/GuidedTour';
 import { Badge } from '@/components/ui/badge';
-import { Users } from 'lucide-react';
+import { Users, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function AppLayout() {
@@ -12,6 +15,9 @@ export function AppLayout() {
   const [isMobileNavOpen, setMobileNavOpen] = useState(false);
   const { currentOrganization } = useAuthStore();
   const location = useLocation();
+
+  // Check onboarding status and redirect if needed
+  const { checked } = useOnboardingRedirect();
 
   useEffect(() => {
     // Close mobile nav on route change
@@ -33,6 +39,7 @@ export function AppLayout() {
 
   return (
     <div className="flex min-h-screen bg-background text-foreground w-full">
+      <GuidedTour />
       <Sidebar
         isCollapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -42,6 +49,7 @@ export function AppLayout() {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopBar onMenuClick={() => setMobileNavOpen(true)} />
+        <SubscriptionBanner />
 
         {/* Organization Status Bar */}
         <div className="h-8 bg-card/50 border-b border-border px-4 md:px-6 flex items-center justify-between">

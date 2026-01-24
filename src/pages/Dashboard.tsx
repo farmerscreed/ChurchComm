@@ -1,59 +1,142 @@
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { useAuthStore } from '@/stores/authStore';
-import { supabase } from '@/integrations/supabase/client';
-import { Users, UsersRound, MessageSquare, TrendingUp, UserPlus, Mail } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from "react";
+import { useAuthStore } from "@/stores/authStore";
+import { usePermissions } from "@/hooks/usePermissions";
+import { supabase } from "@/integrations/supabase/client";
+import { MinuteUsageWidget } from "@/components/dashboard/MinuteUsageWidget";
+import { ActiveCampaignsWidget } from "@/components/dashboard/ActiveCampaignsWidget";
+import { RecentCallsWidget } from "@/components/dashboard/RecentCallsWidget";
+import { EscalationWidget } from "@/components/dashboard/EscalationWidget";
+import { CallSuccessWidget } from "@/components/dashboard/CallSuccessWidget";
+import { UpcomingCallsWidget } from "@/components/dashboard/UpcomingCallsWidget";
+import { DemoDataNotice } from "@/components/demo/DemoDataNotice";
 
 export default function Dashboard() {
   const { currentOrganization } = useAuthStore();
-  const [stats, setStats] = useState({
-    totalPeople: 0,
-    totalGroups: 0,
-    totalCampaigns: 0,
-    loading: true
-  });
+  const { isAdmin, isPastor } = usePermissions();
+  const [loading, setLoading] = useState(true);
 
-  const loadStats = async () => {
-    if (!currentOrganization) return;
+  // Widget Data States
+  const [minuteUsage, setMinuteUsage] = useState({ used: 0, included: 0 });
+  const [campaigns, setCampaigns] = useState([]);
+  const [recentCalls, setRecentCalls] = useState([]);
+  const [escalations, setEscalations] = useState({ urgent: 0, high: 0, medium: 0, total: 0 });
+  const [callStats, setCallStats] = useState({ completed: 0, total: 0 });
+  const [upcomingCalls, setUpcomingCalls] = useState([]);
+  const [hasDemoData, setHasDemoData] = useState(false);
 
+  useEffect(() => {
+    if (currentOrganization?.id) {
+      fetchDashboardData();
+    }
+  }, [currentOrganization]);
+
+  const fetchDashboardData = async () => {
+    setLoading(true);
     try {
-      // Get total people
-      const { count: peopleCount } = await supabase
-        .from('people')
-        .select('*', { count: 'exact', head: true })
-        .eq('organization_id', currentOrganization.id);
+      // 1. Minute Usage
+      const { data: usage } = await supabase
+        .from("minute_usage")
+        .select("minutes_used, minutes_included")
+        .eq("organization_id", currentOrganization?.id)
+        .order("billing_period_start", { ascending: false })
+        .limit(1)
+        .single();
 
-      // Get total groups
-      const { count: groupsCount } = await supabase
-        .from('groups')
-        .select('*', { count: 'exact', head: true })
-        .eq('organization_id', currentOrganization.id);
+      if (usage) {
+        setMinuteUsage({ used: usage.minutes_used, included: usage.minutes_included });
+      }
 
-      // Get total campaigns
-      const { count: campaignsCount } = await supabase
-        .from('communication_campaigns')
-        .select('*', { count: 'exact', head: true })
-        .eq('organization_id', currentOrganization.id);
+      // 2. Active Campaigns
+      const { data: campaignData } = await supabase
+        .from("calling_campaigns")
+        .select("*")
+        .eq("organization_id", currentOrganization?.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
 
-      setStats({
-        totalPeople: peopleCount || 0,
-        totalGroups: groupsCount || 0,
-        totalCampaigns: campaignsCount || 0,
-        loading: false
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setCampaigns(campaignData as any || []);
+
+      // 3. Recent Calls
+      const { data: callData } = await supabase
+        .from("call_attempts")
+        .select("id, status, created_at, people(first_name, last_name)")
+        .eq("organization_id", currentOrganization?.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setRecentCalls((callData || []).map((c: any) => ({
+        ...c,
+        person_name: c.people ? `${c.people.first_name || ''} ${c.people.last_name || ''}`.trim() : 'Unknown',
+      })) as any);
+
+      // 4. Escalations
+      const { data: escalationData } = await supabase
+        .from("escalation_alerts")
+        .select("priority")
+        .eq("organization_id", currentOrganization?.id)
+        .eq("status", "open");
+
+      const escalationCounts = {
+        urgent: escalationData?.filter(e => e.priority === "urgent").length || 0,
+        high: escalationData?.filter(e => e.priority === "high").length || 0,
+        medium: escalationData?.filter(e => e.priority === "medium").length || 0,
+        total: escalationData?.length || 0,
+      };
+      setEscalations(escalationCounts);
+
+      // 5. Call Success (Last 30 Days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const { data: statsData } = await supabase
+        .from("call_attempts")
+        .select("status")
+        .eq("organization_id", currentOrganization?.id)
+        .gte("created_at", thirtyDaysAgo.toISOString());
+
+      setCallStats({
+        completed: statsData?.filter(c => c.status === "completed").length || 0,
+        total: statsData?.length || 0,
       });
+
+      // 6. Check for demo data
+      const { count: demoCount } = await supabase
+        .from("people")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", currentOrganization?.id)
+        .eq("is_demo", true);
+
+      setHasDemoData((demoCount || 0) > 0);
+
+      // 7. Upcoming Calls (Next 24h)
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const { data: upcomingData } = await supabase
+        .from("call_attempts")
+        .select("id, trigger_type, scheduled_at, people(first_name, last_name)")
+        .eq("organization_id", currentOrganization?.id)
+        .eq("status", "scheduled")
+        .lte("scheduled_at", tomorrow.toISOString())
+        .order("scheduled_at", { ascending: true })
+        .limit(5);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setUpcomingCalls((upcomingData || []).map((c: any) => ({
+        ...c,
+        person_name: c.people ? `${c.people.first_name || ''} ${c.people.last_name || ''}`.trim() : 'Unknown',
+      })) as any);
+
     } catch (error) {
-      console.error('Error loading stats:', error);
-      setStats(prev => ({ ...prev, loading: false }));
+      console.error("Error fetching dashboard data:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadStats();
-  }, [currentOrganization]);
-
-  if (stats.loading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -62,140 +145,41 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">
-          Welcome back to {currentOrganization?.name || 'ChurchConnect'}
-        </p>
+    <div className="p-6 space-y-6">
+      {hasDemoData && <DemoDataNotice />}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight" data-tour="dashboard">Dashboard</h1>
+          <p className="text-muted-foreground mt-1">
+            Overview for {currentOrganization?.name}
+          </p>
+        </div>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* Total People Card */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total People</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalPeople}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Members in your directory
-            </p>
-          </CardContent>
-        </Card>
+        {/* Row 1: Key Metrics */}
+        {(isAdmin || isPastor) && (
+          <MinuteUsageWidget
+            minutesUsed={minuteUsage.used}
+            minutesIncluded={minuteUsage.included}
+          />
+        )}
 
-        {/* Total Groups Card */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Groups</CardTitle>
-            <UsersRound className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalGroups}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Active ministry groups
-            </p>
-          </CardContent>
-        </Card>
+        <ActiveCampaignsWidget campaigns={campaigns} />
 
-        {/* Total Campaigns Card */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Campaigns Sent</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalCampaigns}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              SMS & calling campaigns
-            </p>
-          </CardContent>
-        </Card>
+        <CallSuccessWidget {...callStats} />
+
+        {/* Row 2: Operational Data */}
+        {(isAdmin || isPastor) && (
+          <EscalationWidget {...escalations} />
+        )}
+
+        {(isAdmin || isPastor) && (
+          <UpcomingCallsWidget calls={upcomingCalls} />
+        )}
+
+        <RecentCallsWidget calls={recentCalls} />
       </div>
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
-          <Link to="/people">
-            <Button variant="outline" className="w-full h-auto flex-col gap-2 py-4">
-              <UserPlus className="h-6 w-6 text-primary" />
-              <span className="font-medium">Add Person</span>
-              <span className="text-xs text-muted-foreground">Add a new member to your directory</span>
-            </Button>
-          </Link>
-
-          <Link to="/groups">
-            <Button variant="outline" className="w-full h-auto flex-col gap-2 py-4">
-              <UsersRound className="h-6 w-6 text-primary" />
-              <span className="font-medium">Manage Groups</span>
-              <span className="text-xs text-muted-foreground">Create or edit ministry groups</span>
-            </Button>
-          </Link>
-
-          <Link to="/communications">
-            <Button variant="outline" className="w-full h-auto flex-col gap-2 py-4">
-              <Mail className="h-6 w-6 text-primary" />
-              <span className="font-medium">Send Message</span>
-              <span className="text-xs text-muted-foreground">Send SMS to your congregation</span>
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
-
-      {/* Getting Started Guide */}
-      {stats.totalPeople === 0 && (
-        <Card className="border-primary/50 bg-primary/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              Getting Started
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Welcome to ChurchConnect! Here's how to get started:
-            </p>
-            <ol className="space-y-2 text-sm">
-              <li className="flex items-start gap-2">
-                <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">
-                  1
-                </span>
-                <span>
-                  <strong>Add your first members:</strong> Go to People → Add Person or upload a CSV file with your member list
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">
-                  2
-                </span>
-                <span>
-                  <strong>Create groups:</strong> Organize members into groups like "First Timers", "Youth Ministry", etc.
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">
-                  3
-                </span>
-                <span>
-                  <strong>Start communicating:</strong> Send SMS messages or make AI calls to connect with your congregation
-                </span>
-              </li>
-            </ol>
-            <Link to="/people">
-              <Button className="mt-4">
-                <UserPlus className="h-4 w-4 mr-2" />
-                Add Your First Member
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
