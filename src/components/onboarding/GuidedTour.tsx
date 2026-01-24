@@ -48,17 +48,27 @@ export function GuidedTour() {
     const checkTourStatus = async () => {
         if (!user || !currentOrganization) return;
 
-        // Check if tour completed
-        const { data } = await supabase
-            .from("organization_members")
-            .select("tour_completed")
-            .eq("user_id", user.id)
-            .eq("organization_id", currentOrganization.id)
-            .single();
+        try {
+            // Check if tour completed
+            const { data, error } = await supabase
+                .from("organization_members")
+                .select("tour_completed")
+                .eq("user_id", user.id)
+                .eq("organization_id", currentOrganization.id)
+                .single();
 
-        if (data && !data.tour_completed) {
-            // Small delay to ensure page is loaded
-            setTimeout(() => setRun(true), 1000);
+            // If error (e.g., column doesn't exist), don't show tour
+            if (error) {
+                console.warn("Tour status check failed:", error.message);
+                return;
+            }
+
+            if (data && !data.tour_completed) {
+                // Small delay to ensure page is loaded
+                setTimeout(() => setRun(true), 1000);
+            }
+        } catch (err) {
+            console.warn("Tour status check error:", err);
         }
     };
 
@@ -68,12 +78,16 @@ export function GuidedTour() {
         if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
             setRun(false);
 
-            // Mark tour as completed
-            await supabase
-                .from("organization_members")
-                .update({ tour_completed: true })
-                .eq("user_id", user?.id)
-                .eq("organization_id", currentOrganization?.id);
+            // Mark tour as completed (ignore errors if column doesn't exist)
+            try {
+                await supabase
+                    .from("organization_members")
+                    .update({ tour_completed: true })
+                    .eq("user_id", user?.id)
+                    .eq("organization_id", currentOrganization?.id);
+            } catch (err) {
+                console.warn("Failed to mark tour complete:", err);
+            }
         }
 
         if (type === "step:after") {

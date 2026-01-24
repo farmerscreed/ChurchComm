@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import { usePermissions } from "@/hooks/usePermissions";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 import { MinuteUsageWidget } from "@/components/dashboard/MinuteUsageWidget";
 import { ActiveCampaignsWidget } from "@/components/dashboard/ActiveCampaignsWidget";
 import { RecentCallsWidget } from "@/components/dashboard/RecentCallsWidget";
@@ -9,9 +11,18 @@ import { EscalationWidget } from "@/components/dashboard/EscalationWidget";
 import { CallSuccessWidget } from "@/components/dashboard/CallSuccessWidget";
 import { UpcomingCallsWidget } from "@/components/dashboard/UpcomingCallsWidget";
 import { DemoDataNotice } from "@/components/demo/DemoDataNotice";
+import { Rocket, UserPlus, Loader2 } from "lucide-react";
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
 
 export default function Dashboard() {
-  const { currentOrganization } = useAuthStore();
+  const navigate = useNavigate();
+  const { currentOrganization, user } = useAuthStore();
   const { isAdmin, isPastor } = usePermissions();
   const [loading, setLoading] = useState(true);
 
@@ -138,46 +149,61 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="flex flex-col items-center justify-center h-64 gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Loading dashboard...</p>
       </div>
     );
   }
 
+  const displayName = user?.user_metadata?.full_name?.split(" ")[0] || "there";
+
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       {hasDemoData && <DemoDataNotice />}
-      <div className="flex justify-between items-center">
+
+      {/* Greeting + Quick Actions */}
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight" data-tour="dashboard">Dashboard</h1>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight" data-tour="dashboard">
+            {getGreeting()}, {displayName}
+          </h1>
           <p className="text-muted-foreground mt-1">
-            Overview for {currentOrganization?.name}
+            Here's what's happening at {currentOrganization?.name}
           </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate("/people")}>
+            <UserPlus className="h-4 w-4 mr-1.5" />
+            Add Person
+          </Button>
+          <Button size="sm" onClick={() => navigate("/communications")}>
+            <Rocket className="h-4 w-4 mr-1.5" />
+            New Campaign
+          </Button>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* Row 1: Key Metrics */}
+      {/* Hero KPI Row */}
+      <div className="grid gap-4 md:grid-cols-3">
         {(isAdmin || isPastor) && (
           <MinuteUsageWidget
             minutesUsed={minuteUsage.used}
             minutesIncluded={minuteUsage.included}
           />
         )}
-
         <ActiveCampaignsWidget campaigns={campaigns} />
-
         <CallSuccessWidget {...callStats} />
+      </div>
 
-        {/* Row 2: Operational Data */}
+      {/* Detail Widgets */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {(isAdmin || isPastor) && (
           <EscalationWidget {...escalations} />
         )}
-
         {(isAdmin || isPastor) && (
           <UpcomingCallsWidget calls={upcomingCalls} />
         )}
-
         <RecentCallsWidget calls={recentCalls} />
       </div>
     </div>

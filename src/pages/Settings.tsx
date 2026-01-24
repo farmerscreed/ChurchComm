@@ -672,7 +672,18 @@ export default function Settings() {
         .eq('organization_id', currentOrganization.id)
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        // If column doesn't exist, inform user the migration needs to run
+        if (error.message?.includes('tour_completed')) {
+          toast({
+            title: 'Feature not available',
+            description: 'Please run database migrations to enable the tour feature.',
+            variant: 'destructive',
+          });
+          return;
+        }
+        throw error;
+      }
 
       toast({
         title: 'Tour restarted',

@@ -106,7 +106,7 @@ export default function Communications() {
     setLoadingScripts(true);
     try {
       const { data, error } = await supabase
-        .from('calling_scripts')
+        .from('call_scripts')
         .select('id, name, content')
         .eq('organization_id', currentOrganization.id)
         .order('created_at', { ascending: false });
@@ -141,7 +141,7 @@ export default function Communications() {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('calling_scripts')
+        .from('call_scripts')
         .insert({
           name: newScriptName,
           content: newScriptContent,
