@@ -732,3 +732,603 @@ The existing SMS system will be maintained and enhanced with the campaign builde
 - **Inbound Calls:** Allow members to call in and speak to the AI
 - **WhatsApp Integration:** Additional messaging channel
 - **Bulk SMS Templates:** Pre-built SMS templates similar to call scripts
+
+---
+
+## 10. JSON Task List (Ralph Wiggum Format)
+
+This section is used by the Ralph Wiggum autonomous loop. Each task is atomic and verifiable. Work through them in order. Epic 1 is complete.
+
+```json
+[
+  {
+    "id": "2.1a",
+    "category": "feature",
+    "epic": "Epic 2: Automated Calling & Workflows",
+    "description": "Create auto-call-trigger edge function - scaffold and calling window logic",
+    "steps": [
+      "Create supabase/functions/auto-call-trigger/index.ts edge function",
+      "Implement CORS headers and Supabase client initialization",
+      "Query org's calling_window_start, calling_window_end, timezone from organizations table",
+      "Implement isWithinCallingWindow() helper that checks current time against org's window",
+      "Query auto_triggers table for enabled triggers for each org",
+      "Return early if outside calling window",
+      "Add basic logging for trigger evaluations"
+    ],
+    "passes": false
+  },
+  {
+    "id": "2.1b",
+    "category": "feature",
+    "epic": "Epic 2: Automated Calling & Workflows",
+    "description": "Implement first_timer trigger logic in auto-call-trigger",
+    "steps": [
+      "In auto-call-trigger, add first_timer trigger handler",
+      "Query people where status = 'first_time_visitor' AND created_at within trigger's delay_hours window",
+      "Check no existing call_attempt exists for this person + trigger_type 'first_timer'",
+      "Filter out people with do_not_call = true",
+      "Check minute_usage to ensure org hasn't exceeded their limit",
+      "Create call_attempt records with status 'scheduled' for qualifying people",
+      "Log each scheduled call attempt"
+    ],
+    "passes": false
+  },
+  {
+    "id": "2.1c",
+    "category": "feature",
+    "epic": "Epic 2: Automated Calling & Workflows",
+    "description": "Implement birthday and anniversary trigger logic in auto-call-trigger",
+    "steps": [
+      "Add birthday trigger handler: query people where birthday month+day matches today",
+      "Exclude do_not_call people and check no duplicate call today",
+      "Create call_attempt with the org's birthday script_id from auto_triggers",
+      "Add anniversary trigger handler: calculate months since created_at for each person",
+      "Match against org's configured anniversary_milestones array",
+      "Create call_attempt with anniversary script for matching people",
+      "Implement retry logic: if a call_attempt has status 'failed' and retries < 2, reschedule"
+    ],
+    "passes": false
+  },
+  {
+    "id": "2.1d",
+    "category": "feature",
+    "epic": "Epic 2: Automated Calling & Workflows",
+    "description": "Implement VAPI call execution in auto-call-trigger",
+    "steps": [
+      "After creating scheduled call_attempts, queue them for VAPI execution",
+      "For each scheduled attempt, call VAPI API to initiate the call",
+      "Apply variable substitution to the script prompt before sending to VAPI",
+      "Use org's dedicated phone number if available, otherwise shared",
+      "Update call_attempt status to 'in_progress' after VAPI accepts",
+      "Handle VAPI errors gracefully (update status to 'failed', log error)"
+    ],
+    "passes": false
+  },
+  {
+    "id": "2.2a",
+    "category": "feature",
+    "epic": "Epic 2: Automated Calling & Workflows",
+    "description": "Create send-escalation-notification edge function",
+    "steps": [
+      "Create supabase/functions/send-escalation-notification/index.ts",
+      "Accept escalation_alert record data (person_id, alert_type, priority, summary)",
+      "Query notification_preferences + organization_members for admin/pastor recipients",
+      "Filter recipients based on their escalation_sms and escalation_email preferences",
+      "Integrate Twilio SMS: format '[URGENT] ChurchComm Alert: {person_name} - {alert_type}'",
+      "Integrate Resend email: rich HTML with person details, alert type, transcript excerpt, action link",
+      "Update escalation_alerts record with notification_sent_at timestamp"
+    ],
+    "passes": false
+  },
+  {
+    "id": "2.2b",
+    "category": "integration",
+    "epic": "Epic 2: Automated Calling & Workflows",
+    "description": "Create database trigger to invoke escalation notification on INSERT",
+    "steps": [
+      "Create a Supabase database trigger on escalation_alerts INSERT",
+      "The trigger should invoke the send-escalation-notification edge function via pg_net or http extension",
+      "Pass the new escalation_alert record data to the function",
+      "Handle priority levels: urgent = immediate, high = within 5min batch",
+      "Test: insert an escalation_alert and verify the function is called"
+    ],
+    "passes": false
+  },
+  {
+    "id": "2.3",
+    "category": "feature",
+    "epic": "Epic 2: Automated Calling & Workflows",
+    "description": "Implement minute usage tracking and overage prevention",
+    "steps": [
+      "Update vapi-webhook edge function to calculate call duration from webhook data",
+      "Record call duration in minutes to minute_usage table (increment minutes_used)",
+      "In send-group-call, check minute_usage before initiating calls - block if at limit",
+      "In auto-call-trigger, check minute_usage before scheduling - skip if at limit",
+      "Implement 80% usage warning: when crossed, set warning_sent_at (notification handled separately)",
+      "Return clear error message when limit reached: 'Monthly minute limit reached'",
+      "If overage_approved = true, allow calls to proceed past limit"
+    ],
+    "passes": false
+  },
+  {
+    "id": "2.4",
+    "category": "feature",
+    "epic": "Epic 2: Automated Calling & Workflows",
+    "description": "Create send-call-summary edge function for call outcome notifications",
+    "steps": [
+      "Create supabase/functions/send-call-summary/index.ts",
+      "Implement real-time mode: send notification per completed call to subscribed users",
+      "Implement daily digest mode: aggregate call results for the day",
+      "Query notification_preferences to determine each user's call_summary_frequency",
+      "Daily digest includes: total calls, success/failure counts, escalations, notable responses",
+      "Real-time includes: person called, outcome, brief summary",
+      "Format as email via Resend with clean HTML template"
+    ],
+    "passes": false
+  },
+  {
+    "id": "3.1a",
+    "category": "feature",
+    "epic": "Epic 3: Enhanced Script Management & AI Builder",
+    "description": "Add template fields to call_scripts and create template gallery UI",
+    "steps": [
+      "Create migration: ADD is_template BOOLEAN DEFAULT FALSE to call_scripts",
+      "ADD template_type VARCHAR to call_scripts",
+      "ADD is_system BOOLEAN DEFAULT FALSE to call_scripts",
+      "Update the existing 6 seed scripts to set is_template=true, is_system=true, appropriate template_type",
+      "Create a ScriptTemplateGallery component in src/components/communications/",
+      "Display templates as cards with name, description, and template_type badge",
+      "Add 'Use Template' button that clones template into org's scripts (is_template=false, is_system=false)"
+    ],
+    "passes": false
+  },
+  {
+    "id": "3.1b",
+    "category": "feature",
+    "epic": "Epic 3: Enhanced Script Management & AI Builder",
+    "description": "Integrate template gallery into Settings script management",
+    "steps": [
+      "In Settings.tsx calling scripts section, add a 'Templates' tab alongside existing script list",
+      "Import and render ScriptTemplateGallery in the Templates tab",
+      "After cloning a template, switch to the script list tab showing the new script",
+      "Mark cloned scripts as editable, show clear distinction between templates and custom scripts",
+      "Templates should be read-only in the UI (no edit/delete buttons)",
+      "Verify the script list correctly filters out is_system=true templates"
+    ],
+    "passes": false
+  },
+  {
+    "id": "3.2",
+    "category": "feature",
+    "epic": "Epic 3: Enhanced Script Management & AI Builder",
+    "description": "Create AI Script Builder with Claude-powered generation",
+    "steps": [
+      "Create supabase/functions/generate-script/index.ts edge function",
+      "Accept input: purpose, tone, key_points, denomination_style, desired_duration",
+      "Integrate Anthropic Claude API for script generation",
+      "System prompt: understands church communication, outputs call_scripts prompt format, includes variable placeholders",
+      "Create ScriptBuilder component in src/components/communications/",
+      "Form fields: purpose (textarea), tone (select), key points (list input), duration (select)",
+      "Show preview of generated script with 'Save', 'Regenerate', and 'Edit manually' buttons",
+      "Implement rate limit check: max 10 generations per org per day"
+    ],
+    "passes": false
+  },
+  {
+    "id": "3.3",
+    "category": "feature",
+    "epic": "Epic 3: Enhanced Script Management & AI Builder",
+    "description": "Create variable substitution engine for scripts",
+    "steps": [
+      "Create utility function substituteVariables(template, context) in supabase/functions/_shared/",
+      "Support variables: {first_name}, {last_name}, {church_name}, {pastor_name}, {event_name}, {event_date}, {day_of_week}, {membership_duration}",
+      "Update send-group-call to apply substituteVariables before VAPI call",
+      "Update auto-call-trigger to apply substituteVariables",
+      "Gracefully handle missing variables (replace with empty string)",
+      "Add a VariableReference panel component showing available variables in script editor",
+      "Show variable reference panel next to the script prompt textarea in Settings"
+    ],
+    "passes": false
+  },
+  {
+    "id": "3.4",
+    "category": "feature",
+    "epic": "Epic 3: Enhanced Script Management & AI Builder",
+    "description": "Add voice selection to scripts",
+    "steps": [
+      "Create migration: ADD voice_id VARCHAR and voice_name VARCHAR to call_scripts",
+      "Define preset voice options: Warm Female (Rachel), Professional Male (Josh), Friendly Female (Paula), Calm Male (Adam), Energetic Female (Bella)",
+      "Add voice selection dropdown to script editor in Settings.tsx",
+      "Update send-group-call to use script's voice_id instead of hardcoded value",
+      "Default to Paula if no voice selected (backwards compatible)",
+      "Show voice name in script list cards"
+    ],
+    "passes": false
+  },
+  {
+    "id": "4.1a",
+    "category": "feature",
+    "epic": "Epic 4: Multi-Tenancy, Onboarding & Billing",
+    "description": "Create multi-step onboarding wizard page",
+    "steps": [
+      "Create src/pages/OnboardingPage.tsx with multi-step wizard UI",
+      "Step 1: Account info display (email, first name, last name - already created via signup)",
+      "Step 2: Church details form (church name, size dropdown, timezone selector with common US timezones)",
+      "Step 3: Channel preference selection (checkboxes: Voice Calls, SMS, Both)",
+      "Step 4: Summary of selections + 'Start Free Trial' button",
+      "Add progress indicator (steps 1-4) visible throughout flow",
+      "Add validation on each step before proceeding to next",
+      "Style with shadcn/ui Card, Button, Select, Input components"
+    ],
+    "passes": false
+  },
+  {
+    "id": "4.1b",
+    "category": "feature",
+    "epic": "Epic 4: Multi-Tenancy, Onboarding & Billing",
+    "description": "Wire onboarding to database and add routing",
+    "steps": [
+      "Create migration: ADD estimated_size VARCHAR and preferred_channels TEXT[] to organizations",
+      "On 'Start Free Trial' click, update the organization with size, timezone, channels",
+      "Add route /onboarding to App.tsx pointing to OnboardingPage",
+      "Redirect new signups (users with no organization or fresh org) to /onboarding",
+      "After onboarding completes, redirect to /dashboard",
+      "Store onboarding_completed boolean in organization_members or org to prevent re-showing"
+    ],
+    "passes": false
+  },
+  {
+    "id": "4.2a",
+    "category": "feature",
+    "epic": "Epic 4: Multi-Tenancy, Onboarding & Billing",
+    "description": "Create Stripe checkout and portal edge functions",
+    "steps": [
+      "Create supabase/functions/stripe-checkout/index.ts",
+      "Accept tier and billing_cycle from frontend, create Stripe Checkout Session",
+      "Include trial_period_days: 14, attach organization_id as metadata",
+      "Return checkout URL to frontend",
+      "Create supabase/functions/stripe-portal/index.ts",
+      "Create Stripe Customer Portal session for managing subscription",
+      "Return portal URL to frontend"
+    ],
+    "passes": false
+  },
+  {
+    "id": "4.2b",
+    "category": "feature",
+    "epic": "Epic 4: Multi-Tenancy, Onboarding & Billing",
+    "description": "Create Stripe webhook handler edge function",
+    "steps": [
+      "Create supabase/functions/stripe-webhook/index.ts",
+      "Verify Stripe webhook signatures",
+      "Handle checkout.session.completed: update org with stripe_subscription_id, subscription_tier, billing_cycle",
+      "Handle invoice.paid: confirm active subscription, reset minute_usage for new billing period",
+      "Handle invoice.payment_failed: mark subscription as past_due",
+      "Handle customer.subscription.deleted: set subscription_tier to 'cancelled'",
+      "Handle customer.subscription.updated: sync plan changes to org record"
+    ],
+    "passes": false
+  },
+  {
+    "id": "4.2c",
+    "category": "feature",
+    "epic": "Epic 4: Multi-Tenancy, Onboarding & Billing",
+    "description": "Add subscription fields to organizations and create migration",
+    "steps": [
+      "Create migration: ADD stripe_subscription_id VARCHAR to organizations",
+      "ADD subscription_tier with values 'trial','starter','growth','enterprise' defaulting to 'trial'",
+      "ADD billing_cycle with values 'monthly','annual'",
+      "ADD trial_ends_at TIMESTAMP (set to NOW() + 14 days on org creation)",
+      "ADD credit_card_on_file BOOLEAN DEFAULT FALSE",
+      "Update minute_usage minutes_included based on tier (trial=15, starter=500, growth=1500, enterprise=5000)"
+    ],
+    "passes": false
+  },
+  {
+    "id": "4.2d",
+    "category": "feature",
+    "epic": "Epic 4: Multi-Tenancy, Onboarding & Billing",
+    "description": "Create PricingPage and Billing settings UI",
+    "steps": [
+      "Create src/pages/PricingPage.tsx with 3-tier comparison layout",
+      "Show Starter ($197/mo), Growth ($397/mo), Enterprise ($797/mo) with feature lists",
+      "Add Monthly/Annual toggle (annual shows 15% discount)",
+      "Highlight Growth as 'Most Popular'",
+      "Add 'Start Free Trial' CTA button per tier that calls stripe-checkout",
+      "In Settings.tsx, add Billing tab (admin only): current plan, minutes bar chart, Change Plan button, Manage Billing button (Stripe Portal)",
+      "Show trial countdown if on trial tier"
+    ],
+    "passes": false
+  },
+  {
+    "id": "4.2e",
+    "category": "feature",
+    "epic": "Epic 4: Multi-Tenancy, Onboarding & Billing",
+    "description": "Implement read-only mode for lapsed subscriptions",
+    "steps": [
+      "Create useSubscription() hook that reads org's subscription_tier and trial_ends_at",
+      "If subscription is 'cancelled' or trial_ends_at has passed, set isReadOnly = true",
+      "When isReadOnly: disable campaign creation, call initiation, SMS sending, script editing",
+      "Show persistent banner: 'Your subscription has lapsed. Reactivate to resume services.'",
+      "All data remains visible (read-only, not deleted)",
+      "Add route to PricingPage from the reactivation banner"
+    ],
+    "passes": false
+  },
+  {
+    "id": "4.3",
+    "category": "feature",
+    "epic": "Epic 4: Multi-Tenancy, Onboarding & Billing",
+    "description": "Phone number allocation logic",
+    "steps": [
+      "Starter/Growth tiers use shared VAPI phone number (VAPI_PHONE_NUMBER_ID env var)",
+      "Enterprise tier provisions dedicated number (stored in org's dedicated_phone_number)",
+      "Update stripe-webhook: on Enterprise subscription, prompt admin to configure dedicated number",
+      "Ensure send-group-call already uses org's phone_number_type (done in Epic 1)",
+      "AI greeting should include church name immediately for shared numbers",
+      "Update script templates to start with '{church_name} calling' pattern"
+    ],
+    "passes": false
+  },
+  {
+    "id": "4.4",
+    "category": "feature",
+    "epic": "Epic 4: Multi-Tenancy, Onboarding & Billing",
+    "description": "Update invitation system for pastor role",
+    "steps": [
+      "Update invitation UI in Settings Team tab to include 'pastor' role option in dropdown",
+      "Update send-invite edge function to validate 'pastor' as a valid role",
+      "Ensure accept_invitation correctly assigns pastor role in organization_members",
+      "Make APP_URL configurable via VITE_APP_URL environment variable for invite links",
+      "Test: invite form shows Admin, Pastor, Member role options"
+    ],
+    "passes": false
+  },
+  {
+    "id": "5.1a",
+    "category": "feature",
+    "epic": "Epic 5: Enhanced UI/UX",
+    "description": "Redesign Dashboard with widget grid layout",
+    "steps": [
+      "Redesign src/pages/Dashboard.tsx with responsive widget grid (2-column desktop, 1-column mobile)",
+      "Create src/components/dashboard/ directory for widget components",
+      "Create MinuteUsageWidget: progress bar (green/yellow/red), 'X minutes remaining' text",
+      "Create ActiveCampaignsWidget: count of in-progress campaigns with % complete",
+      "Create RecentCallsWidget: last 5 calls with person name, outcome icon, timestamp",
+      "Use Supabase queries to fetch real data for each widget",
+      "Apply role-based visibility (members see fewer widgets)"
+    ],
+    "passes": false
+  },
+  {
+    "id": "5.1b",
+    "category": "feature",
+    "epic": "Epic 5: Enhanced UI/UX",
+    "description": "Add escalation and upcoming calls widgets to Dashboard",
+    "steps": [
+      "Create EscalationWidget: count of open escalations by priority with click-to-navigate",
+      "Create CallSuccessWidget: percentage gauge showing completed/total attempts",
+      "Create UpcomingCallsWidget: list of auto-scheduled calls for next 24h with trigger type",
+      "Add all widgets to Dashboard grid layout",
+      "Ensure widgets gracefully handle empty/loading states",
+      "Add click handlers to navigate to relevant detail pages"
+    ],
+    "passes": false
+  },
+  {
+    "id": "5.2a",
+    "category": "feature",
+    "epic": "Epic 5: Enhanced UI/UX",
+    "description": "Create Campaign Builder - type and script selection steps",
+    "steps": [
+      "Create src/components/communications/CampaignBuilder.tsx with multi-step wizard",
+      "Step 1: Select campaign type (Voice Call / SMS) with card selection UI",
+      "Step 2: Select script - show org's scripts filtered by type, include template option",
+      "Display script preview when selected",
+      "Add Back/Next navigation buttons",
+      "Add progress indicator showing current step",
+      "Style with shadcn/ui Card, RadioGroup, Button components"
+    ],
+    "passes": false
+  },
+  {
+    "id": "5.2b",
+    "category": "feature",
+    "epic": "Epic 5: Enhanced UI/UX",
+    "description": "Create Campaign Builder - audience and scheduling steps",
+    "steps": [
+      "Step 3: Define audience - Option A: use saved segment (dropdown from audience_segments)",
+      "Option B: build filter (status multi-select + groups multi-select + tags)",
+      "Show preview count: 'X people will be contacted' with live query",
+      "Auto-exclude do_not_call, show count excluded",
+      "Step 4: Schedule - 'Send Now' option or 'Schedule for later' with date/time picker",
+      "Warn if scheduled time falls outside org's calling window",
+      "Add 'Save this audience' option to save filter as new audience_segment"
+    ],
+    "passes": false
+  },
+  {
+    "id": "5.2c",
+    "category": "feature",
+    "epic": "Epic 5: Enhanced UI/UX",
+    "description": "Create Campaign Builder - review step and launch",
+    "steps": [
+      "Step 5: Review & Confirm - summary of all selections",
+      "Show estimated minutes to be used (audience count * avg call duration)",
+      "Show warning if estimated usage would exceed remaining minutes",
+      "'Launch Campaign' button that creates calling_campaign + call_attempts",
+      "After launch, redirect to campaign progress page with real-time status",
+      "Integrate CampaignBuilder into Communications page as primary action"
+    ],
+    "passes": false
+  },
+  {
+    "id": "5.3a",
+    "category": "feature",
+    "epic": "Epic 5: Enhanced UI/UX",
+    "description": "Add Calling Configuration tab to Settings",
+    "steps": [
+      "Add 'Calling' tab to Settings.tsx",
+      "Calling window: start/end time pickers (using shadcn/ui input type='time')",
+      "Timezone selector dropdown with common timezones",
+      "Auto-trigger configuration: toggle enable/disable for each trigger type",
+      "Script selector for each trigger type (dropdown from call_scripts)",
+      "Anniversary milestone configuration (array of month numbers)",
+      "Save changes to organizations and auto_triggers tables"
+    ],
+    "passes": false
+  },
+  {
+    "id": "5.3b",
+    "category": "feature",
+    "epic": "Epic 5: Enhanced UI/UX",
+    "description": "Add Notifications tab to Settings",
+    "steps": [
+      "Add 'Notifications' tab to Settings.tsx",
+      "Per-user notification preferences form",
+      "Escalation alert channels: checkboxes for SMS and email",
+      "Call summary frequency: radio group (off, real-time, daily)",
+      "Save to notification_preferences table for current user",
+      "Load existing preferences on mount"
+    ],
+    "passes": false
+  },
+  {
+    "id": "5.3c",
+    "category": "feature",
+    "epic": "Epic 5: Enhanced UI/UX",
+    "description": "Update Team tab and add Voice section to Settings",
+    "steps": [
+      "Update Team tab: show role column (admin, pastor, member) in member list",
+      "Add role change dropdown (admin only) to change member roles",
+      "Pastor role option in invite form (already partially done in Epic 1)",
+      "Add 'Voice' section in script management: default voice selection for org",
+      "Show voice preset options with names",
+      "Save default voice preference to organizations table"
+    ],
+    "passes": false
+  },
+  {
+    "id": "5.4",
+    "category": "feature",
+    "epic": "Epic 5: Enhanced UI/UX",
+    "description": "Full SMS campaign support through Campaign Builder",
+    "steps": [
+      "Ensure SMS campaign type in CampaignBuilder works end-to-end",
+      "SMS uses messaging_campaigns table for campaign records",
+      "SMS supports audience segments and filters (same as voice)",
+      "Apply substituteVariables to SMS message body",
+      "Respect do_not_call flag for SMS recipients",
+      "Track SMS delivery status in campaign_recipients",
+      "Show SMS delivery progress on campaign detail page"
+    ],
+    "passes": false
+  },
+  {
+    "id": "6.1",
+    "category": "feature",
+    "epic": "Epic 6: AI & Memory Enhancements",
+    "description": "Create member_memories table and matching function",
+    "steps": [
+      "Create migration for member_memories table: id, organization_id, person_id (FK people), content TEXT, embedding vector(768), memory_type ENUM, source_call_id UUID, created_at",
+      "memory_type values: 'call_summary', 'prayer_request', 'personal_note', 'preference'",
+      "Create match_member_memories(person_id, query_embedding, threshold, count) function using cosine similarity",
+      "Add RLS policies: org-scoped SELECT, admin/pastor INSERT/UPDATE/DELETE",
+      "Create index on embedding column for fast vector search"
+    ],
+    "passes": false
+  },
+  {
+    "id": "6.2",
+    "category": "feature",
+    "epic": "Epic 6: AI & Memory Enhancements",
+    "description": "Update vapi-webhook to create member memories after calls",
+    "steps": [
+      "In vapi-webhook, after a call completes, extract summary from transcript",
+      "Use OpenAI embeddings API to generate 768-dim embedding of the summary",
+      "Store call summary as member_memory with type 'call_summary'",
+      "Parse transcript for prayer requests - store each as type 'prayer_request'",
+      "Parse for personal facts mentioned - store as type 'personal_note'",
+      "Link memories to person_id and source_call_id"
+    ],
+    "passes": false
+  },
+  {
+    "id": "6.3a",
+    "category": "feature",
+    "epic": "Epic 6: AI & Memory Enhancements",
+    "description": "Create admin UI for church-level memories",
+    "steps": [
+      "Add 'Church Context' section to Settings or a new dedicated page",
+      "Form to add/edit church memories: content field, category selector (events, announcements, pastoral notes, sermon series)",
+      "On save, generate embedding via OpenAI and store in church_memories table",
+      "List existing church memories with edit/delete options",
+      "Create match_church_memories function if it doesn't already exist"
+    ],
+    "passes": false
+  },
+  {
+    "id": "6.3b",
+    "category": "feature",
+    "epic": "Epic 6: AI & Memory Enhancements",
+    "description": "Inject member and church context into VAPI calls",
+    "steps": [
+      "Before initiating a VAPI call in send-group-call, generate embedding for the person's context query",
+      "Call match_member_memories to get top 5 relevant memories for the person",
+      "Call match_church_memories to get top 5 relevant church-wide context items",
+      "Inject into VAPI assistant prompt: 'Previous conversations: ...', 'Church context: ...', 'Known preferences: ...'",
+      "Apply same context injection in auto-call-trigger",
+      "Limit total injected context to prevent exceeding VAPI prompt limits (max ~2000 chars)"
+    ],
+    "passes": false
+  },
+  {
+    "id": "7.1a",
+    "category": "feature",
+    "epic": "Epic 7: Demo Mode & Guided Tour",
+    "description": "Create seed-demo-data edge function",
+    "steps": [
+      "Create supabase/functions/seed-demo-data/index.ts",
+      "Accept organization_id, generate sample data:",
+      "15 sample people (mix of statuses: first_timer, member, leader) with is_demo=true",
+      "3 sample groups (Youth, Worship Team, Prayer Warriors) with is_demo=true",
+      "2 sample call scripts (first_timer_followup, member_checkin) cloned from templates with is_demo=true",
+      "5 sample call history entries with varied outcomes",
+      "1 sample resolved escalation alert",
+      "All sample data marked with is_demo = true"
+    ],
+    "passes": false
+  },
+  {
+    "id": "7.1b",
+    "category": "feature",
+    "epic": "Epic 7: Demo Mode & Guided Tour",
+    "description": "Add is_demo flag and auto-clear behavior",
+    "steps": [
+      "Create migration: ADD is_demo BOOLEAN DEFAULT FALSE to people, groups, call_scripts, calling_campaigns, call_attempts, escalation_alerts",
+      "Database trigger already exists from Epic 1 (cleanup on first real person insert)",
+      "Verify the trigger deletes all is_demo=true records across all relevant tables",
+      "Show notice in UI: 'Demo data will be cleared when you add your first member'",
+      "Call seed-demo-data from onboarding completion flow",
+      "Add visual indicator (badge/tag) on demo data items in the UI"
+    ],
+    "passes": false
+  },
+  {
+    "id": "7.2",
+    "category": "feature",
+    "epic": "Epic 7: Demo Mode & Guided Tour",
+    "description": "Implement guided tour for new users",
+    "steps": [
+      "Install react-joyride: npm install react-joyride",
+      "Create GuidedTour component with tour steps configuration",
+      "Tour steps: Dashboard overview, People page, Communications, Settings, Call Scripts",
+      "Trigger tour on first login after onboarding (check tour_completed flag)",
+      "Add 'Skip Tour' and 'Next' buttons on each step overlay",
+      "Store tour_completed in notification_preferences or organization_members",
+      "Add 'Restart Tour' option in a help menu or Settings page"
+    ],
+    "passes": false
+  }
+]
+```

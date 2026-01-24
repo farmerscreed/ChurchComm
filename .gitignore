@@ -30,3 +30,11 @@ dist-ssr
 .env.test.local
 .env.production.local
 supabase.tar.gz
+
+
+
+.env
+venv
+node_modules
+CLAUDE.md
+clerk-nextjs-guide
