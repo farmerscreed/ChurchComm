@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__plugin_supabase_supabase__list_projects",
+      "mcp__plugin_supabase_supabase__list_tables",
+      "mcp__plugin_supabase_supabase__list_migrations",
+      "mcp__plugin_supabase_supabase__apply_migration",
+      "Bash(npm run build:*)",
+      "Bash(cmd.exe /c \"cd /d C:\\\\apps\\\\ChurchComm-main\\\\ChurchComm-main && npx tsc --noEmit\")",
+      "mcp__plugin_supabase_supabase__execute_sql",
+      "Bash(git checkout:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nEpic 1: Database & Data Model Refinement - Complete V2 Foundation\n\nImplements the full Epic 1 from the PRD including:\n\nDatabase Migrations \\(applied to Supabase\\):\n- Renamed communication_campaigns -> messaging_campaigns\n- Dropped legacy calling_scripts table\n- Added pastor role to organization_members\n- Added do_not_call and is_demo fields to people\n- Added org fields \\(phone, calling window, timezone, stripe\\)\n- Created notification_preferences table with user-scoped RLS\n- Created minute_usage table with increment function\n- Created audience_segments table\n- Created auto_triggers table with seed trigger\n- Added template/voice fields to call_scripts\n- Created member_memories vector table\n- Seeded 6 script templates\n- Created demo data cleanup trigger\n- Added role-based RLS policies \\(admin/pastor vs member\\)\n- Fixed function search_path security warnings\n\nFrontend Changes:\n- Created usePermissions hook \\(3-role RBAC matrix\\)\n- Created PermissionGate component\n- Updated authStore with currentMember and role tracking\n- Updated Sidebar with permission-based nav visibility\n- Added do_not_call toggle to AddPersonDialog\n- Added PhoneOff indicator to PeopleDirectory\n- Added permission gates to People, Groups, Communications, FollowUps, Settings\n- Settings page redirects non-admins to dashboard\n- Renamed all communication_campaigns refs to messaging_campaigns\n\nEdge Function Updates:\n- send-sms: Updated to use messaging_campaigns table\n- send-group-call: Added do_not_call filtering, dedicated phone number support\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(gh auth:*)",
+      "Bash(cmd.exe /c \"gh auth status\")",
+      "Bash(cmd.exe /c \"where gh 2>&1 && gh auth status 2>&1\")",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(git pull:*)"
+    ]
+  }
+}
