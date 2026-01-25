@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
-import { Mail, Phone, Search, UserPlus } from 'lucide-react';
+import { Mail, Phone, Search, UserPlus, Users, UserCheck, UserX, Baby, Sparkles, Calendar } from 'lucide-react';
 import { PersonDialog } from './PersonDialog';
 
 interface Person {
@@ -24,10 +24,33 @@ interface Person {
   member_status: string;
   tags: string[] | null;
   birthday: string | null;
+  is_demo?: boolean;
 }
 
 interface PeopleDirectoryProps {
   onRefresh?: () => void;
+}
+
+const STATUS_CONFIG: Record<string, { color: string; bgColor: string; icon: typeof Users }> = {
+  member: { color: 'text-green-700 dark:text-green-400', bgColor: 'bg-green-100 dark:bg-green-900/40', icon: UserCheck },
+  visitor: { color: 'text-blue-700 dark:text-blue-400', bgColor: 'bg-blue-100 dark:bg-blue-900/40', icon: Users },
+  prospect: { color: 'text-purple-700 dark:text-purple-400', bgColor: 'bg-purple-100 dark:bg-purple-900/40', icon: Sparkles },
+  inactive: { color: 'text-gray-600 dark:text-gray-400', bgColor: 'bg-gray-100 dark:bg-gray-800', icon: UserX },
+  child: { color: 'text-amber-700 dark:text-amber-400', bgColor: 'bg-amber-100 dark:bg-amber-900/40', icon: Baby },
+  first_time_visitor: { color: 'text-pink-700 dark:text-pink-400', bgColor: 'bg-pink-100 dark:bg-pink-900/40', icon: Sparkles },
+};
+
+function getInitials(firstName: string, lastName: string): string {
+  return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
+}
+
+function getAvatarColor(name: string): string {
+  const colors = [
+    'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500',
+    'bg-indigo-500', 'bg-teal-500', 'bg-orange-500', 'bg-cyan-500'
+  ];
+  const index = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
+  return colors[index];
 }
 
 export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) => {
@@ -40,9 +63,7 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
   const { data: people, isLoading, error, refetch } = useQuery({
     queryKey: ['people', currentOrganization?.id, search, statusFilter],
     queryFn: async (): Promise<Person[]> => {
-      if (!currentOrganization?.id) {
-        return [];
-      }
+      if (!currentOrganization?.id) return [];
 
       let query = supabase
         .from('people')
@@ -50,23 +71,27 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
         .eq('organization_id', currentOrganization.id)
         .order('created_at', { ascending: false });
 
-      // Search filter
       if (search) {
         query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%`);
       }
 
-      // Status filter
       if (statusFilter && statusFilter !== 'all') {
         query = query.eq('member_status', statusFilter);
       }
 
       const { data, error } = await query;
       if (error) throw error;
-
       return data as Person[];
     },
     enabled: !!currentOrganization?.id,
   });
+
+  const stats = {
+    total: people?.length || 0,
+    members: people?.filter(p => p.member_status === 'member').length || 0,
+    visitors: people?.filter(p => p.member_status === 'visitor' || p.member_status === 'first_time_visitor').length || 0,
+    children: people?.filter(p => p.member_status === 'child').length || 0,
+  };
 
   const handlePersonClick = (person: Person) => {
     setSelectedPerson(person);
@@ -80,9 +105,7 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
 
   const handleDialogClose = (open: boolean) => {
     setDialogOpen(open);
-    if (!open) {
-      setSelectedPerson(null);
-    }
+    if (!open) setSelectedPerson(null);
   };
 
   const handleRefresh = () => {
@@ -90,34 +113,17 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
     onRefresh?.();
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'member': return 'bg-green-100 text-green-800';
-      case 'visitor': return 'bg-blue-100 text-blue-800';
-      case 'prospect': return 'bg-purple-100 text-purple-800';
-      case 'inactive': return 'bg-gray-100 text-gray-800';
-      case 'child': return 'bg-yellow-100 text-yellow-800';
-      case 'first_time_visitor': return 'bg-pink-100 text-pink-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <div className="h-10 bg-muted rounded w-64 animate-pulse"></div>
-          <div className="h-10 bg-muted rounded w-40 animate-pulse"></div>
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-20 bg-muted rounded-lg animate-pulse" />
+          ))}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-4">
-                <div className="h-4 bg-muted rounded mb-2"></div>
-                <div className="h-3 bg-muted rounded mb-1 w-2/3"></div>
-                <div className="h-3 bg-muted rounded w-1/2"></div>
-              </CardContent>
-            </Card>
+            <div key={i} className="h-32 bg-muted rounded-lg animate-pulse" />
           ))}
         </div>
       </div>
@@ -129,19 +135,62 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
       <Card>
         <CardContent className="p-8 text-center">
           <p className="text-muted-foreground mb-4">Failed to load people. Please try again.</p>
-          <Button
-            variant="outline"
-            onClick={handleRefresh}
-          >
-            Retry
-          </Button>
+          <Button variant="outline" onClick={handleRefresh}>Retry</Button>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Stats Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-slate-200 dark:border-slate-700">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+              <Users className="h-5 w-5 text-slate-600 dark:text-slate-300" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.total}</p>
+              <p className="text-xs text-muted-foreground">Total People</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 border-green-200 dark:border-green-800">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-green-200 dark:bg-green-800 flex items-center justify-center">
+              <UserCheck className="h-5 w-5 text-green-700 dark:text-green-300" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-green-700 dark:text-green-400">{stats.members}</p>
+              <p className="text-xs text-muted-foreground">Members</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200 dark:border-blue-800">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-blue-200 dark:bg-blue-800 flex items-center justify-center">
+              <Sparkles className="h-5 w-5 text-blue-700 dark:text-blue-300" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">{stats.visitors}</p>
+              <p className="text-xs text-muted-foreground">Visitors</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950 dark:to-orange-950 border-amber-200 dark:border-amber-800">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-amber-200 dark:bg-amber-800 flex items-center justify-center">
+              <Baby className="h-5 w-5 text-amber-700 dark:text-amber-300" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-amber-700 dark:text-amber-400">{stats.children}</p>
+              <p className="text-xs text-muted-foreground">Children</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Search and Filter Bar */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="relative w-full sm:w-96">
@@ -153,7 +202,6 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
             className="pl-10"
           />
         </div>
-
         <div className="flex gap-2 w-full sm:w-auto">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-full sm:w-[180px]">
@@ -169,7 +217,6 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
               <SelectItem value="child">Children</SelectItem>
             </SelectContent>
           </Select>
-
           <Button onClick={handleAddPerson} className="whitespace-nowrap">
             <UserPlus className="h-4 w-4 mr-2" />
             Add Person
@@ -179,12 +226,18 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
 
       {/* People Grid */}
       {!people || people.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <p className="text-muted-foreground mb-4">
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Users className="h-8 w-8 text-primary" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">
+              {search || statusFilter !== 'all' ? 'No people found' : 'Your directory is empty'}
+            </h3>
+            <p className="text-sm text-muted-foreground text-center mb-4 max-w-sm">
               {search || statusFilter !== 'all'
-                ? 'No people found matching your filters.'
-                : 'No people in your directory yet. Add someone to get started!'}
+                ? 'Try adjusting your search or filters.'
+                : 'Start building your congregation directory by adding your first person.'}
             </p>
             {!search && statusFilter === 'all' && (
               <Button onClick={handleAddPerson}>
@@ -196,65 +249,82 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {people.map((person) => (
-            <Card
-              key={person.id}
-              className="hover:shadow-md hover:shadow-primary/20 transition-all duration-200 cursor-pointer hover:border-primary/50"
-              onClick={() => handlePersonClick(person)}
-            >
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center justify-between">
-                  <span className="truncate">{person.first_name} {person.last_name}</span>
-                  <Badge
-                    variant="secondary"
-                    className={`capitalize text-xs ${getStatusColor(person.member_status)}`}
-                  >
-                    {person.member_status.replace('_', ' ')}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 pt-0 text-sm">
-                {/* Tags */}
-                {person.tags && person.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {person.tags.slice(0, 3).map((tag, index) => (
-                      <Badge key={index} variant="outline" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
-                    {person.tags.length > 3 && (
-                      <Badge variant="outline" className="text-xs">
-                        +{person.tags.length - 3}
-                      </Badge>
+          {people.map((person) => {
+            const config = STATUS_CONFIG[person.member_status] || STATUS_CONFIG.visitor;
+            const initials = getInitials(person.first_name, person.last_name);
+            const avatarColor = getAvatarColor(`${person.first_name}${person.last_name}`);
+
+            return (
+              <Card
+                key={person.id}
+                className="group hover:shadow-lg hover:shadow-primary/10 transition-all duration-200 cursor-pointer hover:border-primary/50 overflow-hidden"
+                onClick={() => handlePersonClick(person)}
+              >
+                <CardContent className="p-0">
+                  {/* Header with Avatar */}
+                  <div className="p-4 flex items-start gap-3">
+                    <div className={`h-12 w-12 rounded-full ${avatarColor} flex items-center justify-center text-white font-semibold text-lg flex-shrink-0 shadow-sm`}>
+                      {initials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-semibold truncate group-hover:text-primary transition-colors">
+                          {person.first_name} {person.last_name}
+                        </h3>
+                        <Badge className={`${config.bgColor} ${config.color} border-0 text-[10px] uppercase tracking-wide font-medium shrink-0`}>
+                          {person.member_status.replace('_', ' ')}
+                        </Badge>
+                      </div>
+
+                      {/* Tags */}
+                      {person.tags && person.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {person.tags.slice(0, 2).map((tag, index) => (
+                            <Badge key={index} variant="outline" className="text-[10px] px-1.5 py-0">
+                              {tag}
+                            </Badge>
+                          ))}
+                          {person.tags.length > 2 && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                              +{person.tags.length - 2}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Contact Info */}
+                  <div className="px-4 pb-4 space-y-2">
+                    {person.email && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Mail className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="truncate text-xs">{person.email}</span>
+                      </div>
+                    )}
+                    {person.phone_number && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Phone className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="text-xs">{person.phone_number}</span>
+                      </div>
+                    )}
+                    {person.birthday && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="text-xs">{new Date(person.birthday).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                      </div>
+                    )}
+                    {!person.email && !person.phone_number && (
+                      <p className="text-xs text-muted-foreground italic">No contact info</p>
                     )}
                   </div>
-                )}
-
-                {/* Contact Information */}
-                <div className="flex flex-col gap-2 text-muted-foreground">
-                  {person.email && (
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 flex-shrink-0" />
-                      <span className="truncate text-xs">{person.email}</span>
-                    </div>
-                  )}
-                  {person.phone_number && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 flex-shrink-0" />
-                      <span className="text-xs">{person.phone_number}</span>
-                    </div>
-                  )}
-                  {!person.email && !person.phone_number && (
-                    <p className="text-xs text-muted-foreground italic">No contact info</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
-      {/* Person Dialog - for both Add and Edit */}
       <PersonDialog
         open={dialogOpen}
         onOpenChange={handleDialogClose}
