@@ -31,6 +31,16 @@ interface CallingScript {
   content: string;
 }
 
+interface Campaign {
+  id: string;
+  name: string;
+  type: 'voice' | 'sms';
+  status: string;
+  total_recipients: number;
+  completed_count: number;
+  created_at: string;
+}
+
 export default function Communications() {
   const navigate = useNavigate();
   const { currentOrganization } = useAuthStore();
@@ -38,9 +48,11 @@ export default function Communications() {
   const [showBuilder, setShowBuilder] = useState(false);
   const [groups, setGroups] = useState<Group[]>([]);
   const [scripts, setScripts] = useState<CallingScript[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [loadingScripts, setLoadingScripts] = useState(false);
+  const [loadingCampaigns, setLoadingCampaigns] = useState(false);
   const [hasDemoData, setHasDemoData] = useState(false);
 
 
@@ -61,6 +73,7 @@ export default function Communications() {
     if (currentOrganization?.id) {
       loadGroups();
       loadScripts();
+      loadCampaigns();
       checkDemoData();
     }
   }, [currentOrganization]);
@@ -130,6 +143,48 @@ export default function Communications() {
       });
     } finally {
       setLoadingScripts(false);
+    }
+  };
+
+  const loadCampaigns = async () => {
+    if (!currentOrganization?.id) return;
+
+    setLoadingCampaigns(true);
+    try {
+      const { data, error } = await supabase
+        .from('calling_campaigns')
+        .select(`
+          id,
+          name,
+          campaign_type,
+          status,
+          total_recipients,
+          created_at,
+          call_attempts(count)
+        `)
+        .eq('organization_id', currentOrganization.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+
+      if (data) {
+        const formattedCampaigns = data.map((campaign: any) => ({
+          id: campaign.id,
+          name: campaign.name,
+          type: (campaign.campaign_type === 'voice' ? 'voice' : 'sms') as 'voice' | 'sms',
+          status: campaign.status,
+          total_recipients: campaign.total_recipients || 0,
+          completed_count: campaign.call_attempts?.[0]?.count || 0,
+          created_at: campaign.created_at
+        }));
+        setCampaigns(formattedCampaigns);
+      }
+    } catch (error: any) {
+      console.error('Error loading campaigns:', error);
+      // Don't show toast for campaigns - it's not critical
+    } finally {
+      setLoadingCampaigns(false);
     }
   };
 
@@ -399,11 +454,10 @@ export default function Communications() {
                           setSmsRecipientType('all');
                           setSmsSelectedGroupId('');
                         }}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                          smsRecipientType === 'all'
-                            ? 'border-purple-500/50 bg-purple-500/10 text-purple-300'
-                            : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
-                        } border`}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${smsRecipientType === 'all'
+                          ? 'border-purple-500/50 bg-purple-500/10 text-purple-300'
+                          : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                          } border`}
                       >
                         All Members
                       </button>
@@ -416,11 +470,10 @@ export default function Communications() {
                             setSmsRecipientType('group');
                             setSmsSelectedGroupId(group.id);
                           }}
-                          className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                            smsRecipientType === 'group' && smsSelectedGroupId === group.id
-                              ? 'border-purple-500/50 bg-purple-500/10 text-purple-300'
-                              : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
-                          } border`}
+                          className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${smsRecipientType === 'group' && smsSelectedGroupId === group.id
+                            ? 'border-purple-500/50 bg-purple-500/10 text-purple-300'
+                            : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                            } border`}
                         >
                           {group.name} ({group.member_count})
                         </button>
@@ -802,47 +855,57 @@ export default function Communications() {
                 </ScrollArea>
               </div>
 
-              {/* Mock Campaign Cards */}
+              {/* Campaign Cards - Real Data */}
               <div className="space-y-3">
                 <h4 className="text-sm font-semibold text-white flex items-center gap-2">
                   <Zap className="w-4 h-4 text-blue-400" />
                   Recent Campaigns
                 </h4>
-                {[
-                  { name: "Sunday Service Reminder", status: "completed", sent: 45, total: 45, type: "voice" },
-                  { name: "First-Time Visitor Follow-up", status: "scheduled", sent: 0, total: 23, type: "voice" },
-                ].map((campaign, idx) => (
-                  <div key={idx} className="p-4 rounded-xl bg-white/5 border border-white/10">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                          <Phone className="w-5 h-5 text-purple-400" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-white text-sm">{campaign.name}</p>
-                          <p className="text-xs text-slate-500 capitalize">{campaign.type} campaign</p>
-                        </div>
-                      </div>
-                      <Badge className={`${
-                        campaign.status === "completed"
-                          ? "bg-green-500/20 text-green-400"
-                          : "bg-amber-500/20 text-amber-400"
-                      } border-0 text-xs`}>
-                        {campaign.status}
-                      </Badge>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-slate-400">Progress</span>
-                        <span className="text-white">{campaign.sent} / {campaign.total}</span>
-                      </div>
-                      <Progress
-                        value={(campaign.sent / campaign.total) * 100}
-                        className="h-2 bg-white/10"
-                      />
-                    </div>
+                {loadingCampaigns ? (
+                  <div className="p-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
                   </div>
-                ))}
+                ) : campaigns.length > 0 ? (
+                  campaigns.map((campaign) => (
+                    <div key={campaign.id} className="p-4 rounded-xl bg-white/5 border border-white/10">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                            <Phone className="w-5 h-5 text-purple-400" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-white text-sm">{campaign.name}</p>
+                            <p className="text-xs text-slate-500 capitalize">{campaign.type} campaign</p>
+                          </div>
+                        </div>
+                        <Badge className={`${campaign.status === "completed"
+                          ? "bg-green-500/20 text-green-400"
+                          : campaign.status === "active"
+                            ? "bg-blue-500/20 text-blue-400"
+                            : "bg-amber-500/20 text-amber-400"
+                          } border-0 text-xs`}>
+                          {campaign.status}
+                        </Badge>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-slate-400">Progress</span>
+                          <span className="text-white">{campaign.completed_count} / {campaign.total_recipients}</span>
+                        </div>
+                        <Progress
+                          value={campaign.total_recipients > 0 ? (campaign.completed_count / campaign.total_recipients) * 100 : 0}
+                          className="h-2 bg-white/10"
+                        />
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-8 rounded-xl bg-white/5 border border-white/10 border-dashed text-center">
+                    <Zap className="h-10 w-10 mx-auto text-slate-600 mb-2" />
+                    <p className="text-sm text-slate-500">No campaigns yet</p>
+                    <p className="text-xs text-slate-600 mt-1">Launch your first campaign to see it here</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

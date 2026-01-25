@@ -194,6 +194,8 @@ export function CampaignBuilder({ onComplete, onCancel }: CampaignBuilderProps) 
                     organization_id: currentOrganization?.id,
                     name: `Campaign - ${new Date().toLocaleDateString()}`,
                     script_id: selectedScript,
+                    campaign_type: campaignType, // Add campaign_type field
+                    total_recipients: audienceCount, // Add total recipient count
                     status: scheduleMode === "now" ? "in_progress" : "scheduled",
                     scheduled_at: scheduledAt,
                 })
