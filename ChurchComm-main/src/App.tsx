@@ -12,6 +12,9 @@ import FollowUpsPage from '@/pages/FollowUps';
 import Settings from '@/pages/Settings';
 import SystemTest from '@/pages/SystemTest';
 import AcceptInvite from '@/pages/AcceptInvite';
+import LandingPage from '@/pages/LandingPage';
+import PricingPage from '@/pages/PricingPage';
+import DemoPage from '@/pages/DemoPage';
 import { Toaster } from '@/components/ui/toaster';
 
 function App() {
@@ -37,6 +40,18 @@ function App() {
       <Routes>
         {/* Public routes */}
         <Route
+          path="/"
+          element={user ? <Navigate to="/dashboard" replace /> : <LandingPage />}
+        />
+        <Route
+          path="/pricing"
+          element={<PricingPage />}
+        />
+        <Route
+          path="/demo"
+          element={<DemoPage />}
+        />
+        <Route
           path="/login"
           element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />}
         />
@@ -47,18 +62,16 @@ function App() {
 
         {/* Protected routes */}
         <Route
-          path="/"
           element={user ? <AppLayout /> : <Navigate to="/login" replace />}
         >
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="people" element={<People />} />
-          <Route path="groups" element={<Groups />} />
-          <Route path="communications" element={<Communications />} />
-          <Route path="call-history" element={<CallHistory />} />
-          <Route path="follow-ups" element={<FollowUpsPage />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="system-test" element={<SystemTest />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/people" element={<People />} />
+          <Route path="/groups" element={<Groups />} />
+          <Route path="/communications" element={<Communications />} />
+          <Route path="/call-history" element={<CallHistory />} />
+          <Route path="/follow-ups" element={<FollowUpsPage />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/system-test" element={<SystemTest />} />
         </Route>
 
         {/* Catch all - redirect to dashboard or login */}

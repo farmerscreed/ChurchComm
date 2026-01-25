@@ -13,6 +13,8 @@ import SystemTest from '@/pages/SystemTest';
 import AcceptInvite from '@/pages/AcceptInvite';
 import OnboardingPage from '@/pages/OnboardingPage';
 import PricingPage from '@/pages/PricingPage';
+import LandingPage from '@/pages/LandingPage';
+import DemoPage from '@/pages/DemoPage';
 import { Toaster } from '@/components/ui/toaster';
 
 function App() {
@@ -46,6 +48,7 @@ function App() {
           element={user ? <Navigate to="/dashboard" replace /> : <AcceptInvite />}
         />
         <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/demo" element={<DemoPage />} />
 
         {/* Onboarding route (authenticated but outside AppLayout) */}
         <Route
@@ -53,12 +56,14 @@ function App() {
           element={user ? <OnboardingPage /> : <Navigate to="/login" replace />}
         />
 
-        {/* Protected routes */}
+        {/* Landing page - public */}
         <Route
           path="/"
-          element={user ? <AppLayout /> : <Navigate to="/login" replace />}
-        >
-          <Route index element={<Navigate to="/dashboard" replace />} />
+          element={user ? <Navigate to="/dashboard" replace /> : <LandingPage />}
+        />
+
+        {/* Protected routes */}
+        <Route element={user ? <AppLayout /> : <Navigate to="/login" replace />}>
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="people" element={<People />} />
           <Route path="groups" element={<Groups />} />

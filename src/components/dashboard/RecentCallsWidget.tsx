@@ -7,7 +7,7 @@ interface RecentCall {
     id: string;
     person_name: string;
     status: string;
-    created_at: string;
+    attempted_at: string | null;
 }
 
 export function RecentCallsWidget({ calls }: { calls: RecentCall[] }) {
@@ -56,7 +56,7 @@ export function RecentCallsWidget({ calls }: { calls: RecentCall[] }) {
                                     <span className="text-sm truncate max-w-[150px]">{call.person_name}</span>
                                 </div>
                                 <span className="text-xs text-muted-foreground whitespace-nowrap">
-                                    {formatDistanceToNow(new Date(call.created_at), { addSuffix: true })}
+                                    {call.attempted_at ? formatDistanceToNow(new Date(call.attempted_at), { addSuffix: true }) : "Scheduled"}
                                 </span>
                             </div>
                         ))}

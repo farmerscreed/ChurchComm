@@ -8,6 +8,13 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
 
 const endpointSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET") ?? "";
 
+// Map tiers to minutes included
+const TIER_MINUTES: Record<string, number> = {
+    starter: 60,
+    growth: 200,
+    enterprise: 600,
+};
+
 serve(async (req) => {
     const signature = req.headers.get("stripe-signature");
 
@@ -35,6 +42,8 @@ serve(async (req) => {
                 const tier = session.metadata?.tier;
 
                 if (organizationId && tier) {
+                    const minutesIncluded = TIER_MINUTES[tier] || 15;
+
                     await supabase
                         .from("organizations")
                         .update({
@@ -42,10 +51,12 @@ serve(async (req) => {
                             subscription_status: "trialing",
                             stripe_subscription_id: session.subscription as string,
                             trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+                            minutes_included: minutesIncluded,
+                            minutes_used: 0,
                         })
                         .eq("id", organizationId);
 
-                    console.log(`Organization ${organizationId} subscribed to ${tier}`);
+                    console.log(`Organization ${organizationId} subscribed to ${tier} with ${minutesIncluded} minutes`);
                 }
                 break;
             }
@@ -85,6 +96,7 @@ serve(async (req) => {
                         .update({
                             subscription_status: "canceled",
                             subscription_plan: "free",
+                            minutes_included: 15,
                         })
                         .eq("id", organizationId);
 
@@ -106,14 +118,16 @@ serve(async (req) => {
                         .single();
 
                     if (org) {
+                        // Reset minutes on new billing period
                         await supabase
                             .from("organizations")
                             .update({
                                 subscription_status: "active",
+                                minutes_used: 0,
                             })
                             .eq("id", org.id);
 
-                        console.log(`Payment succeeded for org ${org.id}`);
+                        console.log(`Payment succeeded for org ${org.id}, minutes reset`);
                     }
                 }
                 break;

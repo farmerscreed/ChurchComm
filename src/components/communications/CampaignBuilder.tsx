@@ -202,24 +202,26 @@ export function CampaignBuilder({ onComplete, onCancel }: CampaignBuilderProps) 
 
             if (campaignError) throw campaignError;
 
-            // 3. Fetch audience
+            // 3. Fetch audience with phone numbers
             let audienceQuery = supabase
                 .from("people")
-                .select("id, phone")
+                .select("id, first_name, phone_number")
                 .eq("organization_id", currentOrganization?.id)
-                .eq("do_not_call", false);
+                .eq("do_not_call", false)
+                .not("phone_number", "is", null);
 
             if (filters.statuses.length > 0) {
                 audienceQuery = audienceQuery.in("status", filters.statuses);
             }
             const { data: audience } = await audienceQuery;
 
-            // 4. Create call_attempts for voice campaigns
+            // 4a. Create call_attempts for voice campaigns
             if (campaignType === "voice" && audience && audience.length > 0) {
                 const callAttempts = audience.map(person => ({
                     organization_id: currentOrganization?.id,
                     campaign_id: campaign.id,
                     person_id: person.id,
+                    phone_number: person.phone_number,
                     script_id: selectedScript,
                     status: scheduleMode === "now" ? "pending" : "scheduled",
                     scheduled_at: scheduledAt,
@@ -227,11 +229,44 @@ export function CampaignBuilder({ onComplete, onCancel }: CampaignBuilderProps) 
                 await supabase.from("call_attempts").insert(callAttempts);
             }
 
-            // 5. Trigger calls if "now"
+            // 4b. Create campaign_recipients for SMS campaigns
+            if (campaignType === "sms" && audience && audience.length > 0) {
+                const recipients = audience.map(person => ({
+                    campaign_id: campaign.id,
+                    person_id: person.id,
+                    phone_number: person.phone_number,
+                    status: scheduleMode === "now" ? "pending" : "scheduled",
+                }));
+                await supabase.from("campaign_recipients").insert(recipients);
+            }
+
+            // 5a. Trigger calls if "now" for voice
             if (scheduleMode === "now" && campaignType === "voice") {
                 await supabase.functions.invoke("send-group-call", {
                     body: { campaign_id: campaign.id },
                 });
+            }
+
+            // 5b. Trigger SMS sending if "now" for sms
+            if (scheduleMode === "now" && campaignType === "sms") {
+                // Fetch the script content to use as the message
+                const { data: scriptData } = await supabase
+                    .from("call_scripts")
+                    .select("content")
+                    .eq("id", selectedScript)
+                    .single();
+
+                if (scriptData && audience) {
+                    await supabase.functions.invoke("send-sms", {
+                        body: {
+                            recipientType: "campaign",
+                            campaignId: campaign.id,
+                            message: scriptData.content,
+                            organizationId: currentOrganization?.id,
+                            createdBy: user?.id,
+                        },
+                    });
+                }
             }
 
             toast({ title: "Campaign Launched!", description: `${audience?.length || 0} recipients queued.` });
@@ -243,6 +278,7 @@ export function CampaignBuilder({ onComplete, onCancel }: CampaignBuilderProps) 
             setLaunching(false);
         }
     };
+
 
     const toggleStatus = (status: string) => {
         setFilters(prev => ({

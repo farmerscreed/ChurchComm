@@ -33,7 +33,7 @@ interface NavigationItem {
   icon: any;
   dataTour?: string;
   children?: {
-    name:string;
+    name: string;
     href: string;
     icon: any;
   }[];
@@ -152,11 +152,11 @@ export function Sidebar({
                   key={item.name}
                   open={isExpanded && (isMobile || !isCollapsed)}
                   onOpenChange={() => toggleExpanded(item.name.toLowerCase())}
-                  {...(item.dataTour ? { 'data-tour': item.dataTour } : {})}
                 >
                   <CollapsibleTrigger asChild>
                     <Button
                       variant="ghost"
+                      data-tour={item.dataTour}
                       className={cn(
                         'w-full justify-start gap-3 h-auto px-3 py-2 text-sm font-medium',
                         'hover:bg-accent hover:text-accent-foreground',

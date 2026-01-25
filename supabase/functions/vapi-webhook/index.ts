@@ -1,12 +1,61 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { corsHeaders } from '../_shared/cors.ts'
-import { createEmbedding } from '../_shared/embeddings.ts'
+
+// --- INLINED SHARED UTILITIES ---
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+async function createEmbedding(text: string): Promise<number[]> {
+  const openaiKey = Deno.env.get("OPENAI_API_KEY");
+
+  if (!openaiKey) {
+    throw new Error("OPENAI_API_KEY not configured");
+  }
+
+  const response = await fetch("https://api.openai.com/v1/embeddings", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${openaiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "text-embedding-3-small",
+      input: text,
+      dimensions: 768,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`OpenAI embeddings API error: ${response.status} - ${error}`);
+  }
+
+  const data = await response.json();
+  return data.data[0].embedding;
+}
 
 async function recordMinuteUsage(supabase: any, orgId: string, minutes: number): Promise<void> {
   const today = new Date()
   const billingPeriodStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString()
 
+  // 1. Get current organization details for minutes_included
+  const { data: org } = await supabase
+    .from('organizations')
+    .select('minutes_included, minutes_used')
+    .eq('id', orgId)
+    .single()
+
+  // 2. Update organizations table (Source of Truth for billing enforcement)
+  if (org) {
+    await supabase
+      .from('organizations')
+      .update({ minutes_used: (org.minutes_used || 0) + minutes })
+      .eq('id', orgId)
+  }
+
+  // 3. Update minute_usage history table (For Dashboard & Analytics)
   const { data: existing } = await supabase
     .from('minute_usage')
     .select('id, minutes_used')
@@ -23,11 +72,11 @@ async function recordMinuteUsage(supabase: any, orgId: string, minutes: number):
       .eq('id', existing.id)
     console.log(`Recorded ${minutes} min usage for org ${orgId}. Total: ${(parseFloat(String(existing.minutes_used)) || 0) + minutes}`)
   } else {
-    console.warn(`No minute_usage record found for org ${orgId}, creating one`)
+    console.warn(`No minute_usage record for current period, creating one for org ${orgId}`)
     await supabase.from('minute_usage').insert({
       organization_id: orgId,
       minutes_used: minutes,
-      minutes_included: 100,
+      minutes_included: org?.minutes_included || 60, // Default to starter plan if unknown
       billing_period_start: billingPeriodStart,
     })
   }

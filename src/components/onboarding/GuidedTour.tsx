@@ -15,21 +15,25 @@ const TOUR_STEPS: Step[] = [
     {
         target: '[data-tour="people-nav"]',
         content: "Manage your congregation here. Add members, visitors, and track their journey.",
+        disableBeacon: true,
         placement: "right",
     },
     {
         target: '[data-tour="communications-nav"]',
         content: "Launch AI voice calls and SMS campaigns to reach your members.",
+        disableBeacon: true,
         placement: "right",
     },
     {
         target: '[data-tour="settings-nav"]',
         content: "Configure calling preferences, manage your team, and set up call scripts.",
+        disableBeacon: true,
         placement: "right",
     },
     {
         target: '[data-tour="minute-usage"]',
         content: "Track your AI calling minutes here. Your plan includes a set number of minutes each month.",
+        disableBeacon: true,
         placement: "bottom",
     },
 ];
@@ -64,8 +68,28 @@ export function GuidedTour() {
             }
 
             if (data && !data.tour_completed) {
-                // Small delay to ensure page is loaded
-                setTimeout(() => setRun(true), 1000);
+                // Wait for element to exist safely
+                const checkForElement = () => {
+                    const el = document.querySelector('[data-tour="dashboard"]');
+                    if (el) {
+                        setRun(true);
+                    } else {
+                        // Try again in 500ms, up to 5 times
+                        let retries = 0;
+                        const interval = setInterval(() => {
+                            retries++;
+                            if (document.querySelector('[data-tour="dashboard"]')) {
+                                setRun(true);
+                                clearInterval(interval);
+                            } else if (retries > 5) {
+                                clearInterval(interval);
+                            }
+                        }, 500);
+                    }
+                };
+
+                // Small initial delay
+                setTimeout(checkForElement, 1000);
             }
         } catch (err) {
             console.warn("Tour status check error:", err);
@@ -73,7 +97,7 @@ export function GuidedTour() {
     };
 
     const handleCallback = async (data: CallBackProps) => {
-        const { status, index, type } = data;
+        const { status, index, type, action } = data;
 
         if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
             setRun(false);
@@ -88,10 +112,8 @@ export function GuidedTour() {
             } catch (err) {
                 console.warn("Failed to mark tour complete:", err);
             }
-        }
-
-        if (type === "step:after") {
-            setStepIndex(index + 1);
+        } else if (type === "step:after" || action === "next") {
+            // Basic navigation logic if we want to change routes during tour
         }
     };
 
@@ -104,6 +126,11 @@ export function GuidedTour() {
             continuous
             showProgress
             showSkipButton
+            disableOverlayClose
+            spotlightClicks
+            floaterProps={{
+                disableAnimation: true,
+            }}
             styles={{
                 options: {
                     primaryColor: "#6366f1", // Indigo-500

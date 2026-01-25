@@ -78,10 +78,10 @@ This is the master checklist of all tasks in execution order. Check off tasks as
 | 5.2a | Campaign Builder - type + script steps | `/task-5.2a` | [x] |
 | 5.2b | Campaign Builder - audience + scheduling | `/task-5.2b` | [x] |
 | 5.2c | Campaign Builder - review + launch | `/task-5.2c` | [x] |
-| 5.3a | Settings: Calling Configuration tab | `/task-5.3a` | [ ] |
-| 5.3b | Settings: Notifications tab | `/task-5.3b` | [ ] |
-| 5.3c | Settings: Team tab + Voice section | `/task-5.3c` | [ ] |
-| 5.4 | SMS campaign support via Campaign Builder | `/task-5.4` | [ ] |
+| 5.3a | Settings: Calling Configuration tab | `/task-5.3a` | [x] |
+| 5.3b | Settings: Notifications tab | `/task-5.3b` | [x] |
+| 5.3c | Settings: Team tab + Voice section | `/task-5.3c` | [x] |
+| 5.4 | SMS campaign support via Campaign Builder | `/task-5.4` | [x] |
 
 ---
 
@@ -113,11 +113,12 @@ This is the master checklist of all tasks in execution order. Check off tasks as
 | Epic 1 | 10 | 10 | 0 |
 | Epic 2 | 8 | 8 | 0 |
 | Epic 3 | 5 | 5 | 0 |
-| Epic 4 | 9 | 0 | 9 |
-| Epic 5 | 9 | 0 | 9 |
-| Epic 6 | 4 | 0 | 4 |
-| Epic 7 | 3 | 0 | 3 |
-| **TOTAL** | **48** | **23** | **25** |
+| Epic 4 | 9 | 9 | 0 |
+| Epic 5 | 9 | 9 | 0 |
+| Epic 6 | 4 | 4 | 0 |
+| Epic 7 | 3 | 3 | 0 |
+| **TOTAL** | **48** | **48** | **0** |
+
 
 ---
 

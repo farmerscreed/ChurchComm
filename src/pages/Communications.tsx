@@ -13,7 +13,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageSquare, Phone, Send, Loader2, Plus, PhoneCall, Rocket, Sparkles, FileText } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { MessageSquare, Phone, Send, Loader2, Plus, PhoneCall, Rocket, Sparkles, FileText, Volume2, Zap } from 'lucide-react';
 import { CampaignBuilder } from '@/components/communications/CampaignBuilder';
 import { DemoDataNotice } from '@/components/demo/DemoDataNotice';
 import { PhonePreview } from '@/components/communications/PhonePreview';
@@ -54,6 +55,7 @@ export default function Communications() {
   const [isCreateScriptOpen, setIsCreateScriptOpen] = useState(false);
   const [newScriptName, setNewScriptName] = useState('');
   const [newScriptContent, setNewScriptContent] = useState('');
+  const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
     if (currentOrganization?.id) {
@@ -325,98 +327,141 @@ export default function Communications() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {hasDemoData && <DemoDataNotice />}
-      {/* Header */}
+
+      {/* Header with gradient text */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Communications</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+            Communications
+          </h1>
+          <p className="text-slate-400 mt-2 text-lg">
             Send SMS messages and AI calls to your congregation
           </p>
         </div>
-        <Button onClick={() => setShowBuilder(true)} size="lg" className="bg-primary">
-          <Rocket className="h-4 w-4 mr-2" />
+        <Button
+          onClick={() => setShowBuilder(true)}
+          size="lg"
+          className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white border-0 shadow-lg"
+        >
+          <Rocket className="h-5 w-5 mr-2" />
           New Campaign
         </Button>
       </div>
 
-      {/* Main Tabs */}
-      <Tabs defaultValue="sms" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
-          <TabsTrigger value="sms" className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" />
-            SMS Messages
-          </TabsTrigger>
-          <TabsTrigger value="calling" className="flex items-center gap-2">
-            <Phone className="h-4 w-4" />
-            AI Calling
-          </TabsTrigger>
-        </TabsList>
+      {/* Modern Tab Navigation */}
+      <Tabs defaultValue="sms" className="space-y-8">
+        <div className="flex justify-center">
+          <TabsList className="inline-flex bg-white/5 border border-white/10 rounded-full p-1">
+            <TabsTrigger
+              value="sms"
+              className="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-400 data-[state=inactive]:hover:text-white"
+            >
+              <MessageSquare className="h-4 w-4" />
+              SMS Messages
+            </TabsTrigger>
+            <TabsTrigger
+              value="calling"
+              className="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-slate-400 data-[state=inactive]:hover:text-white"
+            >
+              <Phone className="h-4 w-4" />
+              AI Calling
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-        {/* SMS Tab */}
-        <TabsContent value="sms">
-          <div className="grid lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-7 space-y-6">
-              <Card className="h-full border-none shadow-sm bg-gradient-to-br from-card to-muted/20">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-xl md:text-2xl">
-                    <MessageSquare className="h-5 w-5 text-primary" />
-                    Compose Message
-                  </CardTitle>
-                  <CardDescription>
-                    Send text messages to groups or your entire congregation
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Recipient Selection */}
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>To</Label>
-                        <Select
-                          value={smsRecipientType}
-                          onValueChange={(value) => {
-                            setSmsRecipientType(value as 'group' | 'all');
-                            setSmsSelectedGroupId('');
+        {/* SMS Tab - Premium Redesign */}
+        <TabsContent value="sms" className="space-y-0">
+          <div className="grid lg:grid-cols-2 gap-8">
+            {/* Left: Compose Message */}
+            <div className="space-y-6">
+              {/* Modern Card with gradient background */}
+              <div className="p-6 rounded-xl bg-gradient-to-br from-slate-900/80 bg-white/5 border border-white/10 backdrop-blur-sm">
+                <div className="flex items-center gap-2 mb-6">
+                  <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                    <MessageSquare className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">Compose Message</h3>
+                    <p className="text-sm text-slate-400">Send to groups or all members</p>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Group Selection as Pills */}
+                  <div className="space-y-3">
+                    <Label className="text-sm text-slate-300">Send to</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {/* All Members Button */}
+                      <button
+                        onClick={() => {
+                          setSmsRecipientType('all');
+                          setSmsSelectedGroupId('');
+                        }}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                          smsRecipientType === 'all'
+                            ? 'border-purple-500/50 bg-purple-500/10 text-purple-300'
+                            : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                        } border`}
+                      >
+                        All Members
+                      </button>
+
+                      {/* Group Buttons */}
+                      {groups.map((group) => (
+                        <button
+                          key={group.id}
+                          onClick={() => {
+                            setSmsRecipientType('group');
+                            setSmsSelectedGroupId(group.id);
                           }}
+                          className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                            smsRecipientType === 'group' && smsSelectedGroupId === group.id
+                              ? 'border-purple-500/50 bg-purple-500/10 text-purple-300'
+                              : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                          } border`}
                         >
-                          <SelectTrigger className="bg-background">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="group">Specific Group</SelectItem>
-                            <SelectItem value="all">All Members</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                          {group.name} ({group.member_count})
+                        </button>
+                      ))}
 
-                      {smsRecipientType === 'group' && (
-                        <div className="space-y-2">
-                          <Label>Select Group</Label>
-                          <Select value={smsSelectedGroupId} onValueChange={setSmsSelectedGroupId}>
-                            <SelectTrigger className="bg-background">
-                              <SelectValue placeholder="Choose a group..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {groups.map((group) => (
-                                <SelectItem key={group.id} value={group.id}>
-                                  {group.name} ({group.member_count} members)
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {groups.length === 0 && !loadingGroups && (
-                            <p className="text-[10px] text-destructive">No groups found.</p>
-                          )}
-                        </div>
+                      {groups.length === 0 && !loadingGroups && (
+                        <p className="text-xs text-slate-500">No groups available. Create groups in the People section.</p>
                       )}
                     </div>
                   </div>
 
-                  {/* Template Chips */}
+                  {/* Message Textarea with dark styling */}
                   <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Quick Templates</Label>
+                    <Label htmlFor="smsMessage" className="text-sm text-slate-300">Message</Label>
+                    <div className="relative">
+                      <Textarea
+                        id="smsMessage"
+                        value={smsMessage}
+                        onChange={(e) => setSmsMessage(e.target.value)}
+                        placeholder="Type your message here..."
+                        rows={8}
+                        className="resize-none bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-purple-500/50 focus:ring-purple-500/20"
+                      />
+                      {/* Character count styled elegantly */}
+                      <div className="absolute bottom-3 right-3 px-3 py-1 rounded-lg bg-slate-900/80 border border-white/10">
+                        <span className="text-xs text-slate-400">
+                          {smsMessage.length}/160 · {Math.ceil(smsMessage.length / 160) || 1} SMS
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-400 flex items-center gap-1.5">
+                      <code className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono text-xs">
+                        {'{Name}'}
+                      </code>
+                      <span>Personalize with member's first name</span>
+                    </p>
+                  </div>
+
+                  {/* Quick Templates */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-slate-400 uppercase tracking-wider">Quick Templates</Label>
                     <div className="flex flex-wrap gap-2">
                       {[
                         "Hi {Name}, just a reminder about service tomorrow!",
@@ -427,118 +472,110 @@ export default function Communications() {
                         <button
                           key={i}
                           onClick={() => setSmsMessage(template)}
-                          className="text-xs bg-muted hover:bg-primary/10 hover:text-primary transition-colors px-3 py-1.5 rounded-full border border-transparent hover:border-primary/20 text-left"
+                          className="text-xs bg-white/5 hover:bg-purple-500/10 hover:text-purple-300 transition-all px-3 py-1.5 rounded-lg border border-white/10 hover:border-purple-500/30 text-slate-400"
                           type="button"
                         >
-                          "{template.length > 30 ? template.substring(0, 30) + '...' : template}"
+                          {template.length > 35 ? template.substring(0, 35) + '...' : template}
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  {/* Message Input */}
-                  <div className="space-y-2">
-                    <Label htmlFor="smsMessage">Message Content</Label>
-                    <div className="relative">
-                      <Textarea
-                        id="smsMessage"
-                        value={smsMessage}
-                        onChange={(e) => setSmsMessage(e.target.value)}
-                        placeholder="Type your message here..."
-                        rows={8}
-                        className="resize-none pr-4 pb-8 shadow-inner bg-background"
-                      />
-                      <div className="absolute bottom-2 right-2 text-xs text-muted-foreground bg-background/80 px-2 py-0.5 rounded-md">
-                        {smsMessage.length}/160 ({Math.ceil(smsMessage.length / 160) || 1} SMS)
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <span className="inline-block w-4 text-center bg-primary/10 text-primary rounded text-[10px] font-bold">{"{}"}</span>
-                      Use <strong>{'{Name}'}</strong> to personalize with the member's first name.
-                    </p>
-                  </div>
-
-                  {/* Send Button */}
-                  <div className="pt-4">
-                    <Button
-                      onClick={handleSendSMS}
-                      disabled={loading || !smsMessage.trim() || (smsRecipientType === 'group' && !smsSelectedGroupId)}
-                      className="w-full h-12 text-base shadow-md hover:shadow-lg transition-all"
-                      size="lg"
-                    >
-                      {loading ? (
-                        <>
-                          <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                          Sending Message...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="h-5 w-5 mr-2" />
-                          Send Campaign
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                  {/* Send Button with gradient */}
+                  <Button
+                    onClick={handleSendSMS}
+                    disabled={loading || !smsMessage.trim() || (smsRecipientType === 'group' && !smsSelectedGroupId)}
+                    className="w-full h-12 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white border-0 shadow-lg text-base font-medium"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                        Sending Message...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-5 w-5 mr-2" />
+                        Send Campaign
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
             </div>
 
-            {/* Right Column: Preview */}
-            <div className="lg:col-span-5 hidden lg:flex flex-col items-center justify-center bg-muted/30 rounded-xl p-8 border border-dashed">
-              <div className="mb-6 text-center">
-                <h3 className="font-semibold text-lg text-foreground">Live Preview</h3>
-                <p className="text-sm text-muted-foreground">See how it looks on a device</p>
+            {/* Right: Phone Preview with glow effect */}
+            <div className="hidden lg:flex justify-center items-center">
+              <div className="relative">
+                {/* Phone Frame */}
+                <div className="w-64 h-[500px] bg-slate-800 rounded-[3rem] p-3 shadow-2xl border-4 border-slate-700 relative">
+                  {/* Glow Effect */}
+                  <div className="absolute -inset-4 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-[4rem] blur-xl -z-10" />
+
+                  {/* Screen */}
+                  <div className="w-full h-full bg-slate-900 rounded-[2.25rem] overflow-hidden relative">
+                    {/* Notch */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-6 bg-slate-800 rounded-b-2xl z-10" />
+
+                    {/* Messages App */}
+                    <div className="pt-10 px-4 h-full flex flex-col">
+                      <div className="text-center mb-4">
+                        <p className="text-xs text-slate-500">Messages</p>
+                        <p className="text-sm font-medium text-white">{currentOrganization?.name || 'Church'}</p>
+                      </div>
+
+                      <div className="flex-1 flex flex-col justify-end pb-4 space-y-3">
+                        <div className="self-start max-w-[85%]">
+                          <div className="bg-slate-700 rounded-2xl rounded-bl-md px-4 py-3">
+                            <p className="text-sm text-white leading-relaxed">
+                              {smsMessage.replace('{Name}', 'John') || 'Your message will appear here...'}
+                            </p>
+                          </div>
+                          <p className="text-[10px] text-slate-600 mt-1 ml-2">Now</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <PhonePreview
-                message={smsMessage.replace('{Name}', 'John')}
-                senderName={currentOrganization?.name || 'Church'}
-              />
             </div>
           </div>
         </TabsContent>
 
-        {/* AI Calling Tab */}
-        <TabsContent value="calling">
-          <div className="grid lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-7 space-y-6">
-              <Card className="h-full border-none shadow-sm bg-gradient-to-br from-card to-muted/20">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-xl md:text-2xl">
-                    <Phone className="h-5 w-5 text-primary" />
-                    AI Calling Campaign
-                  </CardTitle>
-                  <CardDescription>
-                    Make automated AI-powered calls to groups with personalized scripts
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Group Selection */}
-                  <div className="space-y-2">
-                    <Label className="font-medium">Select Group to Call</Label>
-                    <Select value={callSelectedGroupId} onValueChange={setCallSelectedGroupId}>
-                      <SelectTrigger className="bg-background h-11">
-                        <SelectValue placeholder="Choose a group..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {groups.map((group) => (
-                          <SelectItem key={group.id} value={group.id}>
-                            {group.name} ({group.member_count} members)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {groups.length === 0 && !loadingGroups && (
-                      <p className="text-[10px] text-destructive">No groups found.</p>
-                    )}
+        {/* AI Calling Tab - Premium Redesign */}
+        <TabsContent value="calling" className="space-y-0">
+          <div className="grid lg:grid-cols-2 gap-8">
+            {/* Left: Script Editor & Controls */}
+            <div className="space-y-6">
+              {/* Script Editor Card */}
+              <div className="p-6 rounded-xl bg-gradient-to-br from-slate-900/80 bg-white/5 border border-white/10 backdrop-blur-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-purple-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">AI Call Script</h3>
+                      <p className="text-xs text-slate-400">Natural conversational script</p>
+                    </div>
                   </div>
+                  <Badge className="bg-green-500/20 text-green-400 border-0">
+                    <Sparkles className="w-3 h-3 mr-1" />
+                    AI-Powered
+                  </Badge>
+                </div>
 
-                  {/* Script Selection */}
+                {/* Script Selection */}
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between mb-1">
-                      <Label className="font-medium">Calling Script</Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm text-slate-300">Select Script</Label>
                       <Dialog open={isCreateScriptOpen} onOpenChange={setIsCreateScriptOpen}>
                         <DialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 text-primary hover:text-primary/80 px-2 -mr-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 px-2"
+                          >
                             <Plus className="h-3.5 w-3.5 mr-1" />
                             New Script
                           </Button>
@@ -573,13 +610,23 @@ export default function Communications() {
                           </div>
                           <DialogFooter>
                             <Button variant="outline" onClick={() => setIsCreateScriptOpen(false)}>Cancel</Button>
-                            <Button onClick={handleCreateScript} disabled={loading}>Create Script</Button>
+                            <Button onClick={handleCreateScript} disabled={loading}>
+                              {loading ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Creating...
+                                </>
+                              ) : (
+                                'Create Script'
+                              )}
+                            </Button>
                           </DialogFooter>
                         </DialogContent>
                       </Dialog>
                     </div>
+
                     <Select value={selectedScriptId} onValueChange={setSelectedScriptId}>
-                      <SelectTrigger className="bg-background h-11">
+                      <SelectTrigger className="bg-white/5 border-white/10 text-white h-11">
                         <SelectValue placeholder="Choose a calling script..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -590,104 +637,247 @@ export default function Communications() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {scripts.length === 0 && !loadingScripts && (
+                      <p className="text-xs text-slate-500">No scripts found. Create your first script above.</p>
+                    )}
                   </div>
 
-                  {/* Start Calling Button */}
-                  <div className="pt-4">
+                  {/* Listen to AI Button */}
+                  {selectedScript && (
                     <Button
-                      onClick={handleStartCalling}
-                      disabled={loading || !callSelectedGroupId || !selectedScriptId}
-                      className="w-full h-12 text-base shadow-md hover:shadow-lg transition-all"
-                      size="lg"
+                      onClick={() => setIsPlaying(!isPlaying)}
+                      className={isPlaying
+                        ? "w-full bg-red-500 hover:bg-red-600"
+                        : "w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500"
+                      }
                     >
-                      {loading ? (
-                        <>
-                          <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                          Starting Calls...
-                        </>
+                      {isPlaying ? (
+                        <>Stop Preview</>
                       ) : (
                         <>
-                          <PhoneCall className="h-5 w-5 mr-2" />
-                          Start AI Calling Campaign
+                          <Volume2 className="w-4 h-4 mr-2" />
+                          Listen to AI
                         </>
                       )}
                     </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                  )}
 
-              {/* Info Card */}
-              <Card className="border-primary/20 bg-primary/5 shadow-none">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-primary" />
-                    AI Best Practices
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-foreground/80 space-y-1">
-                  <p>• Keep scripts conversational and warm.</p>
-                  <p>• Use <strong>{'{Name}'}</strong> to personalize calls.</p>
-                  <p>• Include a question to encourage engagement.</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Right Column: Script Preview */}
-            <div className="lg:col-span-5 flex flex-col h-full space-y-4">
-              <div className="bg-card border rounded-xl shadow-sm overflow-hidden flex flex-col h-full min-h-[400px]">
-                <div className="bg-muted/50 p-4 border-b flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-primary/10 rounded">
-                      <FileText className="h-4 w-4 text-primary" />
+                  {/* Voice Preview Animation */}
+                  {isPlaying && (
+                    <div className="p-4 rounded-xl bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-purple-500/30 flex items-center justify-center animate-pulse">
+                          <Volume2 className="w-5 h-5 text-purple-400" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-white">AI Voice Preview</p>
+                          <p className="text-xs text-slate-400">Playing script with natural voice synthesis...</p>
+                        </div>
+                        {/* Pulsing Indicator */}
+                        <div className="flex gap-1">
+                          {[...Array(4)].map((_, i) => (
+                            <div
+                              key={i}
+                              className="w-1 bg-purple-400 rounded-full animate-pulse"
+                              style={{
+                                height: `${12 + Math.random() * 16}px`,
+                                animationDelay: `${i * 0.1}s`
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                    <span className="font-semibold text-sm">Script Preview</span>
-                  </div>
-                  <Badge variant="outline" className="text-[10px] font-normal">AI Reader</Badge>
+                  )}
+                </div>
+              </div>
+
+              {/* Group Selection & Launch */}
+              <div className="p-6 rounded-xl bg-gradient-to-br from-slate-900/80 bg-white/5 border border-white/10 backdrop-blur-sm space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-sm text-slate-300">Select Group to Call</Label>
+                  <Select value={callSelectedGroupId} onValueChange={setCallSelectedGroupId}>
+                    <SelectTrigger className="bg-white/5 border-white/10 text-white h-11">
+                      <SelectValue placeholder="Choose a group..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {groups.map((group) => (
+                        <SelectItem key={group.id} value={group.id}>
+                          {group.name} ({group.member_count} members)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {groups.length === 0 && !loadingGroups && (
+                    <p className="text-xs text-slate-500">No groups found.</p>
+                  )}
                 </div>
 
-                <ScrollArea className="flex-1 p-6 relative bg-white dark:bg-zinc-950">
-                  <div className="absolute top-0 bottom-0 left-8 w-px bg-red-400/20 pointer-events-none"></div>
+                <Button
+                  onClick={handleStartCalling}
+                  disabled={loading || !callSelectedGroupId || !selectedScriptId}
+                  className="w-full h-12 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white border-0 shadow-lg text-base font-medium"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                      Starting Calls...
+                    </>
+                  ) : (
+                    <>
+                      <PhoneCall className="h-5 w-5 mr-2" />
+                      Start AI Calling Campaign
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {/* Best Practices */}
+              <div className="p-5 rounded-xl bg-purple-500/10 border border-purple-500/20">
+                <h4 className="font-semibold text-white flex items-center gap-2 mb-3 text-sm">
+                  <Sparkles className="h-4 w-4 text-purple-400" />
+                  AI Best Practices
+                </h4>
+                <ul className="space-y-2 text-sm text-slate-300">
+                  <li className="flex items-start gap-2">
+                    <span className="text-purple-400 mt-0.5">•</span>
+                    <span>Keep scripts conversational and warm</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-purple-400 mt-0.5">•</span>
+                    <span>Use <code className="bg-purple-500/20 text-purple-300 px-1 rounded">{'{Name}'}</code> to personalize calls</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-purple-400 mt-0.5">•</span>
+                    <span>Include a question to encourage engagement</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Right: Script Preview & Campaign Cards */}
+            <div className="space-y-6">
+              {/* Script Preview Panel */}
+              <div className="rounded-xl bg-white/5 border border-white/10 overflow-hidden min-h-[400px] flex flex-col">
+                <div className="p-4 border-b border-white/10 flex items-center justify-between bg-slate-900/50">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                      <FileText className="h-4 w-4 text-purple-400" />
+                    </div>
+                    <span className="font-semibold text-sm text-white">Script Preview</span>
+                  </div>
+                  <Badge variant="outline" className="text-xs border-purple-500/30 text-purple-300">
+                    AI Reader
+                  </Badge>
+                </div>
+
+                <ScrollArea className="flex-1 p-6">
                   {selectedScript ? (
-                    <div className="font-serif text-lg leading-relaxed text-foreground/90 pl-6">
-                      <h3 className="font-sans text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4">
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                         {selectedScript.name}
-                      </h3>
-                      <p className="whitespace-pre-wrap">
-                        {selectedScript.content.replace(/\{Name\}/g, () => (
-                          `<span class="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 px-1 rounded">John</span>`
-                        )).split(/(\{Name\})/g).map((part, i) => {
-                          if (part === '{Name}') return <span key={i} className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 px-1 rounded border border-yellow-200 dark:border-yellow-800">John</span>;
-                          return part;
-                        })}
-                      </p>
+                      </h4>
+                      <div className="font-serif text-base leading-relaxed text-slate-300">
+                        {selectedScript.content.split('\n').map((line, idx) => (
+                          <p key={idx} className="mb-3">
+                            {line.split(/(\{Name\})/).map((part, i) =>
+                              part === '{Name}' ? (
+                                <span key={i} className="bg-purple-500/30 text-purple-300 px-1.5 py-0.5 rounded border border-purple-500/50 font-sans text-sm">
+                                  John
+                                </span>
+                              ) : (
+                                part
+                              )
+                            )}
+                          </p>
+                        ))}
+                      </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-50 space-y-2">
-                      <FileText className="h-12 w-12 stroke-1" />
+                    <div className="flex flex-col items-center justify-center h-full text-slate-500 space-y-3 py-20">
+                      <FileText className="h-16 w-16 stroke-1 opacity-50" />
                       <p className="text-sm">Select a script to view content</p>
                     </div>
                   )}
                 </ScrollArea>
+              </div>
+
+              {/* Mock Campaign Cards */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-blue-400" />
+                  Recent Campaigns
+                </h4>
+                {[
+                  { name: "Sunday Service Reminder", status: "completed", sent: 45, total: 45, type: "voice" },
+                  { name: "First-Time Visitor Follow-up", status: "scheduled", sent: 0, total: 23, type: "voice" },
+                ].map((campaign, idx) => (
+                  <div key={idx} className="p-4 rounded-xl bg-white/5 border border-white/10">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                          <Phone className="w-5 h-5 text-purple-400" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-white text-sm">{campaign.name}</p>
+                          <p className="text-xs text-slate-500 capitalize">{campaign.type} campaign</p>
+                        </div>
+                      </div>
+                      <Badge className={`${
+                        campaign.status === "completed"
+                          ? "bg-green-500/20 text-green-400"
+                          : "bg-amber-500/20 text-amber-400"
+                      } border-0 text-xs`}>
+                        {campaign.status}
+                      </Badge>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-slate-400">Progress</span>
+                        <span className="text-white">{campaign.sent} / {campaign.total}</span>
+                      </div>
+                      <Progress
+                        value={(campaign.sent / campaign.total) * 100}
+                        className="h-2 bg-white/10"
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         </TabsContent>
       </Tabs>
 
-      {/* General Tips Card */}
-      <Card className="border-muted">
-        <CardHeader>
-          <CardTitle className="text-base">💡 Communication Tips</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-            <li>Always identify your church in messages and calls</li>
-            <li>Be mindful of timing - avoid early mornings and late nights</li>
-            <li>Provide a way for recipients to opt-out or respond</li>
-            <li>Review call transcripts for pastoral care opportunities</li>
-          </ul>
-        </CardContent>
-      </Card>
+      {/* Communication Tips - Premium Card */}
+      <div className="p-6 rounded-xl bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10 border border-cyan-500/20">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
+            <Sparkles className="w-6 h-6 text-cyan-400" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-white mb-3">Communication Best Practices</h3>
+            <div className="grid md:grid-cols-2 gap-3">
+              <div className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-2 flex-shrink-0" />
+                <p className="text-sm text-slate-300">Always identify your church in messages and calls</p>
+              </div>
+              <div className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-2 flex-shrink-0" />
+                <p className="text-sm text-slate-300">Be mindful of timing - avoid early mornings and late nights</p>
+              </div>
+              <div className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-purple-400 mt-2 flex-shrink-0" />
+                <p className="text-sm text-slate-300">Provide a way for recipients to opt-out or respond</p>
+              </div>
+              <div className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-pink-400 mt-2 flex-shrink-0" />
+                <p className="text-sm text-slate-300">Review call transcripts for pastoral care opportunities</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
