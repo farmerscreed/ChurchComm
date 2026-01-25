@@ -284,436 +284,252 @@ export default function CallHistory() {
 
       {/* Stats Overview */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* Total Calls */}
-        <Card className="relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/10 to-transparent rounded-bl-full" />
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Calls</CardTitle>
-            <Phone className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl md:text-3xl font-bold">{stats.totalCalls}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats.completedCalls} completed
-            </p>
-            <Progress
-              value={stats.totalCalls > 0 ? (stats.completedCalls / stats.totalCalls) * 100 : 0}
-              className="mt-2 h-1"
-            />
-          </CardContent>
-        </Card>
-
-        {/* Average Duration */}
-        <Card className="relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-transparent rounded-bl-full" />
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Duration</CardTitle>
-            <Timer className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl md:text-3xl font-bold">{formatDuration(stats.avgDuration)}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              minutes per call
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Sentiment Breakdown */}
-        <Card className="relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-500/10 to-transparent rounded-bl-full" />
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Sentiment</CardTitle>
-            <Activity className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2 sm:gap-4">
-              <div className="flex items-center gap-1">
-                <ThumbsUp className="h-4 w-4 text-green-500" />
-                <span className="text-md md:text-lg font-bold">{stats.positiveResponses}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Minus className="h-4 w-4 text-yellow-500" />
-                <span className="text-md md:text-lg font-bold">{stats.neutralResponses}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <ThumbsDown className="h-4 w-4 text-red-500" />
-                <span className="text-md md:text-lg font-bold">{stats.negativeResponses}</span>
-              </div>
-            </div>
-            <div className="flex gap-1 mt-2">
-              <div
-                className="h-2 bg-green-500 rounded-l"
-                style={{ width: `${stats.totalCalls > 0 ? (stats.positiveResponses / stats.totalCalls) * 100 : 33}%` }}
-              />
-              <div
-                className="h-2 bg-yellow-500"
-                style={{ width: `${stats.totalCalls > 0 ? (stats.neutralResponses / stats.totalCalls) * 100 : 34}%` }}
-              />
-              <div
-                className="h-2 bg-red-500 rounded-r"
-                style={{ width: `${stats.totalCalls > 0 ? (stats.negativeResponses / stats.totalCalls) * 100 : 33}%` }}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Escalations */}
-        <Card className="relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-500/10 to-transparent rounded-bl-full" />
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Needs Attention</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl md:text-3xl font-bold">{stats.escalations + stats.followUpsNeeded}</div>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-0 sm:gap-2 mt-1 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <AlertCircle className="h-3 w-3 text-red-500" />
-                {stats.escalations} escalations
-              </span>
-              <span className="flex items-center gap-1">
-                <Heart className="h-3 w-3 text-pink-500" />
-                {stats.followUpsNeeded} follow-ups
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Content */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Call List */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* Filters */}
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Search by name or summary..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
+        {[
+          {
+            title: "Total Calls",
+            value: stats.totalCalls,
+            subtext: `${stats.completedCalls} completed`,
+            icon: Phone,
+            color: "text-blue-500",
+            bgColor: "bg-blue-500/10",
+            progress: stats.totalCalls > 0 ? (stats.completedCalls / stats.totalCalls) * 100 : 0
+          },
+          {
+            title: "Avg Duration",
+            value: formatDuration(stats.avgDuration),
+            subtext: "minutes per call",
+            icon: Timer,
+            color: "text-violet-500",
+            bgColor: "bg-violet-500/10",
+            progress: null
+          },
+          {
+            title: "Positive Sentiment",
+            value: stats.positiveResponses,
+            subtext: `${stats.totalCalls > 0 ? Math.round((stats.positiveResponses / stats.totalCalls) * 100) : 0}% of total`,
+            icon: ThumbsUp,
+            color: "text-teal-500",
+            bgColor: "bg-teal-500/10",
+            progress: stats.totalCalls > 0 ? (stats.positiveResponses / stats.totalCalls) * 100 : 0
+          },
+          {
+            title: "Needs Attention",
+            value: stats.escalations + stats.followUpsNeeded,
+            subtext: `${stats.escalations} urgent · ${stats.followUpsNeeded} follow-up`,
+            icon: AlertTriangle,
+            color: "text-amber-500",
+            bgColor: "bg-amber-500/10",
+            progress: null
+          }
+        ].map((stat, idx) => (
+          <Card key={idx} className="border-none shadow-sm hover:shadow-md transition-shadow bg-card/50 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between space-y-0 pb-2">
+                <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
+                <div className={cn("p-2 rounded-full", stat.bgColor)}>
+                  <stat.icon className={cn("h-4 w-4", stat.color)} />
                 </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full sm:w-[140px]">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="ended">Ended</SelectItem>
-                    <SelectItem value="failed">Failed</SelectItem>
-                    <SelectItem value="no_answer">No Answer</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={sentimentFilter} onValueChange={setSentimentFilter}>
-                  <SelectTrigger className="w-full sm:w-[140px]">
-                    <SelectValue placeholder="Sentiment" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Sentiment</SelectItem>
-                    <SelectItem value="positive">Positive</SelectItem>
-                    <SelectItem value="neutral">Neutral</SelectItem>
-                    <SelectItem value="negative">Negative</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
+              <div className="flex flex-col gap-1 mt-2">
+                <div className="text-3xl font-bold tracking-tight">{stat.value}</div>
+                <p className="text-xs text-muted-foreground">{stat.subtext}</p>
+              </div>
+              {stat.progress !== null && (
+                <Progress value={stat.progress} className={cn("h-1.5 mt-4", stat.bgColor.replace('/10', '/20'))} />
+              )}
             </CardContent>
           </Card>
+        ))}
+      </div>
 
-          {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-              <TabsTrigger value="all" className="gap-2">
-                <Phone className="h-4 w-4" />
-                All
-              </TabsTrigger>
-              <TabsTrigger value="completed" className="gap-2">
-                <CheckCircle2 className="h-4 w-4" />
-                Completed
-              </TabsTrigger>
-              <TabsTrigger value="escalations" className="gap-2">
-                <AlertTriangle className="h-4 w-4" />
-                Escalations
-              </TabsTrigger>
-              <TabsTrigger value="follow-ups" className="gap-2">
-                <Heart className="h-4 w-4" />
-                Follow-ups
-              </TabsTrigger>
-            </TabsList>
+      {/* Main Content Area */}
+      <div className="grid gap-6 lg:grid-cols-4">
+        {/* Call Filters & List (Takes 3 columns) */}
+        <div className="lg:col-span-3 space-y-6">
+          <Card className="border-none shadow-sm">
+            <CardHeader className="px-6 py-4 border-b">
+              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
+                  <TabsList className="grid w-full grid-cols-4 bg-muted/50 p-1">
+                    <TabsTrigger value="all">All Logs</TabsTrigger>
+                    <TabsTrigger value="completed">Completed</TabsTrigger>
+                    <TabsTrigger value="escalations" className="text-amber-600 data-[state=active]:text-amber-700">Needs Action</TabsTrigger>
+                    <TabsTrigger value="follow-ups">Follow-ups</TabsTrigger>
+                  </TabsList>
+                </Tabs>
 
-            <TabsContent value={activeTab} className="mt-4">
-              <Card>
-                <CardContent className="p-0">
-                  <ScrollArea className="h-[600px]">
-                    {filteredCalls.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <Phone className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                        <h3 className="text-lg font-medium">No calls found</h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {callLogs.length === 0
-                            ? "Start an AI calling campaign to see call history here"
-                            : "Try adjusting your filters"}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="divide-y">
-                        {filteredCalls.map((call) => (
-                          <div
-                            key={call.id}
-                            className="p-3 sm:p-4 hover:bg-muted/50 cursor-pointer transition-colors"
-                            onClick={() => {
-                              setSelectedCall(call);
-                              setIsDetailOpen(true);
-                            }}
-                          >
-                            <div className="flex items-start gap-3 sm:gap-4">
-                              {/* Avatar */}
-                              <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-background shadow">
-                                <AvatarFallback className={cn(
-                                  "text-sm font-medium",
-                                  call.member_response_type === 'positive' && "bg-green-500/10 text-green-600",
-                                  call.member_response_type === 'negative' && "bg-red-500/10 text-red-600",
-                                  call.member_response_type === 'neutral' && "bg-yellow-500/10 text-yellow-600"
-                                )}>
-                                  {getInitials(call.people?.first_name, call.people?.last_name)}
-                                </AvatarFallback>
-                              </Avatar>
-
-                              {/* Content */}
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between gap-2">
-                                  <h4 className="font-medium truncate text-sm sm:text-base">
-                                    {call.people?.first_name || call.people?.last_name
-                                      ? `${call.people?.first_name || ''} ${call.people?.last_name || ''}`.trim()
-                                      : call.phone_number_used || 'Unknown Caller'}
-                                  </h4>
-                                  <div className="flex items-center gap-2 shrink-0">
-                                    {getStatusIcon(call.call_status || 'unknown')}
-                                    {getSentimentIcon(call.member_response_type)}
-                                  </div>
-                                </div>
-
-                                <p className="text-xs sm:text-sm text-muted-foreground truncate mt-0.5">
-                                  {call.phone_number_used || call.people?.phone_number || 'No phone number'}
-                                </p>
-
-                                {call.call_summary && (
-                                  <p className="text-sm mt-2 line-clamp-2 text-foreground/80">
-                                    {call.call_summary}
-                                  </p>
-                                )}
-
-                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
-                                  <span className="flex items-center gap-1">
-                                    <Calendar className="h-3 w-3" />
-                                    {format(new Date(call.created_at), 'MMM d, yyyy')}
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <Clock className="h-3 w-3" />
-                                    {format(new Date(call.created_at), 'h:mm a')}
-                                  </span>
-                                  {(call.call_duration ?? 0) > 0 && (
-                                    <span className="flex items-center gap-1">
-                                      <Timer className="h-3 w-3" />
-                                      {formatDuration(call.call_duration ?? 0)}
-                                    </span>
-                                  )}
-                                </div>
-
-                                {/* Tags */}
-                                <div className="flex flex-wrap gap-2 mt-2">
-                                  {call.crisis_indicators === true && (
-                                    <Badge variant="destructive" className="text-xs">
-                                      <AlertTriangle className="h-3 w-3 mr-1" />
-                                      Crisis
-                                    </Badge>
-                                  )}
-                                  {call.needs_pastoral_care === true && (
-                                    <Badge className="bg-pink-500/10 text-pink-600 border-pink-500/20 text-xs">
-                                      <Heart className="h-3 w-3 mr-1" />
-                                      Pastoral Care
-                                    </Badge>
-                                  )}
-                                  {call.follow_up_needed === true && (
-                                    <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-xs">
-                                      <PhoneCall className="h-3 w-3 mr-1" />
-                                      Follow-up
-                                    </Badge>
-                                  )}
-                                  {call.prayer_requests && call.prayer_requests.length > 0 && (
-                                    <Badge variant="outline" className="text-xs">
-                                      <Sparkles className="h-3 w-3 mr-1" />
-                                      {call.prayer_requests.length} Prayer Request{call.prayer_requests.length > 1 ? 's' : ''}
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-
-                              <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 self-center" />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
-
-        {/* Quick Insights */}
-        <div className="space-y-4">
-          {/* Recent Escalations */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-500" />
-                Recent Escalations
-              </CardTitle>
-              <CardDescription>Calls requiring immediate attention</CardDescription>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <div className="relative flex-1 sm:w-64">
+                    <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Search transcripts..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9 bg-muted/30 border-none focus-visible:ring-1"
+                    />
+                  </div>
+                  <Button variant="ghost" size="icon" className="shrink-0">
+                    <Filter className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
-              {callLogs.filter(c => c.crisis_indicators || c.needs_pastoral_care).slice(0, 3).length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No escalations to show
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {callLogs
-                    .filter(c => c.crisis_indicators || c.needs_pastoral_care)
-                    .slice(0, 3)
-                    .map((call) => (
+
+            <CardContent className="p-0">
+              <ScrollArea className="h-[calc(100vh-320px)] min-h-[500px]">
+                {filteredCalls.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground">
+                    <div className="h-16 w-16 bg-muted/50 rounded-full flex items-center justify-center mb-4">
+                      <Search className="h-8 w-8 opacity-50" />
+                    </div>
+                    <h3 className="text-lg font-medium text-foreground">No calls found</h3>
+                    <p className="text-sm max-w-xs mx-auto mt-1">
+                      We couldn't find any call logs matching your current filters.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-border/50">
+                    {filteredCalls.map((call) => (
                       <div
                         key={call.id}
-                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer"
+                        className="group flex flex-col sm:flex-row gap-4 p-4 sm:p-6 hover:bg-muted/30 transition-colors cursor-pointer"
                         onClick={() => {
                           setSelectedCall(call);
                           setIsDetailOpen(true);
                         }}
                       >
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="text-xs bg-amber-500/10 text-amber-600">
-                            {getInitials(call.people?.first_name, call.people?.last_name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
-                            {call.people?.first_name} {call.people?.last_name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(call.created_at), { addSuffix: true })}
-                          </p>
+                        {/* Left: Avatar & Sentiment */}
+                        <div className="flex flex-row sm:flex-col items-center sm:items-start gap-4 sm:w-16 shrink-0">
+                          <div className="relative">
+                            <Avatar className="h-12 w-12 border-2 border-background shadow-sm">
+                              <AvatarFallback className={cn(
+                                "text-sm font-bold",
+                                call.member_response_type === 'positive' && "bg-teal-50 text-teal-700",
+                                call.member_response_type === 'negative' && "bg-rose-50 text-rose-700",
+                                call.member_response_type === 'neutral' && "bg-indigo-50 text-indigo-700",
+                                !call.member_response_type && "bg-gray-100 text-gray-500"
+                              )}>
+                                {getInitials(call.people?.first_name, call.people?.last_name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-0.5 shadow-sm">
+                              {getSentimentIcon(call.member_response_type)}
+                            </div>
+                          </div>
                         </div>
+
+                        {/* Middle: Content */}
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-semibold text-base text-foreground">
+                                {call.people?.first_name || call.people?.last_name
+                                  ? `${call.people?.first_name || ''} ${call.people?.last_name || ''}`.trim()
+                                  : (call.phone_number_used || 'Unknown')
+                                }
+                              </h4>
+                              {/* Mini Status Badge */}
+                              <span className={cn(
+                                "px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide",
+                                call.call_status === 'completed' ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-gray-100 text-gray-700"
+                              )}>
+                                {call.call_status}
+                              </span>
+                            </div>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap hidden sm:block">
+                              {formatDistanceToNow(new Date(call.created_at), { addSuffix: true })}
+                            </span>
+                          </div>
+
+                          <p className="text-sm text-foreground/80 line-clamp-2 leading-relaxed">
+                            {call.call_summary || <span className="italic text-muted-foreground">No summary available.</span>}
+                          </p>
+
+                          {/* Tags Row */}
+                          <div className="flex flex-wrap gap-2 pt-2">
+                            {call.crisis_indicators && (
+                              <Badge variant="destructive" className="h-5 px-1.5 text-[10px] gap-1">
+                                <AlertTriangle className="h-3 w-3" /> Crisis
+                              </Badge>
+                            )}
+                            {call.prayer_requests && call.prayer_requests.length > 0 && (
+                              <Badge variant="secondary" className="h-5 px-1.5 text-[10px] gap-1 bg-violet-100 text-violet-700 hover:bg-violet-200">
+                                <Sparkles className="h-3 w-3" /> {call.prayer_requests.length} Prayer Req
+                              </Badge>
+                            )}
+                            {call.call_duration !== null && (
+                              <span className="inline-flex items-center text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+                                <Timer className="h-3 w-3 mr-1" />
+                                {formatDuration(call.call_duration)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Right: Action Arrow */}
+                        <div className="hidden sm:flex items-center justify-center w-8 shrink-0">
+                          <ChevronRight className="h-5 w-5 text-muted-foreground/30 group-hover:text-primary transition-colors" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Sidebar: Quick Insights */}
+        <div className="space-y-6">
+          <Card className="border-none shadow-sm bg-gradient-to-b from-card to-muted/20">
+            <CardHeader>
+              <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Recent Activity</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Sentiment Trend */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">Call Sentiment</span>
+                  <span className="text-xs text-muted-foreground">Last 30 days</span>
+                </div>
+                <div className="flex h-2 w-full rounded-full overflow-hidden">
+                  <div style={{ width: `${(stats.positiveResponses / (stats.totalCalls || 1)) * 100}%` }} className="bg-teal-500" />
+                  <div style={{ width: `${(stats.neutralResponses / (stats.totalCalls || 1)) * 100}%` }} className="bg-amber-400" />
+                  <div style={{ width: `${(stats.negativeResponses / (stats.totalCalls || 1)) * 100}%` }} className="bg-rose-500" />
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-teal-500" /> Positive</div>
+                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-amber-400" /> Neutral</div>
+                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-rose-500" /> Negative</div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Recent escalations mini-list */}
+              <div>
+                <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-rose-500" />
+                  Urgent Needs
+                </h4>
+                {callLogs.filter(c => c.crisis_indicators || c.needs_pastoral_care).length === 0 ? (
+                  <div className="text-xs text-muted-foreground italic">No urgent needs detected.</div>
+                ) : (
+                  <div className="space-y-2">
+                    {callLogs.filter(c => c.crisis_indicators || c.needs_pastoral_care).slice(0, 3).map(call => (
+                      <div key={call.id} className="text-xs flex items-center justify-between p-2 rounded bg-background border">
+                        <span className="font-medium truncate max-w-[100px]">
+                          {call.people?.first_name || 'Unknown'}
+                        </span>
                         {call.crisis_indicators ? (
-                          <Badge variant="destructive" className="text-xs">Crisis</Badge>
+                          <Badge variant="destructive" className="h-4 text-[9px] px-1">CRISIS</Badge>
                         ) : (
-                          <Badge className="bg-pink-500/10 text-pink-600 text-xs">Care</Badge>
+                          <Badge variant="outline" className="h-4 text-[9px] px-1 border-pink-200 text-pink-600">CARE</Badge>
                         )}
                       </div>
                     ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Prayer Requests */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-purple-500" />
-                Recent Prayer Requests
-              </CardTitle>
-              <CardDescription>Extracted from call conversations</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {callLogs.filter(c => c.prayer_requests && c.prayer_requests.length > 0).length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No prayer requests recorded
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {callLogs
-                    .filter(c => c.prayer_requests && c.prayer_requests.length > 0)
-                    .slice(0, 5)
-                    .map((call) => (
-                      <div key={call.id} className="text-sm">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium">
-                            {call.people?.first_name} {call.people?.last_name}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(call.created_at), { addSuffix: true })}
-                          </span>
-                        </div>
-                        <ul className="text-muted-foreground space-y-1">
-                          {call.prayer_requests?.slice(0, 2).map((prayer, idx) => (
-                            <li key={idx} className="flex items-start gap-2">
-                              <span className="text-purple-500 mt-1">•</span>
-                              <span className="line-clamp-1">{prayer}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Response Trends */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-primary" />
-                Response Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2">
-                    <ThumbsUp className="h-4 w-4 text-green-500" />
-                    Positive
-                  </span>
-                  <span className="font-medium">{stats.positiveResponses}</span>
-                </div>
-                <Progress
-                  value={stats.totalCalls > 0 ? (stats.positiveResponses / stats.totalCalls) * 100 : 0}
-                  className="h-2 bg-green-500/20 [&>div]:bg-green-500"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2">
-                    <Minus className="h-4 w-4 text-yellow-500" />
-                    Neutral
-                  </span>
-                  <span className="font-medium">{stats.neutralResponses}</span>
-                </div>
-                <Progress
-                  value={stats.totalCalls > 0 ? (stats.neutralResponses / stats.totalCalls) * 100 : 0}
-                  className="h-2 bg-yellow-500/20 [&>div]:bg-yellow-500"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2">
-                    <ThumbsDown className="h-4 w-4 text-red-500" />
-                    Negative
-                  </span>
-                  <span className="font-medium">{stats.negativeResponses}</span>
-                </div>
-                <Progress
-                  value={stats.totalCalls > 0 ? (stats.negativeResponses / stats.totalCalls) * 100 : 0}
-                  className="h-2 bg-red-500/20 [&>div]:bg-red-500"
-                />
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
