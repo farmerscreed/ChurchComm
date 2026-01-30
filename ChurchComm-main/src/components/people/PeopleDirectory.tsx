@@ -225,7 +225,7 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
                   <span className="truncate flex items-center gap-1.5">
                     {person.first_name} {person.last_name}
                     {person.do_not_call && (
-                      <PhoneOff className="h-4 w-4 text-destructive shrink-0" title="Do Not Call" />
+                      <PhoneOff className="h-4 w-4 text-destructive shrink-0" />
                     )}
                   </span>
                   <Badge
