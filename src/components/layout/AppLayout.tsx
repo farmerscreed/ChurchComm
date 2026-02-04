@@ -49,25 +49,26 @@ export function AppLayout() {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopBar onMenuClick={() => setMobileNavOpen(true)} />
-        <SubscriptionBanner />
-
-        {/* Organization Status Bar */}
-        <div className="h-8 bg-card/50 border-b border-border px-4 md:px-6 flex items-center justify-between">
-          <div className="flex items-center space-x-2 overflow-hidden">
-            <Users className="h-4 w-4 text-primary flex-shrink-0" />
-            <span className="text-sm text-muted-foreground hidden sm:inline">Organization:</span>
-            <Badge variant="secondary" className="text-xs truncate">
-              {currentOrganization?.name || 'Loading...'}
-            </Badge>
-          </div>
-          {currentOrganization && (
-            <div className="text-sm text-muted-foreground hidden sm:inline">
-              Plan: <span className="font-medium text-foreground">{currentOrganization.subscription_plan || 'Free'}</span>
-            </div>
-          )}
-        </div>
 
         <main className="flex-1 overflow-y-auto">
+          <SubscriptionBanner />
+
+          {/* Organization Status Bar */}
+          <div className="h-8 bg-card/50 border-b border-border px-4 md:px-6 flex items-center justify-between sticky top-0 z-20 backdrop-blur-sm">
+            <div className="flex items-center space-x-2 overflow-hidden">
+              <Users className="h-4 w-4 text-primary flex-shrink-0" />
+              <span className="text-sm text-muted-foreground hidden sm:inline">Organization:</span>
+              <Badge variant="secondary" className="text-xs truncate">
+                {currentOrganization?.name || 'Loading...'}
+              </Badge>
+            </div>
+            {currentOrganization && (
+              <div className="text-sm text-muted-foreground hidden sm:inline">
+                Plan: <span className="font-medium text-foreground">{currentOrganization.subscription_plan || 'Free'}</span>
+              </div>
+            )}
+          </div>
+
           <div className="max-w-7xl mx-auto p-4 md:p-6">
             <Outlet />
           </div>
@@ -76,3 +77,4 @@ export function AppLayout() {
     </div>
   );
 }
+
