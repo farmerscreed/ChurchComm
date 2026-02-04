@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
 
     const personName = (person?.first_name || '') + ' ' + (person?.last_name || '')
     const churchName = org?.name || 'Your Church'
-    const appUrl = Deno.env.get('APP_URL') || 'https://churchcomm.app'
+    const appUrl = Deno.env.get('APP_URL') || 'https://keepflock.com'
     let notified = 0
 
     for (const member of members) {
@@ -145,7 +145,7 @@ async function sendSmsNotification(
   }
 
   const prefix = priority === 'urgent' ? '[URGENT] ' : ''
-  const msg = prefix + 'ChurchComm Alert: ' + personName.trim() + ' - ' + alertType + '. ' + (summary || '').slice(0, 100) + ' Review: ' + appUrl
+  const msg = prefix + 'KeepFlock Alert: ' + personName.trim() + ' - ' + alertType + '. ' + (summary || '').slice(0, 100) + ' Review: ' + appUrl
 
   const response = await fetch(
     'https://api.twilio.com/2010-04-01/Accounts/' + twilioSid + '/Messages.json',
@@ -183,7 +183,7 @@ async function sendEmailNotification(
     '<p><strong>Type:</strong> ' + alertType + '</p>' +
     '<h3>Details</h3>' +
     '<p style="background:#f3f4f6;padding:16px;border-radius:8px">' + (summary || 'No additional details.') + '</p>' +
-    '<a href="' + appUrl + '/follow-ups" style="display:inline-block;background:' + priorityColor + ';color:white;padding:12px 24px;text-decoration:none;border-radius:6px;margin-top:16px">Review in ChurchComm</a>' +
+    '<a href="' + appUrl + '/follow-ups" style="display:inline-block;background:' + priorityColor + ';color:white;padding:12px 24px;text-decoration:none;border-radius:6px;margin-top:16px">Review in KeepFlock</a>' +
     '</div>'
 
   const response = await fetch('https://api.resend.com/emails', {
@@ -193,7 +193,7 @@ async function sendEmailNotification(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'ChurchComm <alerts@churchcomm.app>',
+      from: 'KeepFlock <alerts@churchcomm.app>',
       to: email,
       subject: '[' + priority.toUpperCase() + '] Escalation: ' + personName.trim() + ' - ' + alertType,
       html: html,

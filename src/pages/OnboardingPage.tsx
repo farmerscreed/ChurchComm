@@ -92,7 +92,7 @@ export default function OnboardingPage() {
             });
 
             await refreshOrganization();
-            toast({ title: "Welcome to ChurchComm!", description: "Your church is ready to go." });
+            toast({ title: "Welcome to KeepFlock!", description: "Your church is ready to go." });
             navigate("/dashboard");
         }
 

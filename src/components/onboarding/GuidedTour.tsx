@@ -8,7 +8,7 @@ import { useAuthStore } from "@/stores/authStore";
 const TOUR_STEPS: Step[] = [
     {
         target: '[data-tour="dashboard"]',
-        content: "Welcome to ChurchComm! This is your command center where you can see key metrics at a glance.",
+        content: "Welcome to KeepFlock! This is your command center where you can see key metrics at a glance.",
         disableBeacon: true,
         placement: "center",
     },

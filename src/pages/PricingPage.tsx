@@ -192,7 +192,7 @@ export default function PricingPage() {
                             <Heart className="w-5 h-5 text-white fill-white" />
                         </div>
                         <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-                            ChurchComm
+                            KeepFlock
                         </span>
                     </Link>
                     <div className="hidden md:flex items-center gap-8">
@@ -264,8 +264,8 @@ export default function PricingPage() {
                             <div
                                 key={tier.id}
                                 className={`relative rounded-2xl transition-all duration-300 ${tier.popular
-                                        ? "scale-105 z-10"
-                                        : "hover:scale-[1.02]"
+                                    ? "scale-105 z-10"
+                                    : "hover:scale-[1.02]"
                                     }`}
                             >
                                 {/* Glow effect for popular */}
@@ -274,8 +274,8 @@ export default function PricingPage() {
                                 )}
 
                                 <div className={`relative h-full rounded-2xl border ${tier.popular
-                                        ? "border-purple-500/50 bg-slate-900/90"
-                                        : "border-white/10 bg-slate-900/50"
+                                    ? "border-purple-500/50 bg-slate-900/90"
+                                    : "border-white/10 bg-slate-900/50"
                                     } backdrop-blur-xl p-8 flex flex-col`}>
 
                                     {tier.popular && (
@@ -345,8 +345,8 @@ export default function PricingPage() {
                                         onClick={() => handleSelectPlan(tier)}
                                         disabled={loading !== null}
                                         className={`w-full h-12 text-base font-semibold transition-all ${tier.popular
-                                                ? "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white shadow-lg shadow-purple-500/25"
-                                                : "bg-white/10 hover:bg-white/20 text-white border border-white/10"
+                                            ? "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white shadow-lg shadow-purple-500/25"
+                                            : "bg-white/10 hover:bg-white/20 text-white border border-white/10"
                                             }`}
                                     >
                                         {loading === tier.id ? (
@@ -430,7 +430,7 @@ export default function PricingPage() {
                 <div className="container mx-auto px-6 max-w-3xl">
                     <div className="text-center mb-16">
                         <h2 className="text-3xl md:text-4xl font-bold mb-4">Frequently Asked Questions</h2>
-                        <p className="text-slate-400 text-lg">Everything you need to know about ChurchComm</p>
+                        <p className="text-slate-400 text-lg">Everything you need to know about KeepFlock</p>
                     </div>
 
                     <div className="space-y-4">
@@ -480,7 +480,7 @@ export default function PricingPage() {
             {/* Footer */}
             <footer className="py-8 border-t border-white/10 bg-slate-950">
                 <div className="container mx-auto px-6 text-center text-sm text-slate-500">
-                    <p>© {new Date().getFullYear()} ChurchComm. All rights reserved.</p>
+                    <p>© {new Date().getFullYear()} KeepFlock. All rights reserved.</p>
                 </div>
             </footer>
         </div>

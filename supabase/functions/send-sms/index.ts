@@ -8,6 +8,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log('send-sms function invoked');
+
     const {
       recipientType,
       recipientId,
@@ -16,7 +18,10 @@ serve(async (req) => {
       createdBy
     } = await req.json()
 
+    console.log('Request data:', { recipientType, recipientId, organizationId, createdBy });
+
     if (!recipientType || !message || !organizationId) {
+      console.error('Missing required fields:', { recipientType, message: !!message, organizationId });
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
@@ -25,6 +30,7 @@ serve(async (req) => {
 
     // recipientId is required for group and individual, but not for 'all'
     if ((recipientType === 'group' || recipientType === 'individual') && !recipientId) {
+      console.error('recipientId required but not provided for type:', recipientType);
       return new Response(JSON.stringify({ error: 'recipientId is required for group or individual' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
@@ -42,8 +48,27 @@ serve(async (req) => {
     const TWILIO_AUTH_TOKEN = Deno.env.get('TWILIO_AUTH_TOKEN')
     const FROM_PHONE = Deno.env.get('TWILIO_PHONE_NUMBER')
 
+    console.log('Environment check:', {
+      hasTwilioSid: !!TWILIO_ACCOUNT_SID,
+      hasTwilioToken: !!TWILIO_AUTH_TOKEN,
+      hasTwilioPhone: !!FROM_PHONE
+    });
+
     if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !FROM_PHONE) {
-      throw new Error('Twilio configuration incomplete')
+      console.error('Twilio configuration missing');
+      const missing = [];
+      if (!TWILIO_ACCOUNT_SID) missing.push('TWILIO_ACCOUNT_SID');
+      if (!TWILIO_AUTH_TOKEN) missing.push('TWILIO_AUTH_TOKEN');
+      if (!FROM_PHONE) missing.push('TWILIO_PHONE_NUMBER');
+
+      return new Response(JSON.stringify({
+        error: 'Twilio configuration incomplete',
+        details: `Missing environment variables: ${missing.join(', ')}`,
+        hint: 'Please set these variables in your Supabase project settings'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      })
     }
 
     let recipients = []

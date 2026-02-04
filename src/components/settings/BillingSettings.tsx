@@ -88,7 +88,7 @@ export function BillingSettings() {
                         <div className="flex-1">
                             <p className="font-medium text-destructive">Payment Required</p>
                             <p className="text-sm text-muted-foreground">
-                                Your payment is past due. Please update your payment method to continue using ChurchComm.
+                                Your payment is past due. Please update your payment method to continue using KeepFlock.
                             </p>
                         </div>
                         <Button variant="destructive" onClick={handleManageBilling}>

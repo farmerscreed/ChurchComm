@@ -28,7 +28,12 @@ import {
     Brain,
     History,
     MessageCircle,
-    Lightbulb
+    Lightbulb,
+    Cake,
+    CalendarClock,
+    Gift,
+    Power,
+    Settings2
 } from "lucide-react";
 
 // Demo data representing actual app features
@@ -122,7 +127,7 @@ I'm calling because the women's retreat is coming up next month, and I know you 
 };
 
 export default function DemoPage() {
-    const [activeTab, setActiveTab] = useState<"dashboard" | "calling" | "memory" | "sms" | "people">("dashboard");
+    const [activeTab, setActiveTab] = useState<"dashboard" | "calling" | "memory" | "sms" | "people" | "automations">("dashboard");
     const [isPlaying, setIsPlaying] = useState(false);
     const [demoMessage, setDemoMessage] = useState("Hi {Name}, just a reminder about our Sunday service at 10am. Hope to see you there!");
     const [selectedHistoryIndex, setSelectedHistoryIndex] = useState(0);
@@ -144,7 +149,7 @@ export default function DemoPage() {
                             <Heart className="w-5 h-5 text-white fill-white" />
                         </div>
                         <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-                            ChurchComm
+                            KeepFlock
                         </span>
                     </Link>
                     <div className="hidden md:flex items-center gap-8">
@@ -176,7 +181,7 @@ export default function DemoPage() {
                     </div>
 
                     <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
-                        See ChurchComm{" "}
+                        See KeepFlock{" "}
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-400 to-cyan-400">
                             in action
                         </span>
@@ -198,20 +203,20 @@ export default function DemoPage() {
                                 { id: "dashboard", label: "Dashboard", icon: BarChart3 },
                                 { id: "calling", label: "AI Calling", icon: Phone },
                                 { id: "memory", label: "AI Memory", icon: Brain },
+                                { id: "automations", label: "Automations", icon: Zap },
                                 { id: "sms", label: "SMS", icon: MessageSquare },
                                 { id: "people", label: "People", icon: Users },
                             ].map((tab) => (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                                    className={`flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-all ${
-                                        activeTab === tab.id
-                                            ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg"
-                                            : "text-slate-400 hover:text-white"
-                                    }`}
+                                    className={`flex items-center gap-2 px-5 py-3 rounded-full text-sm font-medium transition-all ${activeTab === tab.id
+                                        ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg"
+                                        : "text-slate-400 hover:text-white"
+                                        }`}
                                 >
                                     <tab.icon className="w-4 h-4" />
-                                    {tab.label}
+                                    <span className="hidden md:inline">{tab.label}</span>
                                 </button>
                             ))}
                         </div>
@@ -234,7 +239,7 @@ export default function DemoPage() {
                                 <div className="flex-1 flex justify-center">
                                     <div className="px-4 py-1.5 bg-white/5 rounded-lg text-xs text-slate-500 flex items-center gap-2">
                                         <div className="w-3 h-3 rounded-full bg-green-500" />
-                                        app.churchcomm.ai/dashboard
+                                        app.keepflock.com/dashboard
                                     </div>
                                 </div>
                                 <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs">
@@ -331,11 +336,10 @@ export default function DemoPage() {
                                                                 <p className="text-xs text-slate-500">{call.time}</p>
                                                             </div>
                                                         </div>
-                                                        <Badge variant="outline" className={`text-xs ${
-                                                            call.status === "completed"
-                                                                ? "border-green-500/30 text-green-400"
-                                                                : "border-amber-500/30 text-amber-400"
-                                                        }`}>
+                                                        <Badge variant="outline" className={`text-xs ${call.status === "completed"
+                                                            ? "border-green-500/30 text-green-400"
+                                                            : "border-amber-500/30 text-amber-400"
+                                                            }`}>
                                                             {call.status}
                                                         </Badge>
                                                     </div>
@@ -356,9 +360,8 @@ export default function DemoPage() {
                                                 {DEMO_ESCALATIONS.map((alert, idx) => (
                                                     <div key={idx} className="p-3 rounded-lg bg-white/5 border-l-2 border-amber-500">
                                                         <div className="flex items-center gap-2 mb-1">
-                                                            <AlertTriangle className={`w-4 h-4 ${
-                                                                alert.priority === "urgent" ? "text-red-400" : "text-amber-400"
-                                                            }`} />
+                                                            <AlertTriangle className={`w-4 h-4 ${alert.priority === "urgent" ? "text-red-400" : "text-amber-400"
+                                                                }`} />
                                                             <p className="text-sm font-medium text-white">{alert.name}</p>
                                                         </div>
                                                         <p className="text-xs text-slate-400">{alert.reason}</p>
@@ -504,11 +507,10 @@ export default function DemoPage() {
                                                     <div key={idx} className="p-4 rounded-xl bg-white/5 border border-white/10">
                                                         <div className="flex items-center justify-between mb-3">
                                                             <div className="flex items-center gap-3">
-                                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                                                                    campaign.type === "voice"
-                                                                        ? "bg-purple-500/20"
-                                                                        : "bg-blue-500/20"
-                                                                }`}>
+                                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${campaign.type === "voice"
+                                                                    ? "bg-purple-500/20"
+                                                                    : "bg-blue-500/20"
+                                                                    }`}>
                                                                     {campaign.type === "voice"
                                                                         ? <Phone className="w-5 h-5 text-purple-400" />
                                                                         : <MessageSquare className="w-5 h-5 text-blue-400" />
@@ -519,13 +521,12 @@ export default function DemoPage() {
                                                                     <p className="text-xs text-slate-500 capitalize">{campaign.type} campaign</p>
                                                                 </div>
                                                             </div>
-                                                            <Badge className={`${
-                                                                campaign.status === "active"
-                                                                    ? "bg-green-500/20 text-green-400"
-                                                                    : campaign.status === "scheduled"
+                                                            <Badge className={`${campaign.status === "active"
+                                                                ? "bg-green-500/20 text-green-400"
+                                                                : campaign.status === "scheduled"
                                                                     ? "bg-amber-500/20 text-amber-400"
                                                                     : "bg-slate-500/20 text-slate-400"
-                                                            } border-0`}>
+                                                                } border-0`}>
                                                                 {campaign.status}
                                                             </Badge>
                                                         </div>
@@ -620,19 +621,17 @@ export default function DemoPage() {
                                                         <button
                                                             key={idx}
                                                             onClick={() => setSelectedHistoryIndex(idx)}
-                                                            className={`w-full text-left p-3 rounded-lg transition-all ${
-                                                                selectedHistoryIndex === idx
-                                                                    ? "bg-purple-500/20 border border-purple-500/30"
-                                                                    : "bg-white/5 hover:bg-white/10 border border-transparent"
-                                                            }`}
+                                                            className={`w-full text-left p-3 rounded-lg transition-all ${selectedHistoryIndex === idx
+                                                                ? "bg-purple-500/20 border border-purple-500/30"
+                                                                : "bg-white/5 hover:bg-white/10 border border-transparent"
+                                                                }`}
                                                         >
                                                             <div className="flex items-center justify-between mb-1">
                                                                 <span className="text-xs text-slate-500">{conv.date}</span>
-                                                                <Badge className={`text-xs border-0 ${
-                                                                    conv.sentiment === "very positive" ? "bg-green-500/20 text-green-400" :
+                                                                <Badge className={`text-xs border-0 ${conv.sentiment === "very positive" ? "bg-green-500/20 text-green-400" :
                                                                     conv.sentiment === "positive" ? "bg-blue-500/20 text-blue-400" :
-                                                                    "bg-slate-500/20 text-slate-400"
-                                                                }`}>
+                                                                        "bg-slate-500/20 text-slate-400"
+                                                                    }`}>
                                                                     {conv.sentiment}
                                                                 </Badge>
                                                             </div>
@@ -877,12 +876,11 @@ export default function DemoPage() {
                                                                 </div>
                                                             </td>
                                                             <td className="p-4">
-                                                                <Badge variant="outline" className={`text-xs ${
-                                                                    person.status === "member" ? "border-green-500/30 text-green-400" :
+                                                                <Badge variant="outline" className={`text-xs ${person.status === "member" ? "border-green-500/30 text-green-400" :
                                                                     person.status === "leader" ? "border-purple-500/30 text-purple-400" :
-                                                                    person.status === "first_time_visitor" ? "border-cyan-500/30 text-cyan-400" :
-                                                                    "border-blue-500/30 text-blue-400"
-                                                                }`}>
+                                                                        person.status === "first_time_visitor" ? "border-cyan-500/30 text-cyan-400" :
+                                                                            "border-blue-500/30 text-blue-400"
+                                                                    }`}>
                                                                     {person.status.replace(/_/g, " ")}
                                                                 </Badge>
                                                             </td>
@@ -916,6 +914,177 @@ export default function DemoPage() {
                                     </div>
                                 </div>
                             )}
+
+                            {/* Automations Tab */}
+                            {activeTab === "automations" && (
+                                <div className="p-6 md:p-8">
+                                    {/* Header */}
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div>
+                                            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                                <Zap className="w-6 h-6 text-indigo-400" />
+                                                Smart Automations
+                                            </h3>
+                                            <p className="text-slate-400 text-sm mt-1">Set it and forget it. Your AI handles the rest.</p>
+                                        </div>
+                                        <Badge className="bg-gradient-to-r from-pink-600 to-purple-600 text-white border-0 px-4 py-1">
+                                            <Sparkles className="w-3 h-3 mr-1.5" />
+                                            NEW
+                                        </Badge>
+                                    </div>
+
+                                    {/* Automation Categories */}
+                                    <div className="grid md:grid-cols-3 gap-4 mb-8">
+                                        {/* Birthday Automations */}
+                                        <div className="p-5 rounded-xl bg-gradient-to-br from-pink-500/10 to-rose-500/10 border border-pink-500/20 hover:border-pink-500/40 transition-all cursor-pointer group">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500/30 to-rose-500/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                                    <Cake className="w-6 h-6 text-pink-400" />
+                                                </div>
+                                                <Badge className="bg-green-500/20 text-green-400 border-0 text-xs">
+                                                    <Power className="w-3 h-3 mr-1" />
+                                                    Active
+                                                </Badge>
+                                            </div>
+                                            <h4 className="font-semibold text-white mb-1">Birthday Messages</h4>
+                                            <p className="text-sm text-slate-400 mb-3">Auto-send personalized birthday wishes via call or SMS</p>
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="text-pink-300">12 upcoming this month</span>
+                                                <Settings2 className="w-4 h-4 text-slate-500 hover:text-white transition-colors" />
+                                            </div>
+                                        </div>
+
+                                        {/* Scheduled Messages */}
+                                        <div className="p-5 rounded-xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 hover:border-blue-500/40 transition-all cursor-pointer group">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/30 to-cyan-500/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                                    <CalendarClock className="w-6 h-6 text-blue-400" />
+                                                </div>
+                                                <Badge className="bg-green-500/20 text-green-400 border-0 text-xs">
+                                                    <Power className="w-3 h-3 mr-1" />
+                                                    Active
+                                                </Badge>
+                                            </div>
+                                            <h4 className="font-semibold text-white mb-1">Scheduled Messages</h4>
+                                            <p className="text-sm text-slate-400 mb-3">Plan one-time or recurring messages in advance</p>
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="text-blue-300">5 scheduled this week</span>
+                                                <Settings2 className="w-4 h-4 text-slate-500 hover:text-white transition-colors" />
+                                            </div>
+                                        </div>
+
+                                        {/* Event Triggers */}
+                                        <div className="p-5 rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 hover:border-amber-500/40 transition-all cursor-pointer group">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/30 to-orange-500/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                                    <Bell className="w-6 h-6 text-amber-400" />
+                                                </div>
+                                                <Badge className="bg-green-500/20 text-green-400 border-0 text-xs">
+                                                    <Power className="w-3 h-3 mr-1" />
+                                                    Active
+                                                </Badge>
+                                            </div>
+                                            <h4 className="font-semibold text-white mb-1">Event Triggers</h4>
+                                            <p className="text-sm text-slate-400 mb-3">Auto-respond to member actions & life events</p>
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="text-amber-300">4 active triggers</span>
+                                                <Settings2 className="w-4 h-4 text-slate-500 hover:text-white transition-colors" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Active Automations List */}
+                                    <div className="grid lg:grid-cols-2 gap-6">
+                                        {/* Recent Activity */}
+                                        <div className="p-5 rounded-xl bg-white/5 border border-white/10">
+                                            <h4 className="font-semibold text-white flex items-center gap-2 mb-4">
+                                                <TrendingUp className="w-4 h-4 text-green-400" />
+                                                Recent Automation Activity
+                                            </h4>
+                                            <div className="space-y-3">
+                                                {[
+                                                    { type: "birthday", name: "James Wilson", action: "Birthday call completed", time: "2 hours ago", icon: Cake, color: "pink" },
+                                                    { type: "scheduled", name: "Youth Group", action: "Event reminder sent", time: "5 hours ago", icon: CalendarClock, color: "blue" },
+                                                    { type: "trigger", name: "Emily Davis", action: "First-timer follow-up sent", time: "1 day ago", icon: Bell, color: "amber" },
+                                                    { type: "birthday", name: "Maria Santos", action: "Birthday SMS sent", time: "2 days ago", icon: Gift, color: "pink" },
+                                                ].map((activity, idx) => (
+                                                    <div key={idx} className="flex items-center gap-3 p-3 rounded-lg bg-white/5">
+                                                        <div className={`w-8 h-8 rounded-lg bg-${activity.color}-500/20 flex items-center justify-center`}>
+                                                            <activity.icon className={`w-4 h-4 text-${activity.color}-400`} />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <p className="text-sm text-white">{activity.action}</p>
+                                                            <p className="text-xs text-slate-500">{activity.name} • {activity.time}</p>
+                                                        </div>
+                                                        <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Upcoming Automations */}
+                                        <div className="p-5 rounded-xl bg-white/5 border border-white/10">
+                                            <h4 className="font-semibold text-white flex items-center gap-2 mb-4">
+                                                <Clock className="w-4 h-4 text-cyan-400" />
+                                                Upcoming Automations
+                                            </h4>
+                                            <div className="space-y-3">
+                                                {[
+                                                    { type: "birthday", name: "Sarah Johnson", action: "Birthday in 2 days", date: "Feb 6", icon: Cake, color: "pink" },
+                                                    { type: "scheduled", name: "Sunday Reminder", action: "Service reminder to all", date: "Feb 8", icon: MessageSquare, color: "blue" },
+                                                    { type: "birthday", name: "Michael Chen", action: "Birthday in 5 days", date: "Feb 9", icon: Cake, color: "pink" },
+                                                    { type: "trigger", name: "Anniversary Check", action: "Membership anniversaries", date: "Feb 10", icon: Gift, color: "purple" },
+                                                ].map((upcoming, idx) => (
+                                                    <div key={idx} className="flex items-center gap-3 p-3 rounded-lg bg-white/5">
+                                                        <div className={`w-8 h-8 rounded-lg ${upcoming.color === 'pink' ? 'bg-pink-500/20' : upcoming.color === 'blue' ? 'bg-blue-500/20' : 'bg-purple-500/20'} flex items-center justify-center`}>
+                                                            <upcoming.icon className={`w-4 h-4 ${upcoming.color === 'pink' ? 'text-pink-400' : upcoming.color === 'blue' ? 'text-blue-400' : 'text-purple-400'}`} />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <p className="text-sm text-white">{upcoming.name}</p>
+                                                            <p className="text-xs text-slate-500">{upcoming.action}</p>
+                                                        </div>
+                                                        <Badge variant="outline" className="text-xs border-white/10 text-slate-400">
+                                                            {upcoming.date}
+                                                        </Badge>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Bottom Info Card */}
+                                    <div className="mt-8 p-6 rounded-xl bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 border border-indigo-500/20">
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
+                                                <Zap className="w-6 h-6 text-indigo-400" />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-lg font-semibold text-white mb-2">How Automations Work</h4>
+                                                <p className="text-slate-400 text-sm leading-relaxed">
+                                                    Set up automations once and let the AI handle the rest. Birthday wishes are sent automatically
+                                                    on the right day, first-time visitors get a follow-up call within 24 hours, and anniversary
+                                                    messages make long-time members feel appreciated. You stay focused on ministry while your
+                                                    AI assistant handles the outreach.
+                                                </p>
+                                                <div className="flex gap-4 mt-4">
+                                                    <div className="flex items-center gap-2 text-sm text-pink-300">
+                                                        <CheckCircle2 className="w-4 h-4" />
+                                                        Birthday wishes
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-sm text-blue-300">
+                                                        <CheckCircle2 className="w-4 h-4" />
+                                                        Scheduled messages
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-sm text-amber-300">
+                                                        <CheckCircle2 className="w-4 h-4" />
+                                                        Event triggers
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -925,7 +1094,7 @@ export default function DemoPage() {
             <section className="py-24 border-t border-white/5">
                 <div className="container mx-auto px-6 max-w-5xl">
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-4xl font-bold mb-4">Why churches love ChurchComm</h2>
+                        <h2 className="text-3xl md:text-4xl font-bold mb-4">Why churches love KeepFlock</h2>
                         <p className="text-slate-400 text-lg">Real features that make a real difference</p>
                     </div>
 
@@ -1022,7 +1191,7 @@ export default function DemoPage() {
             {/* Footer */}
             <footer className="py-8 border-t border-white/10 bg-slate-950">
                 <div className="container mx-auto px-6 text-center text-sm text-slate-500">
-                    <p>© {new Date().getFullYear()} ChurchComm. All rights reserved.</p>
+                    <p>© {new Date().getFullYear()} KeepFlock by LawOne Cloud LLC. All rights reserved.</p>
                 </div>
             </footer>
         </div>

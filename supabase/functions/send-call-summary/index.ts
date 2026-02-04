@@ -20,7 +20,7 @@ async function sendEmail(to: string, subject: string, html: string): Promise<voi
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'ChurchComm <notifications@churchcomm.app>',
+      from: 'KeepFlock <notifications@churchcomm.app>',
       to,
       subject,
       html,

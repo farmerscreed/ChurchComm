@@ -39,9 +39,9 @@ export function useSubscriptionStatus(): SubscriptionState {
     // Build message for UI
     let message: string | undefined;
     if (isPastDue) {
-        message = "Your payment is past due. Please update your payment method to continue using ChurchComm.";
+        message = "Your payment is past due. Please update your payment method to continue using KeepFlock.";
     } else if (isCanceled) {
-        message = "Your subscription has been canceled. Subscribe to a plan to continue using ChurchComm.";
+        message = "Your subscription has been canceled. Subscribe to a plan to continue using KeepFlock.";
     } else if (!canUseCalling && minutesUsed >= minutesIncluded) {
         message = "You've used all your AI calling minutes for this month. Upgrade your plan for more.";
     }

@@ -262,7 +262,7 @@ async function checkUsageWarning(supabase: any, orgId: string): Promise<void> {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                from: 'ChurchComm <notifications@churchcomm.app>',
+                from: 'KeepFlock <notifications@churchcomm.app>',
                 to: admin.profiles.email,
                 subject: `Usage Alert: ${usagePercent.toFixed(0)}% of calling minutes used`,
                 html: `

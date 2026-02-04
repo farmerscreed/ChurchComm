@@ -28,7 +28,9 @@ import {
     UserPlus,
     Send,
     Volume2,
-    Brain
+    Brain,
+    Cake,
+    CalendarClock
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -104,7 +106,7 @@ export default function LandingPage() {
                             <Heart className="w-5 h-5 text-white fill-white" />
                         </div>
                         <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-                            ChurchComm
+                            KeepFlock
                         </span>
                     </Link>
                     <div className="hidden md:flex items-center gap-8">
@@ -136,7 +138,7 @@ export default function LandingPage() {
                     <div className="flex justify-center mb-8">
                         <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4 duration-700">
                             <Badge className="bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0 text-xs">NEW</Badge>
-                            <span className="text-sm text-slate-300">AI Voice Agents now speak 12+ languages</span>
+                            <span className="text-sm text-slate-300">Automations: Birthday calls, scheduled messages & more!</span>
                             <ChevronRight className="w-4 h-4 text-slate-500" />
                         </div>
                     </div>
@@ -208,7 +210,7 @@ export default function LandingPage() {
                                 <div className="flex-1 flex justify-center">
                                     <div className="px-4 py-1.5 bg-white/5 rounded-lg text-xs text-slate-500 flex items-center gap-2 max-w-xs w-full justify-center">
                                         <Shield className="w-3 h-3 text-green-500" />
-                                        <span>app.churchcomm.ai</span>
+                                        <span>app.keepflock.com</span>
                                     </div>
                                 </div>
                                 <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
@@ -433,7 +435,7 @@ export default function LandingPage() {
                             <div className="p-8 rounded-2xl bg-red-500/5 border border-red-500/20">
                                 <h3 className="text-xl font-bold text-red-400 mb-6 flex items-center gap-2">
                                     <Clock className="w-5 h-5" />
-                                    Before ChurchComm
+                                    Before KeepFlock
                                 </h3>
                                 <ul className="space-y-4">
                                     {[
@@ -457,7 +459,7 @@ export default function LandingPage() {
                             <div className="p-8 rounded-2xl bg-green-500/5 border border-green-500/20">
                                 <h3 className="text-xl font-bold text-green-400 mb-6 flex items-center gap-2">
                                     <Sparkles className="w-5 h-5" />
-                                    With ChurchComm
+                                    With KeepFlock
                                 </h3>
                                 <ul className="space-y-4">
                                     {[
@@ -730,11 +732,10 @@ export default function LandingPage() {
                                     <button
                                         key={idx}
                                         onClick={() => setActiveTestimonial(idx)}
-                                        className={`w-2 h-2 rounded-full transition-all ${
-                                            idx === activeTestimonial
-                                                ? "w-8 bg-purple-500"
-                                                : "bg-white/20 hover:bg-white/40"
-                                        }`}
+                                        className={`w-2 h-2 rounded-full transition-all ${idx === activeTestimonial
+                                            ? "w-8 bg-purple-500"
+                                            : "bg-white/20 hover:bg-white/40"
+                                            }`}
                                     />
                                 ))}
                             </div>
@@ -767,11 +768,10 @@ export default function LandingPage() {
                         ].map((plan, idx) => (
                             <div
                                 key={idx}
-                                className={`relative p-6 rounded-2xl border w-full max-w-xs ${
-                                    plan.popular
-                                        ? "bg-gradient-to-b from-purple-500/10 to-blue-500/10 border-purple-500/30"
-                                        : "bg-white/5 border-white/10"
-                                }`}
+                                className={`relative p-6 rounded-2xl border w-full max-w-xs ${plan.popular
+                                    ? "bg-gradient-to-b from-purple-500/10 to-blue-500/10 border-purple-500/30"
+                                    : "bg-white/5 border-white/10"
+                                    }`}
                             >
                                 {plan.popular && (
                                     <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0">
@@ -798,11 +798,10 @@ export default function LandingPage() {
                                     </li>
                                 </ul>
                                 <Link to="/pricing">
-                                    <Button className={`w-full ${
-                                        plan.popular
-                                            ? "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500"
-                                            : "bg-white/10 hover:bg-white/20"
-                                    }`}>
+                                    <Button className={`w-full ${plan.popular
+                                        ? "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500"
+                                        : "bg-white/10 hover:bg-white/20"
+                                        }`}>
                                         Get Started
                                     </Button>
                                 </Link>
@@ -880,7 +879,7 @@ export default function LandingPage() {
                                 <div className="w-9 h-9 bg-gradient-to-tr from-purple-500 to-blue-500 rounded-xl flex items-center justify-center">
                                     <Heart className="w-5 h-5 text-white fill-white" />
                                 </div>
-                                <span className="text-xl font-bold text-white">ChurchComm</span>
+                                <span className="text-xl font-bold text-white">KeepFlock</span>
                             </div>
                             <p className="text-slate-500 mb-6 max-w-sm">
                                 Empowering churches with AI to reach more people, care deeper, and grow stronger communities.
@@ -930,7 +929,7 @@ export default function LandingPage() {
 
                     <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
                         <p className="text-sm text-slate-600">
-                            © {new Date().getFullYear()} ChurchComm by LawOne Cloud LLC. All rights reserved.
+                            © {new Date().getFullYear()} KeepFlock by LawOne Cloud LLC. All rights reserved.
                         </p>
                         <p className="text-sm text-slate-600 flex items-center gap-2">
                             Made with <Heart className="w-4 h-4 text-red-500 fill-red-500" /> for churches everywhere
@@ -957,10 +956,10 @@ const FEATURES = [
         gradient: "from-blue-500/20 to-blue-500/5"
     },
     {
-        icon: Users,
-        title: "People Management",
-        description: "Track members, visitors, and families. Organize by groups, status, and custom tags.",
-        gradient: "from-cyan-500/20 to-cyan-500/5"
+        icon: Cake,
+        title: "Smart Automations",
+        description: "Automatically send birthday wishes, anniversary greetings, and scheduled messages. Set it and forget it.",
+        gradient: "from-pink-500/20 to-pink-500/5"
     },
     {
         icon: Bell,
@@ -969,22 +968,34 @@ const FEATURES = [
         gradient: "from-amber-500/20 to-amber-500/5"
     },
     {
-        icon: Calendar,
-        title: "Auto-Triggers",
-        description: "Schedule automatic calls for birthdays, visitor follow-ups, missed attendance, and more.",
+        icon: CalendarClock,
+        title: "Event Triggers",
+        description: "Auto-respond to member actions—first visits, group joins, missed attendance, and custom events.",
         gradient: "from-green-500/20 to-green-500/5"
     },
     {
         icon: BarChart3,
         title: "Real-Time Analytics",
         description: "Track call success rates, response sentiment, engagement trends, and campaign performance.",
-        gradient: "from-pink-500/20 to-pink-500/5"
+        gradient: "from-cyan-500/20 to-cyan-500/5"
+    },
+    {
+        icon: Users,
+        title: "People Management",
+        description: "Track members, visitors, and families. Organize by groups, status, and custom tags.",
+        gradient: "from-indigo-500/20 to-indigo-500/5"
+    },
+    {
+        icon: Brain,
+        title: "AI Memory",
+        description: "Every conversation remembered. Future calls reference past interactions for genuinely personal connections.",
+        gradient: "from-violet-500/20 to-violet-500/5"
     }
 ];
 
 const TESTIMONIALS = [
     {
-        quote: "ChurchComm transformed our visitor follow-up. We went from losing 80% of first-time guests to retaining over 60%. The AI calls feel so personal that people don't even realize it's automated.",
+        quote: "KeepFlock transformed our visitor follow-up. We went from losing 80% of first-time guests to retaining over 60%. The AI calls feel so personal that people don't even realize it's automated.",
         name: "Pastor Michael Torres",
         role: "Lead Pastor, Grace Community Church"
     },
@@ -999,7 +1010,7 @@ const TESTIMONIALS = [
         role: "Executive Pastor, New Life Church"
     },
     {
-        quote: "Our youth ministry grew 40% after we started using ChurchComm for event reminders and parent communication. The engagement is through the roof.",
+        quote: "Our youth ministry grew 40% after we started using KeepFlock for event reminders and parent communication. The engagement is through the roof.",
         name: "Emily Chen",
         role: "Youth Director, Harvest Church"
     }
