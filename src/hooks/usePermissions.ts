@@ -16,6 +16,8 @@ export const usePermissions = () => {
         isAdmin,
         isPastor,
         canManageCampaigns: isAdmin || isPastor,
+        canHandleEscalations: isAdmin || isPastor,
+        canManageOrgSettings: isAdmin || isPastor,
         // Add more permissions as needed
     };
 };

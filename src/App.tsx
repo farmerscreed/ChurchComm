@@ -8,6 +8,7 @@ import People from '@/pages/People';
 import Groups from '@/pages/Groups';
 import Communications from '@/pages/Communications';
 import CallHistory from '@/pages/CallHistory';
+import FollowUpsPage from '@/pages/FollowUps';
 import Settings from '@/pages/Settings';
 import SystemTest from '@/pages/SystemTest';
 import AcceptInvite from '@/pages/AcceptInvite';
@@ -15,6 +16,11 @@ import OnboardingPage from '@/pages/OnboardingPage';
 import PricingPage from '@/pages/PricingPage';
 import LandingPage from '@/pages/LandingPage';
 import DemoPage from '@/pages/DemoPage';
+// Automations pages
+import AutomationsOverview from '@/pages/automations/AutomationsOverview';
+import BirthdayAutomations from '@/pages/automations/BirthdayAutomations';
+import ScheduledMessages from '@/pages/automations/ScheduledMessages';
+import EventTriggers from '@/pages/automations/EventTriggers';
 import { Toaster } from '@/components/ui/toaster';
 
 function App() {
@@ -69,6 +75,12 @@ function App() {
           <Route path="groups" element={<Groups />} />
           <Route path="communications" element={<Communications />} />
           <Route path="call-history" element={<CallHistory />} />
+          <Route path="follow-ups" element={<FollowUpsPage />} />
+          {/* Automations routes */}
+          <Route path="automations" element={<AutomationsOverview />} />
+          <Route path="automations/birthdays" element={<BirthdayAutomations />} />
+          <Route path="automations/scheduled" element={<ScheduledMessages />} />
+          <Route path="automations/triggers" element={<EventTriggers />} />
           <Route path="settings" element={<Settings />} />
           <Route path="system-test" element={<SystemTest />} />
         </Route>

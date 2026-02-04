@@ -276,7 +276,20 @@ export default function Communications() {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function error:', error);
+        // Try to extract more detailed error information
+        const errorMessage = error.message || 'Failed to send SMS';
+        throw new Error(errorMessage);
+      }
+
+      // Check if the response data contains an error
+      if (data && data.error) {
+        const detailedMessage = data.details
+          ? `${data.error}\n\n${data.details}${data.hint ? `\n\nTip: ${data.hint}` : ''}`
+          : data.error;
+        throw new Error(detailedMessage);
+      }
 
       toast({
         title: 'Success!',
@@ -287,10 +300,15 @@ export default function Communications() {
       setSmsSelectedGroupId('');
     } catch (error: any) {
       console.error('Error sending SMS:', error);
+
+      // Format the error message nicely
+      const errorLines = error.message?.split('\n') || ['Failed to send SMS'];
+
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to send SMS. Please check your Twilio configuration.',
-        variant: 'destructive'
+        title: errorLines[0] || 'Error',
+        description: errorLines.slice(1).join('\n') || 'Please check your Twilio configuration in Supabase settings.',
+        variant: 'destructive',
+        duration: 10000, // Show longer for configuration errors
       });
     } finally {
       setLoading(false);
