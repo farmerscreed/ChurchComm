@@ -36,6 +36,8 @@ interface Organization {
   timezone: string
   phone_number_type: string | null
   dedicated_phone_number: string | null
+  vapi_phone_number_id: string | null
+  subscription_tier: string | null
 }
 
 interface AutoTrigger {
@@ -335,9 +337,9 @@ async function executeScheduledCalls(supabase: any, org: Organization): Promise<
     return 0
   }
 
-  const phoneNumberId = (org.phone_number_type === 'dedicated' && org.dedicated_phone_number)
-    ? org.dedicated_phone_number
-    : Deno.env.get('VAPI_PHONE_NUMBER_ID')
+  // Use org's dedicated VAPI phone number ID if available (premium feature)
+  // This allows caller ID to show church name instead of "KeepFlock"
+  const phoneNumberId = org.vapi_phone_number_id || Deno.env.get('VAPI_PHONE_NUMBER_ID')
 
   if (!phoneNumberId) {
     console.error('No phone number configured for calls')
@@ -382,13 +384,32 @@ async function executeScheduledCalls(supabase: any, org: Organization): Promise<
     })
 
     // Enhanced prompt with memory injection (Heroic implementation)
-    let prompt = basePrompt
+    let conversationGuide = basePrompt
     try {
-      prompt = await buildEnhancedPrompt(basePrompt, supabase, call.person_id, org.id)
+      conversationGuide = await buildEnhancedPrompt(basePrompt, supabase, call.person_id, org.id)
       console.log('Org ' + org.id + ': Enhanced prompt generated for person ' + call.person_id)
     } catch (err) {
       console.error('Org ' + org.id + ': Failed to build enhanced prompt, falling back to base:', err)
     }
+
+    // Build natural greeting and comprehensive system prompt
+    const firstName = person?.first_name || 'there'
+    const churchName = org.name || 'your church'
+    const firstGreeting = `Hi ${firstName}! This is a friendly call from ${churchName}. How are you doing today?`
+
+    const systemPrompt = `You are a warm, friendly church assistant making a caring outreach call on behalf of ${churchName}.
+
+IMPORTANT GUIDELINES:
+- Be conversational and natural - do NOT read scripts literally
+- Use the person's name (${firstName}) naturally in conversation
+- Listen actively and respond empathetically
+- If they mention any crisis, distress, or pastoral care needs, note it carefully
+- Keep the conversation warm and supportive
+
+YOUR CONVERSATION GUIDE (use as guidance, not a script to read):
+${conversationGuide}
+
+Remember: Have a natural conversation. Don't read the guide word-for-word. Adapt based on their responses.`
 
     try {
       const vapiResponse = await fetch('https://api.vapi.ai/call/phone', {
@@ -399,13 +420,13 @@ async function executeScheduledCalls(supabase: any, org: Organization): Promise<
         },
         body: JSON.stringify({
           phoneNumberId: phoneNumberId,
-          customer: { number: call.phone_number },
+          customer: { number: call.phone_number, name: firstName },
           assistant: {
-            firstMessage: 'Hi ' + (person?.first_name || 'there') + ', this is a call from ' + (org.name || 'your church') + '.',
+            firstMessage: firstGreeting,
             model: {
               provider: 'openai',
               model: 'gpt-4o-mini',
-              messages: [{ role: 'system', content: prompt }],
+              messages: [{ role: 'system', content: systemPrompt }],
             },
             voice: {
               provider: '11labs',
@@ -499,7 +520,7 @@ Deno.serve(async (req) => {
 
     const { data: organizations, error: orgError } = await supabaseAdmin
       .from('organizations')
-      .select('id, name, calling_window_start, calling_window_end, timezone, phone_number_type, dedicated_phone_number')
+      .select('id, name, calling_window_start, calling_window_end, timezone, phone_number_type, dedicated_phone_number, vapi_phone_number_id, subscription_tier')
 
     if (orgError) {
       console.error('Error fetching organizations:', orgError)

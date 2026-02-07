@@ -27,8 +27,21 @@ export function substituteVariables(
   };
 
   for (const [key, value] of Object.entries(variables)) {
-    const pattern = new RegExp(`\\{${key}\\}`, 'gi');
-    result = result.replace(pattern, value || '');
+    // Handle both {variable} and {{person.variable}} formats
+    const simplePattern = new RegExp(`\\{${key}\\}`, 'gi');
+    const personPattern = new RegExp(`\\{\\{person\\.${key}\\}\\}`, 'gi');
+    const doublePattern = new RegExp(`\\{\\{${key}\\}\\}`, 'gi');
+
+    result = result.replace(simplePattern, value || '');
+    result = result.replace(personPattern, value || '');
+    result = result.replace(doublePattern, value || '');
+  }
+
+  // Also handle {name} as alias for {first_name}
+  if (context.first_name) {
+    result = result.replace(/\{name\}/gi, context.first_name);
+    result = result.replace(/\{\{name\}\}/gi, context.first_name);
+    result = result.replace(/\{\{person\.name\}\}/gi, context.first_name);
   }
 
   return result;

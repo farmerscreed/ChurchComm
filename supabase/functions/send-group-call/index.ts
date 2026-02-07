@@ -76,15 +76,28 @@ serve(async (req) => {
 
     // Get Vapi configuration from environment variables
     const VAPI_API_KEY = Deno.env.get('VAPI_API_KEY')
-    const VAPI_PHONE_NUMBER_ID = Deno.env.get('VAPI_PHONE_NUMBER_ID')
+    const DEFAULT_PHONE_NUMBER_ID = Deno.env.get('VAPI_PHONE_NUMBER_ID') // KeepFlock shared number
 
-    console.log('VAPI Config - API Key present:', !!VAPI_API_KEY, 'Phone ID present:', !!VAPI_PHONE_NUMBER_ID)
-    console.log('VAPI Phone Number ID:', VAPI_PHONE_NUMBER_ID)
-
-    if (!VAPI_API_KEY || !VAPI_PHONE_NUMBER_ID) {
+    if (!VAPI_API_KEY || !DEFAULT_PHONE_NUMBER_ID) {
       console.error('Vapi configuration incomplete')
       throw new Error('Vapi configuration incomplete')
     }
+
+    // Check if organization has a dedicated phone number (premium feature)
+    // If they do, caller ID will show their church name instead of "KeepFlock"
+    const { data: orgData } = await supabaseAdmin
+      .from('organizations')
+      .select('name, vapi_phone_number_id, subscription_tier')
+      .eq('id', organizationId)
+      .single()
+
+    // Use org's dedicated number if available, otherwise use shared KeepFlock number
+    const VAPI_PHONE_NUMBER_ID = orgData?.vapi_phone_number_id || DEFAULT_PHONE_NUMBER_ID
+    const orgName = orgData?.name || 'your church'
+    const isPremium = orgData?.subscription_tier === 'premium' || orgData?.subscription_tier === 'enterprise'
+
+    console.log('VAPI Config - API Key present:', !!VAPI_API_KEY)
+    console.log('Using phone number ID:', VAPI_PHONE_NUMBER_ID, isPremium ? '(dedicated)' : '(shared KeepFlock)')
 
     // Voice ID mapping: convert friendly names to ElevenLabs IDs
     const VOICE_MAP: Record<string, string> = {
@@ -221,16 +234,7 @@ serve(async (req) => {
           .select()
           .single()
 
-        // Get organization name for variable substitution
-        let orgName = 'your church'
-        if (!isIndividualCall) {
-          const { data: orgData } = await supabaseAdmin
-            .from('organizations')
-            .select('name')
-            .eq('id', organizationId)
-            .single()
-          if (orgData) orgName = orgData.name
-        }
+        // orgName already fetched above when checking for dedicated phone number
 
         // Process script variables using shared substitution engine
         const processedScript = substituteVariables(scriptContent, {
@@ -267,12 +271,31 @@ serve(async (req) => {
 
         // Make Vapi call with retry for rate limits (429)
         const maxRetries = 3
+        // Build a natural first greeting (NOT the full script)
+        const firstName = recipient.first_name || 'there'
+        const firstGreeting = `Hi ${firstName}! This is a friendly call from ${orgName}. How are you doing today?`
+
+        // Build comprehensive system prompt with the script as guidance
+        const systemPrompt = `You are a warm, friendly church assistant making a caring outreach call on behalf of ${orgName}.
+
+IMPORTANT GUIDELINES:
+- Be conversational and natural - do NOT read scripts literally
+- Use the person's name (${firstName}) naturally in conversation
+- Listen actively and respond empathetically
+- If they mention any crisis, distress, or pastoral care needs, note it carefully
+- Keep the conversation warm and supportive
+
+YOUR CONVERSATION GUIDE (use as guidance, not a script to read):
+${finalPrompt}
+
+Remember: Have a natural conversation. Don't read the guide word-for-word. Adapt based on their responses.`
+
         let vapiResponse: Response | null = null
         const payload = JSON.stringify({
           phoneNumberId: VAPI_PHONE_NUMBER_ID,
           customer: {
             number: formattedPhone,
-            name: recipient.first_name || 'Friend'
+            name: firstName
           },
           assistantOverrides: {
             metadata: {
@@ -282,15 +305,15 @@ serve(async (req) => {
           },
           assistant: {
             name: 'Church Connect Assistant',
-            firstMessage: finalPrompt,
+            firstMessage: firstGreeting,
             model: {
               provider: 'openai',
-              model: 'gpt-3.5-turbo',
+              model: 'gpt-4o-mini',
               temperature: 0.7,
               messages: [
                 {
                   role: 'system',
-                  content: `You are a friendly church assistant making a caring outreach call. Be warm, empathetic, and conversational. Listen actively and respond appropriately. If the person mentions any crisis, distress, or need for pastoral care, note it carefully. Keep the conversation natural and supportive.`
+                  content: systemPrompt
                 }
               ]
             },

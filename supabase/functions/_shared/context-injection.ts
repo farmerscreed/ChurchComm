@@ -155,25 +155,30 @@ export async function buildEnhancedPrompt(
 
     let enhancedPrompt = basePrompt;
 
+    // Add context as background knowledge (NOT to be read aloud)
+    if (context.memberContext || context.churchContext || context.preferences) {
+        enhancedPrompt += `\n\n[BACKGROUND KNOWLEDGE - Use naturally in conversation, do NOT read aloud]`;
+    }
+
     if (context.memberContext) {
-        enhancedPrompt += `\n\n## Previous Conversations with This Person:\n${context.memberContext}`;
+        enhancedPrompt += `\n\nPrevious interactions with this person:\n${context.memberContext}`;
     }
 
     if (context.churchContext) {
-        enhancedPrompt += `\n\n## Current Church Context:\n${context.churchContext}`;
+        enhancedPrompt += `\n\nRelevant church information:\n${context.churchContext}`;
     }
 
     if (context.preferences) {
-        enhancedPrompt += `\n\n## Known Preferences:\n${context.preferences}`;
+        enhancedPrompt += `\n\nTheir known preferences:\n${context.preferences}`;
     }
 
     // Add guidance for using context
     if (context.memberContext || context.churchContext) {
-        enhancedPrompt += `\n\n## Context Usage Guidelines:
-- Reference previous conversations naturally when relevant
-- If there's an upcoming church event, consider mentioning it
-- Remember any prayer requests they've shared
-- Do not explicitly say "I see from our records..." - weave context naturally like a caring friend would`;
+        enhancedPrompt += `\n\n[HOW TO USE THIS CONTEXT]
+- Reference past conversations naturally, like a caring friend would
+- If there's an upcoming church event, mention it casually
+- Remember any prayer requests and ask how things are going
+- Never say "according to our records" or "I see that" - just incorporate naturally`;
     }
 
     // Ensure we don't exceed limits
