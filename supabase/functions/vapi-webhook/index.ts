@@ -402,80 +402,87 @@ serve(async (req) => {
     // 1. Store or update call log
     let callLog = null
 
-    if (organization_id && person_id) {
-      // Check if this call already exists (from initial creation in send-group-call)
-      const { data: existingLog } = await supabaseAdmin
+    // First, always try to find existing call log by vapi_call_id (regardless of metadata)
+    const { data: existingLog } = await supabaseAdmin
+      .from('vapi_call_logs')
+      .select('id, organization_id, member_id')
+      .eq('vapi_call_id', call_id)
+      .maybeSingle()
+
+    if (existingLog) {
+      // Update existing record with full data from webhook
+      const { data, error: updateError } = await supabaseAdmin
         .from('vapi_call_logs')
-        .select('id')
-        .eq('vapi_call_id', call_id)
+        .update({
+          call_status: status,
+          call_duration: duration,
+          full_transcript: formattedTranscript,
+          call_summary: summary,
+          crisis_indicators: crisis_detected,
+          crisis_details: crisis_reason,
+          follow_up_needed: needs_follow_up,
+          needs_pastoral_care: needs_pastoral_care,
+          escalation_priority: priority,
+          prayer_requests: prayer_requests,
+          specific_interests: interests,
+          member_response_type: response_type,
+          raw_vapi_data: rawPayload,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingLog.id)
+        .select()
         .single()
 
-      if (existingLog) {
-        // Update existing record with full data
-        const { data, error: updateError } = await supabaseAdmin
-          .from('vapi_call_logs')
-          .update({
-            call_status: status,
-            call_duration: duration,
-            full_transcript: formattedTranscript,
-            call_summary: summary,
-            crisis_indicators: crisis_detected,
-            crisis_details: crisis_reason,
-            follow_up_needed: needs_follow_up,
-            needs_pastoral_care: needs_pastoral_care,
-            escalation_priority: priority,
-            prayer_requests: prayer_requests,
-            specific_interests: interests,
-            member_response_type: response_type,
-            raw_vapi_data: rawPayload,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingLog.id)
-          .select()
-          .single()
-
-        if (updateError) {
-          console.error('Error updating call log:', updateError)
-        } else {
-          callLog = data
-          console.log('Updated existing call log:', existingLog.id)
-        }
+      if (updateError) {
+        console.error('Error updating call log:', updateError)
       } else {
-        // Insert new record
-        const { data, error: insertError } = await supabaseAdmin
-          .from('vapi_call_logs')
-          .insert({
-            organization_id: organization_id,
-            member_id: person_id,
-            vapi_call_id: call_id,
-            phone_number_used: phoneNumber,
-            call_status: status,
-            call_duration: duration,
-            full_transcript: formattedTranscript,
-            call_summary: summary,
-            crisis_indicators: crisis_detected,
-            crisis_details: crisis_reason,
-            follow_up_needed: needs_follow_up,
-            needs_pastoral_care: needs_pastoral_care,
-            escalation_priority: priority,
-            prayer_requests: prayer_requests,
-            specific_interests: interests,
-            member_response_type: response_type,
-            raw_vapi_data: rawPayload
-          })
-          .select()
-          .single()
+        callLog = data
+        console.log('Updated existing call log:', existingLog.id, 'status:', status, 'duration:', duration)
+      }
 
-        if (insertError) {
-          console.error('Error inserting call log:', insertError)
-        } else {
-          callLog = data
-          console.log('Inserted new call log:', data.id)
-        }
+      // Use org/person from existing record if not in metadata
+      if (!organization_id && existingLog.organization_id) {
+        console.log('Using organization_id from existing log:', existingLog.organization_id)
+      }
+    } else if (organization_id && person_id) {
+      // Only insert new record if we have metadata (call wasn't created by send-group-call)
+      const { data, error: insertError } = await supabaseAdmin
+        .from('vapi_call_logs')
+        .insert({
+          organization_id: organization_id,
+          member_id: person_id,
+          vapi_call_id: call_id,
+          phone_number_used: phoneNumber,
+          call_status: status,
+          call_duration: duration,
+          full_transcript: formattedTranscript,
+          call_summary: summary,
+          crisis_indicators: crisis_detected,
+          crisis_details: crisis_reason,
+          follow_up_needed: needs_follow_up,
+          needs_pastoral_care: needs_pastoral_care,
+          escalation_priority: priority,
+          prayer_requests: prayer_requests,
+          specific_interests: interests,
+          member_response_type: response_type,
+          raw_vapi_data: rawPayload
+        })
+        .select()
+        .single()
+
+      if (insertError) {
+        console.error('Error inserting call log:', insertError)
+      } else {
+        callLog = data
+        console.log('Inserted new call log:', data.id)
       }
     } else {
-      console.log('Missing organization_id or person_id, skipping vapi_call_logs')
+      console.log('No existing call log found and missing metadata, cannot create new record')
     }
+
+    // Use organization from existing log if metadata was missing
+    const effectiveOrgId = organization_id || existingLog?.organization_id
+    const effectivePersonId = person_id || existingLog?.member_id
 
     // 2. Update corresponding call_attempt with final status
     let attemptOrgId = organization_id
@@ -560,12 +567,12 @@ serve(async (req) => {
     }
 
     // 3. Create escalation alert if crisis detected or pastoral care needed
-    if ((crisis_detected || needs_pastoral_care) && organization_id && person_id && callLog) {
+    if ((crisis_detected || needs_pastoral_care) && effectiveOrgId && effectivePersonId && callLog) {
       const { error: escalationError } = await supabaseAdmin
         .from('escalation_alerts')
         .insert({
-          organization_id: organization_id,
-          member_id: person_id,
+          organization_id: effectiveOrgId,
+          member_id: effectivePersonId,
           vapi_call_log_id: callLog.id,
           status: 'open',
           priority: priority,
@@ -583,11 +590,11 @@ serve(async (req) => {
     }
 
     // 4. Create member memories from call transcript (Epic 6)
-    if (organization_id && person_id && (formattedTranscript || summary)) {
+    if (effectiveOrgId && effectivePersonId && (formattedTranscript || summary)) {
       try {
         await createMemberMemories(supabaseAdmin, {
-          personId: person_id,
-          organizationId: organization_id,
+          personId: effectivePersonId,
+          organizationId: effectiveOrgId,
           sourceCallId: callLog?.id || call_id,
           transcript: formattedTranscript || '',
           summary: summary || '',

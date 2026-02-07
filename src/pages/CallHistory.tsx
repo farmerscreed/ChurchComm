@@ -362,31 +362,35 @@ export default function CallHistory() {
         <div className="lg:col-span-3 space-y-6">
           <div className="rounded-xl bg-white/5 border border-white/10 overflow-hidden">
             <div className="px-6 py-4 border-b border-white/10">
-              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-                <div className="inline-flex bg-white/5 border border-white/10 rounded-full p-1">
-                  {[
-                    { id: "all", label: "All Logs" },
-                    { id: "completed", label: "Completed" },
-                    { id: "escalations", label: "Needs Action" },
-                    { id: "follow-ups", label: "Follow-ups" },
-                  ].map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={cn(
-                        "px-6 py-2 rounded-full text-sm font-medium transition-all",
-                        activeTab === tab.id
-                          ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg"
-                          : "text-slate-400 hover:text-white"
-                      )}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
+              <div className="flex flex-col gap-4">
+                {/* Scrollable tabs on mobile */}
+                <div className="overflow-x-auto scrollbar-hide -mx-6 px-6">
+                  <div className="inline-flex bg-white/5 border border-white/10 rounded-full p-1 min-w-max">
+                    {[
+                      { id: "all", label: "All" },
+                      { id: "completed", label: "Completed" },
+                      { id: "escalations", label: "Urgent" },
+                      { id: "follow-ups", label: "Follow-ups" },
+                    ].map((tab) => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={cn(
+                          "px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-medium transition-all whitespace-nowrap",
+                          activeTab === tab.id
+                            ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg"
+                            : "text-slate-400 hover:text-white"
+                        )}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <div className="relative flex-1 sm:w-64">
+                {/* Search */}
+                <div className="flex items-center gap-2 w-full">
+                  <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                     <Input
                       placeholder="Search transcripts..."
@@ -453,23 +457,28 @@ export default function CallHistory() {
 
                         {/* Middle: Content */}
                         <div className="flex-1 min-w-0 space-y-1">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <h4 className="font-semibold text-base text-white">
                                 {call.people?.first_name || call.people?.last_name
                                   ? `${call.people?.first_name || ''} ${call.people?.last_name || ''}`.trim()
                                   : (call.phone_number_used || 'Unknown')
                                 }
                               </h4>
-                              {/* Mini Status Badge */}
+                              {/* Status Badge with appropriate colors */}
                               <span className={cn(
-                                "px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide",
-                                call.call_status === 'completed' || call.call_status === 'ended' ? "bg-green-500/20 text-green-400" : "bg-slate-500/20 text-slate-400"
+                                "px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide flex items-center gap-1",
+                                (call.call_status === 'completed' || call.call_status === 'ended') && "bg-green-500/20 text-green-400",
+                                call.call_status === 'failed' && "bg-red-500/20 text-red-400",
+                                call.call_status === 'no_answer' && "bg-yellow-500/20 text-yellow-400",
+                                (call.call_status === 'in_progress' || call.call_status === 'queued' || call.call_status === 'initiated') && "bg-blue-500/20 text-blue-400",
+                                !['completed', 'ended', 'failed', 'no_answer', 'in_progress', 'queued', 'initiated'].includes(call.call_status || '') && "bg-slate-500/20 text-slate-400"
                               )}>
-                                {call.call_status}
+                                {getStatusIcon(call.call_status || '')}
+                                {call.call_status === 'initiated' ? 'Pending' : call.call_status}
                               </span>
                             </div>
-                            <span className="text-xs text-slate-500 whitespace-nowrap hidden sm:block">
+                            <span className="text-xs text-slate-500 whitespace-nowrap">
                               {formatDistanceToNow(new Date(call.created_at), { addSuffix: true })}
                             </span>
                           </div>
