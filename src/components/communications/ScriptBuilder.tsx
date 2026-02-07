@@ -73,8 +73,8 @@ export function ScriptBuilder({ onSave }: { onSave?: () => void }) {
       name: generatedScript.name,
       description: generatedScript.description,
       content: generatedScript.prompt,
-      voice_id: voiceId,
-      voice_name: voice?.name || "Paula",
+      voice_id: voice?.voiceId || DEFAULT_VOICE.voiceId, // Save actual ElevenLabs voice ID
+      voice_name: voice?.name || "Rachel",
     });
 
     if (error) {

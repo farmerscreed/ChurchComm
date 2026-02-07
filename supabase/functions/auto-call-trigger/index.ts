@@ -7,6 +7,27 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Voice ID mapping: convert friendly names to ElevenLabs IDs
+const VOICE_MAP: Record<string, string> = {
+  'rachel': '21m00Tcm4TlvDq8ikWAM',
+  'josh': 'TxGEqnHWrfWFTfGW9XjX',
+  'bella': 'EXAVITQu4vr4xnSDxMaL',
+  'adam': 'pNInz6obpgDQGcFmaJgB',
+  'domi': 'AZnzlk1XvdvUeBnXmlld',
+  'paula': '21m00Tcm4TlvDq8ikWAM', // Map old 'paula' to Rachel
+}
+const DEFAULT_VOICE_ID = '21m00Tcm4TlvDq8ikWAM' // Rachel
+
+// Helper to resolve voice ID (handles both friendly names and actual ElevenLabs IDs)
+function resolveVoiceId(voiceId: string | null): string {
+  if (!voiceId) return DEFAULT_VOICE_ID
+  // If it's a friendly name, map it
+  if (VOICE_MAP[voiceId.toLowerCase()]) return VOICE_MAP[voiceId.toLowerCase()]
+  // If it looks like an ElevenLabs ID (long alphanumeric), use it directly
+  if (voiceId.length > 10) return voiceId
+  return DEFAULT_VOICE_ID
+}
+
 interface Organization {
   id: string
   name: string
@@ -388,7 +409,7 @@ async function executeScheduledCalls(supabase: any, org: Organization): Promise<
             },
             voice: {
               provider: '11labs',
-              voiceId: script.voice_id || 'paula',
+              voiceId: resolveVoiceId(script.voice_id),
             },
           },
         }),

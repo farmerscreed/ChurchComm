@@ -80,10 +80,23 @@ export function ScriptList({ onRefresh }: { onRefresh?: () => void }) {
     setDeleting(null);
   };
 
+  // Helper to get the friendly ID from a stored voice_id (could be friendly or ElevenLabs ID)
+  const getFriendlyVoiceId = (storedId: string | null): string => {
+    if (!storedId) return DEFAULT_VOICE.id;
+    // Check if it's already a friendly ID
+    const byFriendly = VOICE_PRESETS.find(v => v.id === storedId);
+    if (byFriendly) return storedId;
+    // Check if it's an ElevenLabs ID
+    const byElevenLabs = VOICE_PRESETS.find(v => v.voiceId === storedId);
+    if (byElevenLabs) return byElevenLabs.id;
+    return DEFAULT_VOICE.id;
+  };
+
   const handleSaveEdit = async () => {
     if (!editingScript) return;
 
     setSaving(true);
+    // Find voice by friendly ID (stored in editingScript.voice_id during editing)
     const voice = VOICE_PRESETS.find(v => v.id === editingScript.voice_id);
 
     const { error } = await supabase
@@ -92,7 +105,7 @@ export function ScriptList({ onRefresh }: { onRefresh?: () => void }) {
         name: editingScript.name,
         description: editingScript.description,
         content: editingScript.content,
-        voice_id: editingScript.voice_id,
+        voice_id: voice?.voiceId || DEFAULT_VOICE.voiceId, // Save actual ElevenLabs ID
         voice_name: voice?.name || editingScript.voice_name,
         updated_at: new Date().toISOString(),
       })
@@ -219,7 +232,7 @@ export function ScriptList({ onRefresh }: { onRefresh?: () => void }) {
               <div className="space-y-2">
                 <Label htmlFor="edit-voice">Voice</Label>
                 <Select
-                  value={editingScript.voice_id || DEFAULT_VOICE.id}
+                  value={getFriendlyVoiceId(editingScript.voice_id)}
                   onValueChange={(value) => setEditingScript({ ...editingScript, voice_id: value })}
                 >
                   <SelectTrigger>

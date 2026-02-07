@@ -86,10 +86,30 @@ serve(async (req) => {
       throw new Error('Vapi configuration incomplete')
     }
 
+    // Voice ID mapping: convert friendly names to ElevenLabs IDs
+    const VOICE_MAP: Record<string, string> = {
+      'rachel': '21m00Tcm4TlvDq8ikWAM',
+      'josh': 'TxGEqnHWrfWFTfGW9XjX',
+      'bella': 'EXAVITQu4vr4xnSDxMaL',
+      'adam': 'pNInz6obpgDQGcFmaJgB',
+      'domi': 'AZnzlk1XvdvUeBnXmlld',
+      'paula': '21m00Tcm4TlvDq8ikWAM', // Map old 'paula' to Rachel
+    }
+    const DEFAULT_VOICE_ID = '21m00Tcm4TlvDq8ikWAM' // Rachel
+
+    // Helper to resolve voice ID (handles both friendly names and actual ElevenLabs IDs)
+    const resolveVoiceId = (voiceId: string | null): string => {
+      if (!voiceId) return DEFAULT_VOICE_ID
+      // If it's a friendly name, map it
+      if (VOICE_MAP[voiceId.toLowerCase()]) return VOICE_MAP[voiceId.toLowerCase()]
+      // If it looks like an ElevenLabs ID (long alphanumeric), use it directly
+      if (voiceId.length > 10) return voiceId
+      return DEFAULT_VOICE_ID
+    }
+
     // Get script content - either from database or use raw script for individual calls
     let scriptContent: string
-
-    let scriptVoiceId = 'paula' // Default voice
+    let scriptVoiceId = DEFAULT_VOICE_ID
 
     if (isIndividualCall) {
       // For individual calls, use the provided script or a default greeting
@@ -104,7 +124,7 @@ serve(async (req) => {
 
       if (scriptError) throw scriptError
       scriptContent = script.content
-      scriptVoiceId = script.voice_id || 'paula'
+      scriptVoiceId = resolveVoiceId(script.voice_id)
     }
 
     // Get recipients based on call type
