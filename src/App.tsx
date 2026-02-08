@@ -21,6 +21,7 @@ import AutomationsOverview from '@/pages/automations/AutomationsOverview';
 import BirthdayAutomations from '@/pages/automations/BirthdayAutomations';
 import ScheduledOutreach from '@/pages/automations/ScheduledOutreach';
 import EventTriggers from '@/pages/automations/EventTriggers';
+import AutomationDocs from '@/pages/automations/AutomationDocs';
 import { Toaster } from '@/components/ui/toaster';
 
 function App() {
@@ -81,6 +82,7 @@ function App() {
           <Route path="automations/birthdays" element={<BirthdayAutomations />} />
           <Route path="automations/scheduled" element={<ScheduledOutreach />} />
           <Route path="automations/triggers" element={<EventTriggers />} />
+          <Route path="automations/docs" element={<AutomationDocs />} />
           <Route path="settings" element={<Settings />} />
           <Route path="system-test" element={<SystemTest />} />
         </Route>

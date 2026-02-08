@@ -189,21 +189,21 @@ export default function AutomationsOverview() {
   return (
     <div className="space-y-8 p-6 max-w-7xl mx-auto">
       {/* Header Section with Gradient */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 p-8 text-white shadow-2xl">
-        <div className="absolute top-0 right-0 -mt-10 -mr-10 h-64 w-64 rounded-full bg-purple-500/20 blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 -mb-10 -ml-10 h-64 w-64 rounded-full bg-blue-500/20 blur-3xl"></div>
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-600 p-8 text-white shadow-2xl">
+        <div className="absolute top-0 right-0 -mt-20 -mr-20 h-80 w-80 rounded-full bg-fuchsia-500/30 blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-0 left-0 -mb-20 -ml-20 h-80 w-80 rounded-full bg-blue-500/30 blur-3xl animate-pulse delay-1000"></div>
 
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div className="space-y-2">
-            <h1 className="text-4xl font-extrabold tracking-tight flex items-center gap-3">
-              <Sparkles className="h-8 w-8 text-yellow-300 animate-pulse" />
+          <div className="space-y-4">
+            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight flex items-center gap-3">
+              <Sparkles className="h-10 w-10 text-yellow-300" />
               Automation Center
             </h1>
-            <p className="text-lg text-indigo-100 max-w-2xl">
+            <p className="text-lg text-indigo-100 max-w-2xl leading-relaxed">
               Supercharge your ministry with intelligent workflows. Automate follow-ups, birthdays, and communications so no one falls through the cracks.
             </p>
           </div>
-          <Button size="lg" className="bg-white text-indigo-900 hover:bg-indigo-50 shadow-lg border-0 font-semibold" asChild>
+          <Button size="lg" className="bg-white text-indigo-600 hover:bg-indigo-50 shadow-xl shadow-indigo-900/20 border-0 font-bold px-8" asChild>
             <Link to="/automations/triggers">
               <Plus className="h-5 w-5 mr-2" />
               New Automation
@@ -212,77 +212,64 @@ export default function AutomationsOverview() {
         </div>
 
         {/* Quick Stats in Header */}
-        <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 pt-8 border-t border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
-              <Zap className="h-5 w-5 text-yellow-300" />
+        <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-4 mt-12">
+          {[
+            { label: 'Total Automations', value: stats.totalAutomations, icon: Zap, color: 'text-yellow-300', bg: 'bg-yellow-400/20' },
+            { label: 'Active Workflows', value: stats.activeAutomations, icon: CheckCircle2, color: 'text-emerald-300', bg: 'bg-emerald-400/20' },
+            { label: 'Total Executions', value: stats.totalExecutions, icon: TrendingUp, color: 'text-blue-300', bg: 'bg-blue-400/20' },
+            { label: 'Scheduled Actions', value: stats.scheduledMessages, icon: Clock, color: 'text-orange-300', bg: 'bg-orange-400/20' }
+          ].map((stat, i) => (
+            <div key={i} className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10 flex items-center gap-4 transition-transform hover:scale-105">
+              <div className={cn("p-3 rounded-xl", stat.bg)}>
+                <stat.icon className={cn("h-6 w-6", stat.color)} />
+              </div>
+              <div>
+                <p className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/80">{stat.value}</p>
+                <p className="text-xs font-medium text-indigo-200 uppercase tracking-wider">{stat.label}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.totalAutomations}</p>
-              <p className="text-xs text-indigo-200">Total Automations</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
-              <CheckCircle2 className="h-5 w-5 text-emerald-300" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.activeAutomations}</p>
-              <p className="text-xs text-indigo-200">Active Workflows</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
-              <TrendingUp className="h-5 w-5 text-blue-300" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.totalExecutions}</p>
-              <p className="text-xs text-indigo-200">Total Executions</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
-              <Clock className="h-5 w-5 text-orange-300" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.scheduledMessages}</p>
-              <p className="text-xs text-indigo-200">Scheduled Actions</p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
       {/* Main Categories Grid */}
+      <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 px-1">Explore features</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {categories.map((category) => (
-          <Link key={category.id} to={category.href} className="group">
-            <Card className={cn(
-              "h-full border transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950",
-              "hover:border-indigo-500/30 dark:hover:border-indigo-500/50"
-            )}>
-              <CardContent className="p-6 space-y-4">
-                <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110", category.bgColor)}>
-                  <category.icon className={cn("h-7 w-7", category.color)} />
+          <Link key={category.id} to={category.href} className="group block h-full">
+            <div className="h-full relative overflow-hidden rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-1 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 hover:border-indigo-500/30">
+              <div className={cn("absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/10 dark:to-purple-900/10")} />
+
+              <div className="relative h-full p-6 flex flex-col">
+                <div className="flex items-start justify-between mb-6">
+                  <div className={cn(
+                    "w-16 h-16 rounded-2xl flex items-center justify-center shadow-sm transition-all duration-300 group-hover:scale-110",
+                    category.bgColor
+                  )}>
+                    <category.icon className={cn("h-8 w-8", category.color)} />
+                  </div>
+                  <div className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition-colors">
+                    <ChevronRight className="h-5 w-5" />
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center justify-between">
+                <div className="space-y-3 mb-8">
+                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                     {category.title}
-                    <ChevronRight className="h-5 w-5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1" />
                   </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                  <p className="text-base text-slate-600 dark:text-slate-400 leading-relaxed">
                     {category.description}
                   </p>
                 </div>
 
-                <div className="pt-4 mt-auto border-t border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center gap-2 text-sm font-medium">
+                <div className="mt-auto">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300 group-hover:bg-white group-hover:shadow-sm transition-all">
                     <span className={cn("w-2 h-2 rounded-full", category.color.replace('text-', 'bg-'))} />
-                    <span className="text-slate-600 dark:text-slate-300">{category.stat}</span>
+                    {category.stat}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </Link>
         ))}
       </div>
@@ -390,7 +377,9 @@ export default function AutomationsOverview() {
           <Card className="border-dashed border-2 dark:border-slate-800 bg-transparent shadow-none">
             <CardContent className="p-6 text-center text-slate-500 dark:text-slate-400">
               <p className="text-sm">Need help setting up?</p>
-              <Button variant="link" className="text-indigo-500">View Documentation</Button>
+              <Button variant="link" className="text-indigo-500" asChild>
+                <Link to="/automations/docs">View Documentation</Link>
+              </Button>
             </CardContent>
           </Card>
         </div>

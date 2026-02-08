@@ -432,7 +432,18 @@ export default function EventTriggers() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="send_sms">Send SMS</SelectItem>
+                    <SelectItem value="send_sms">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="h-4 w-4 text-green-500" />
+                        <span>Send SMS</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="make_call">
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-blue-500" />
+                        <span>Make AI Call</span>
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -35,6 +35,14 @@ interface Automation {
   trigger_config: any;
 }
 
+interface BirthdayPerson {
+  id: string;
+  first_name: string;
+  last_name: string;
+  birthday: string;
+  phone_number: string | null;
+}
+
 export default function BirthdayAutomations() {
   const { currentOrganization } = useAuthStore();
   const { toast } = useToast();
@@ -42,6 +50,7 @@ export default function BirthdayAutomations() {
   const [saving, setSaving] = useState(false);
   const [automations, setAutomations] = useState<Automation[]>([]);
   const [birthdayCount, setBirthdayCount] = useState(0);
+  const [birthdayPeople, setBirthdayPeople] = useState<BirthdayPerson[]>([]);
 
   // Default state for new automation if none exists
   const [config, setConfig] = useState({
@@ -74,14 +83,16 @@ export default function BirthdayAutomations() {
         console.error('Error fetching automations:', autoError);
       }
 
-      // Fetch upcoming birthdays check
+      // Fetch upcoming birthdays with full person data
       const { data: bdayData } = await supabase
         .from('people')
-        .select('id', { count: 'exact' })
+        .select('id, first_name, last_name, birthday, phone_number')
         .eq('organization_id', currentOrganization.id)
-        .not('birthday', 'is', null);
+        .not('birthday', 'is', null)
+        .order('birthday', { ascending: true });
 
       setBirthdayCount(bdayData?.length || 0);
+      setBirthdayPeople(bdayData || []);
 
       if (autoData && autoData.length > 0) {
         setAutomations(autoData);
@@ -177,34 +188,36 @@ export default function BirthdayAutomations() {
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-8">
       {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-pink-500 to-rose-600 p-8 text-white shadow-xl">
-        <div className="absolute top-0 right-0 -mt-8 -mr-8 h-48 w-48 rounded-full bg-white/20 blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-48 w-48 rounded-full bg-yellow-400/20 blur-3xl"></div>
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-pink-500 via-rose-500 to-red-500 p-8 text-white shadow-2xl">
+        <div className="absolute top-0 right-0 -mt-20 -mr-20 h-80 w-80 rounded-full bg-orange-400/30 blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-0 left-0 -mb-20 -ml-20 h-80 w-80 rounded-full bg-pink-400/30 blur-3xl animate-pulse delay-700"></div>
 
-        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div className="space-y-4">
-            <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/20 px-0 hover:px-2 transition-all -ml-2">
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+          <div className="space-y-6">
+            <Button variant="ghost" size="sm" asChild className="text-white/80 hover:text-white hover:bg-white/10 -ml-2 rounded-full px-4">
               <Link to="/automations">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Automations
               </Link>
             </Button>
-            <h1 className="text-4xl font-extrabold tracking-tight flex items-center gap-3">
-              <Cake className="h-10 w-10 text-pink-100" />
-              Birthday Automations
-            </h1>
-            <p className="text-lg text-pink-50 max-w-xl">
-              Make your members feel loved on their special day. Automatically send personalized birthday wishes.
-            </p>
+            <div>
+              <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight flex items-center gap-4 mb-3">
+                <Cake className="h-12 w-12 text-pink-200" />
+                Birthday Automations
+              </h1>
+              <p className="text-xl text-pink-100 max-w-xl leading-relaxed">
+                Make your members feel loved on their special day with automated, personalized birthday wishes.
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/20">
-            <div className="h-12 w-12 bg-white/20 rounded-full flex items-center justify-center">
-              <Gift className="h-6 w-6 text-white" />
+          <div className="flex flex-col items-center gap-2 bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 min-w-[180px]">
+            <div className="h-14 w-14 bg-white/20 rounded-full flex items-center justify-center mb-1">
+              <Gift className="h-7 w-7 text-white" />
             </div>
-            <div>
-              <p className="text-2xl font-bold">{birthdayCount}</p>
-              <p className="text-sm text-pink-100">Members with birthdays</p>
+            <div className="text-center">
+              <p className="text-3xl font-bold">{birthdayCount}</p>
+              <p className="text-sm font-medium text-pink-100 uppercase tracking-wide">Upcoming Birthdays</p>
             </div>
           </div>
         </div>
@@ -344,6 +357,99 @@ export default function BirthdayAutomations() {
           </Card>
         </div>
       </div>
+
+      {/* Members with Birthdays Section */}
+      <Card className="border-none shadow-lg overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-900/10 dark:to-rose-900/10 border-b">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Gift className="h-5 w-5 text-pink-500" />
+                Members with Birthdays
+              </CardTitle>
+              <CardDescription>All members who have their birthday on file</CardDescription>
+            </div>
+            <Badge variant="secondary" className="text-pink-600 bg-pink-100">
+              {birthdayCount} {birthdayCount === 1 ? 'member' : 'members'}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {birthdayPeople.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center text-slate-500">
+              <Cake className="h-12 w-12 mb-4 opacity-20" />
+              <p className="text-lg font-medium">No birthdays on file</p>
+              <p className="text-sm">Add birthdays to member profiles to enable automation.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              {[...birthdayPeople].sort((a, b) => {
+                const today = new Date();
+                const getNextBirthday = (bday: string) => {
+                  const birthday = new Date(bday + 'T00:00:00');
+                  const thisYear = new Date(today.getFullYear(), birthday.getMonth(), birthday.getDate());
+                  if (thisYear < today) thisYear.setFullYear(today.getFullYear() + 1);
+                  return thisYear.getTime();
+                };
+                return getNextBirthday(a.birthday) - getNextBirthday(b.birthday);
+              }).map((person) => {
+                const birthday = new Date(person.birthday + 'T00:00:00');
+                const today = new Date();
+                const thisYearBirthday = new Date(today.getFullYear(), birthday.getMonth(), birthday.getDate());
+                if (thisYearBirthday < today) {
+                  thisYearBirthday.setFullYear(today.getFullYear() + 1);
+                }
+                const daysUntil = Math.ceil((thisYearBirthday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                const isToday = daysUntil === 0;
+                const isSoon = daysUntil <= 7 && daysUntil > 0;
+
+                return (
+                  <div key={person.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className={cn(
+                        "h-10 w-10 rounded-full flex items-center justify-center",
+                        isToday ? "bg-pink-500 text-white" : isSoon ? "bg-pink-100 text-pink-600" : "bg-slate-100 text-slate-500"
+                      )}>
+                        <Cake className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-slate-900 dark:text-white">
+                          {person.first_name} {person.last_name}
+                        </h4>
+                        <div className="flex items-center gap-2 text-sm text-slate-500">
+                          <span>{birthday.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</span>
+                          {person.phone_number && (
+                            <>
+                              <span>•</span>
+                              <span className="flex items-center gap-1">
+                                <Check className="h-3 w-3 text-emerald-500" />
+                                Has phone
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      {isToday ? (
+                        <Badge className="bg-pink-500 text-white">Today!</Badge>
+                      ) : isSoon ? (
+                        <Badge variant="secondary" className="bg-pink-100 text-pink-700">
+                          In {daysUntil} day{daysUntil !== 1 ? 's' : ''}
+                        </Badge>
+                      ) : (
+                        <span className="text-sm text-slate-400">
+                          In {daysUntil} days
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
