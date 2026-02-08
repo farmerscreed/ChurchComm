@@ -18,7 +18,8 @@ import {
   Sparkles,
   PartyPopper,
   Gift,
-  Check
+  Check,
+  Globe
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/integrations/supabase/client';
@@ -89,7 +90,7 @@ export default function BirthdayAutomations() {
         setConfig({
           id: auto.id,
           status: auto.status,
-          message: auto.action_config?.message_content || 'Happy Birthday {Name}!',
+          message: auto.action_config?.message_template || auto.action_config?.message_content || 'Happy Birthday {Name}!',
           sendTime: auto.trigger_config?.send_time || '09:00',
           daysBefore: auto.trigger_config?.days_before || 0,
         });
@@ -111,9 +112,9 @@ export default function BirthdayAutomations() {
         name: 'Birthday Greetings',
         trigger_type: 'birthday',
         status: config.status,
-        action_type: 'send_sms',
+        action_type: 'sms',
         action_config: {
-          message_content: config.message,
+          message_template: config.message,
         },
         trigger_config: {
           send_time: config.sendTime,
@@ -247,7 +248,10 @@ export default function BirthdayAutomations() {
                       className="pl-10"
                     />
                   </div>
-                  <p className="text-sm text-muted-foreground">Local time to send the message</p>
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Globe className="h-3.5 w-3.5" />
+                    <span>Timezone: {currentOrganization?.timezone || 'America/New_York'}</span>
+                  </div>
                 </div>
                 <div className="space-y-3">
                   <Label className="text-base">Timing</Label>

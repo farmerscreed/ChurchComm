@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -44,7 +44,8 @@ import {
     AlertCircle,
     Phone,
     Zap,
-    Loader2
+    Loader2,
+    Globe
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/integrations/supabase/client';
@@ -159,6 +160,8 @@ export default function ScheduledOutreach() {
             return;
         }
 
+        // The time the user enters is interpreted as their browser's local timezone
+        // and converted to UTC for storage. The scheduled_for column is timestamp with time zone.
         const scheduledFor = new Date(
             `${formData.scheduledDate}T${formData.scheduledTime}`
         ).toISOString();
@@ -692,6 +695,14 @@ export default function ScheduledOutreach() {
                                     className="bg-white/5 border-white/10 text-white"
                                 />
                             </div>
+                        </div>
+
+                        {/* Timezone info */}
+                        <div className="flex items-center gap-2 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                            <Globe className="h-4 w-4 text-blue-400" />
+                            <span className="text-sm text-blue-300">
+                                Times are in your organization's timezone: <strong>{currentOrganization?.timezone || 'America/New_York'}</strong>
+                            </span>
                         </div>
                     </div>
                     <DialogFooter>

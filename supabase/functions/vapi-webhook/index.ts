@@ -386,7 +386,6 @@ serve(async (req) => {
 
     console.log('Extracted call data:', {
       call_id,
-      status,
       endedReason,
       duration,
       hasTranscript: !!formattedTranscript,
@@ -470,7 +469,7 @@ serve(async (req) => {
         console.error('Error updating call log:', updateError)
       } else {
         callLog = data
-        console.log('Updated existing call log:', existingLog.id, 'status:', status, 'duration:', duration)
+        console.log('Updated existing call log:', existingLog.id, 'status:', mappedCallStatus, 'duration:', duration)
       }
 
       // Use org/person from existing record if not in metadata
@@ -633,7 +632,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       success: true,
       call_id,
-      status,
+      status: mappedCallStatus,
       duration,
       has_summary: !!summary,
       has_transcript: !!formattedTranscript
