@@ -399,6 +399,22 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    // Helper function to map VAPI status to user-friendly status
+    const mapCallStatus = (s: string, reason: string): string => {
+      const st = s?.toLowerCase()
+      const r = reason?.toLowerCase()
+      if (st === 'ended' && (r === 'assistant-ended-call' || r === 'customer-ended-call')) return 'completed'
+      if (st === 'ended' || st === 'completed') return 'completed'
+      if (r?.includes('no-answer') || r?.includes('unanswered')) return 'no_answer'
+      if (r?.includes('busy')) return 'busy'
+      if (r?.includes('fail') || r?.includes('error')) return 'failed'
+      if (st === 'in-progress' || st === 'in_progress') return 'in_progress'
+      if (st === 'queued' || st === 'initiated' || st === 'ringing') return 'in_progress'
+      return 'completed'
+    }
+
+    const mappedCallStatus = mapCallStatus(status, endedReason)
+
     // 1. Store or update call log
     let callLog = null
 
@@ -414,7 +430,7 @@ serve(async (req) => {
       const { data, error: updateError } = await supabaseAdmin
         .from('vapi_call_logs')
         .update({
-          call_status: status,
+          call_status: mappedCallStatus,
           call_duration: duration,
           full_transcript: formattedTranscript,
           call_summary: summary,
@@ -453,7 +469,7 @@ serve(async (req) => {
           member_id: person_id,
           vapi_call_id: call_id,
           phone_number_used: phoneNumber,
-          call_status: status,
+          call_status: mappedCallStatus,
           call_duration: duration,
           full_transcript: formattedTranscript,
           call_summary: summary,
@@ -487,18 +503,8 @@ serve(async (req) => {
     // 2. Update corresponding call_attempt with final status
     let attemptOrgId = organization_id
     try {
-      const mappedStatus = (s: string, reason: string) => {
-        const st = s?.toLowerCase()
-        const r = reason?.toLowerCase()
-        if (st === 'ended' && (r === 'assistant-ended-call' || r === 'customer-ended-call')) return 'completed'
-        if (st === 'ended' || st === 'completed') return 'completed'
-        if (r?.includes('no-answer') || r?.includes('unanswered')) return 'no_answer'
-        if (r?.includes('busy')) return 'busy'
-        if (r?.includes('fail') || r?.includes('error')) return 'failed'
-        return 'completed'
-      }
-
-      const finalStatus = mappedStatus(status, endedReason)
+      // Use the same mapped status for call_attempts
+      const finalStatus = mappedCallStatus
       const updateValues: any = {
         status: finalStatus,
         duration: duration,
