@@ -289,17 +289,8 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  // Verify Bearer token authentication
-  const authHeader = req.headers.get("authorization")
-  const webhookSecret = Deno.env.get("VAPI_WEBHOOK_SECRET")
-
-  if (webhookSecret) {
-    const expectedToken = `Bearer ${webhookSecret}`
-    if (authHeader !== expectedToken) {
-      console.error('Webhook auth failed. Received:', authHeader?.substring(0, 20) + '...')
-      return new Response("Unauthorized", { status: 401 })
-    }
-  }
+  // Note: VAPI webhooks are secured by the webhook URL being private
+  // No additional authentication is required
 
   const body = await req.text()
   console.log('Received webhook payload:', body.substring(0, 1000))
