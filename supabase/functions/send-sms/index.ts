@@ -132,7 +132,7 @@ serve(async (req) => {
 
     // Create SMS campaign record
     const { data: campaign, error: campaignError } = await supabaseAdmin
-      .from('communication_campaigns')
+      .from('messaging_campaigns')
       .insert({
         organization_id: organizationId,
         name: `SMS ${recipientType === 'group' ? 'Group' : 'Individual'} Message`,
@@ -229,7 +229,7 @@ serve(async (req) => {
 
     // Update campaign with results
     await supabaseAdmin
-      .from('communication_campaigns')
+      .from('messaging_campaigns')
       .update({
         sent_count: sent,
         failed_count: failed,

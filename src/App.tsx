@@ -19,7 +19,7 @@ import DemoPage from '@/pages/DemoPage';
 // Automations pages
 import AutomationsOverview from '@/pages/automations/AutomationsOverview';
 import BirthdayAutomations from '@/pages/automations/BirthdayAutomations';
-import ScheduledMessages from '@/pages/automations/ScheduledMessages';
+import ScheduledOutreach from '@/pages/automations/ScheduledOutreach';
 import EventTriggers from '@/pages/automations/EventTriggers';
 import { Toaster } from '@/components/ui/toaster';
 
@@ -79,7 +79,7 @@ function App() {
           {/* Automations routes */}
           <Route path="automations" element={<AutomationsOverview />} />
           <Route path="automations/birthdays" element={<BirthdayAutomations />} />
-          <Route path="automations/scheduled" element={<ScheduledMessages />} />
+          <Route path="automations/scheduled" element={<ScheduledOutreach />} />
           <Route path="automations/triggers" element={<EventTriggers />} />
           <Route path="settings" element={<Settings />} />
           <Route path="system-test" element={<SystemTest />} />

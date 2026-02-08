@@ -100,14 +100,15 @@ export default function ScheduledMessages() {
 
     setLoading(true);
     try {
-      // Fetch scheduled messages
+      // Fetch scheduled messages - table may not exist yet
       const { data: msgData, error: msgError } = await supabase
         .from('scheduled_messages')
         .select('*')
         .eq('organization_id', currentOrganization.id)
         .order('scheduled_for', { ascending: true });
 
-      if (msgError && msgError.code !== 'PGRST116') {
+      // Handle missing table gracefully (PGRST205 = table not found)
+      if (msgError && msgError.code !== 'PGRST116' && msgError.code !== 'PGRST205') {
         console.error('Error fetching messages:', msgError);
       }
 

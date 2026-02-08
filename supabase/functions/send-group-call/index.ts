@@ -301,7 +301,8 @@ Remember: Have a natural conversation. Don't read the guide word-for-word. Adapt
             metadata: {
               organization_id: organizationId,
               person_id: recipient.id
-            }
+            },
+            serverUrl: webhookUrl // Webhook for call events - in assistantOverrides
           },
           assistant: {
             name: 'Church Connect Assistant',
@@ -321,7 +322,7 @@ Remember: Have a natural conversation. Don't read the guide word-for-word. Adapt
               provider: '11labs',
               voiceId: scriptVoiceId
             },
-            serverUrl: webhookUrl,
+            serverUrl: webhookUrl, // Also include in assistant for compatibility
             endCallMessage: 'Thank you so much for talking with me today. God bless you!',
             endCallPhrases: ['goodbye', 'bye', 'have a good day', 'take care'],
             analysisPlan: {
@@ -345,6 +346,7 @@ Remember: Have a natural conversation. Don't read the guide word-for-word. Adapt
         })
 
         console.log('Making VAPI call to:', formattedPhone)
+        console.log('Webhook URL:', webhookUrl)
         console.log('Payload size:', payload.length, 'bytes')
 
         for (let attemptCount = 0; attemptCount <= maxRetries; attemptCount++) {

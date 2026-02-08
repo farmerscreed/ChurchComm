@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
-import { usePermissions } from "@/hooks/usePermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +18,10 @@ import {
   Calendar,
   Clock,
   AlertTriangle,
-  MessageSquare
+  MessageSquare,
+  ChevronRight,
+  Users,
+  Sparkles
 } from "lucide-react";
 
 function getGreeting(): string {
@@ -32,17 +34,17 @@ function getGreeting(): string {
 export default function Dashboard() {
   const navigate = useNavigate();
   const { currentOrganization, user } = useAuthStore();
-  const { isAdmin, isPastor } = usePermissions();
   const [loading, setLoading] = useState(true);
 
   // Widget Data States
   const [minuteUsage, setMinuteUsage] = useState({ used: 0, included: 0 });
-  const [campaigns, setCampaigns] = useState([]);
-  const [recentCalls, setRecentCalls] = useState([]);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [recentCalls, setRecentCalls] = useState<any[]>([]);
   const [escalations, setEscalations] = useState({ urgent: 0, high: 0, medium: 0, total: 0 });
   const [callStats, setCallStats] = useState({ completed: 0, total: 0 });
-  const [upcomingCalls, setUpcomingCalls] = useState([]);
+  const [upcomingCalls, setUpcomingCalls] = useState<any[]>([]);
   const [hasDemoData, setHasDemoData] = useState(false);
+  const [memberCount, setMemberCount] = useState(0);
 
   useEffect(() => {
     if (currentOrganization?.id) {
@@ -74,8 +76,7 @@ export default function Dashboard() {
         .order("created_at", { ascending: false })
         .limit(5);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setCampaigns(campaignData as any || []);
+      setCampaigns(campaignData || []);
 
       // 3. Recent Calls
       const { data: callData } = await supabase
@@ -85,11 +86,10 @@ export default function Dashboard() {
         .order("attempted_at", { ascending: false, nullsFirst: false })
         .limit(5);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setRecentCalls((callData || []).map((c: any) => ({
         ...c,
         person_name: c.people ? `${c.people.first_name || ''} ${c.people.last_name || ''}`.trim() : 'Unknown',
-      })) as any);
+      })));
 
       // 4. Escalations
       const { data: escalationData } = await supabase
@@ -130,24 +130,33 @@ export default function Dashboard() {
 
       setHasDemoData((demoCount || 0) > 0);
 
-      // 7. Upcoming Calls (Next 24h)
+      // 7. Member count
+      const { count: peopleCount } = await supabase
+        .from("people")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", currentOrganization?.id);
+
+      setMemberCount(peopleCount || 0);
+
+      // 8. Upcoming Calls (Next 24h) from scheduled_messages
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
 
       const { data: upcomingData } = await supabase
-        .from("call_attempts")
-        .select("id, trigger_type, scheduled_at, people(first_name, last_name)")
+        .from("scheduled_messages")
+        .select("id, message_type, scheduled_for, content")
         .eq("organization_id", currentOrganization?.id)
         .eq("status", "scheduled")
-        .lte("scheduled_at", tomorrow.toISOString())
-        .order("scheduled_at", { ascending: true })
+        .lte("scheduled_for", tomorrow.toISOString())
+        .order("scheduled_for", { ascending: true })
         .limit(5);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setUpcomingCalls((upcomingData || []).map((c: any) => ({
-        ...c,
-        person_name: c.people ? `${c.people.first_name || ''} ${c.people.last_name || ''}`.trim() : 'Unknown',
-      })) as any);
+        id: c.id,
+        person_name: c.message_type === 'sms' ? 'SMS Campaign' : 'AI Call Campaign', // Placeholder as scheduled_messages might target groups
+        trigger_type: c.message_type,
+        scheduled_at: c.scheduled_for,
+      })));
 
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
@@ -169,16 +178,50 @@ export default function Dashboard() {
 
   // Calculate stats
   const activeCampaigns = campaigns.filter(c => c.status === "in_progress" || c.status === "scheduled");
-  const scheduledCampaigns = campaigns.filter(c => c.status === "scheduled");
-  const completedCampaigns = campaigns.filter(c => c.status === "completed");
   const successRate = callStats.total > 0 ? Math.round((callStats.completed / callStats.total) * 100) : 0;
   const minutePercentage = minuteUsage.included > 0
     ? Math.min((minuteUsage.used / minuteUsage.included) * 100, 100)
     : 0;
+  const isMinuteCritical = minutePercentage > 80;
 
   return (
     <div className="p-4 md:p-6 space-y-6">
       {hasDemoData && <DemoDataNotice />}
+
+      {/* URGENT ALERTS BANNER - Shows only when there are escalations */}
+      {escalations.total > 0 && (
+        <div
+          className="relative overflow-hidden rounded-xl bg-gradient-to-r from-red-500/20 via-orange-500/20 to-amber-500/20 border border-red-500/30 p-4 cursor-pointer hover:border-red-500/50 transition-all"
+          onClick={() => navigate("/call-history")}
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-transparent animate-pulse" />
+          <div className="relative flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center animate-pulse">
+                <AlertTriangle className="w-6 h-6 text-red-400" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-white flex items-center gap-2">
+                  {escalations.urgent > 0 && (
+                    <Badge className="bg-red-500 text-white border-0">{escalations.urgent} Urgent</Badge>
+                  )}
+                  {escalations.high > 0 && (
+                    <Badge className="bg-orange-500 text-white border-0">{escalations.high} High</Badge>
+                  )}
+                  {escalations.medium > 0 && (
+                    <Badge className="bg-amber-500 text-white border-0">{escalations.medium} Medium</Badge>
+                  )}
+                  Escalation{escalations.total > 1 ? 's' : ''} Need Attention
+                </h3>
+                <p className="text-sm text-slate-400 mt-1">
+                  Review and respond to member concerns from recent calls
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-slate-400" />
+          </div>
+        </div>
+      )}
 
       {/* Greeting + Quick Actions */}
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
@@ -190,7 +233,7 @@ export default function Dashboard() {
             Here's what's happening at {currentOrganization?.name}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -199,6 +242,15 @@ export default function Dashboard() {
           >
             <UserPlus className="h-4 w-4 mr-1.5" />
             Add Person
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/call-history")}
+            className="border-white/10 text-slate-300 hover:bg-white/5"
+          >
+            <PhoneCall className="h-4 w-4 mr-1.5" />
+            Call History
           </Button>
           <Button
             size="sm"
@@ -211,59 +263,72 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Hero KPI Row */}
-      <div className="grid gap-4 md:grid-cols-3">
-        {/* Minute Usage */}
-        {(isAdmin || isPastor) && (
-          <div className="p-5 rounded-xl bg-gradient-to-br from-purple-500/10 to-purple-500/5 border border-purple-500/20 hover:border-purple-500/30 transition-colors">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                <Phone className="w-5 h-5 text-purple-400" />
-              </div>
-              <Badge className="bg-purple-500/20 text-purple-300 border-0">AI Minutes</Badge>
+      {/* Hero KPI Row - Always visible */}
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        {/* AI Minutes Usage */}
+        <div
+          className={`p-5 rounded-xl bg-gradient-to-br ${isMinuteCritical
+            ? 'from-red-500/10 to-red-500/5 border-red-500/20 hover:border-red-500/30'
+            : 'from-purple-500/10 to-purple-500/5 border-purple-500/20 hover:border-purple-500/30'
+            } border transition-colors cursor-pointer`}
+          onClick={() => navigate("/settings")}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className={`w-10 h-10 rounded-lg ${isMinuteCritical ? 'bg-red-500/20' : 'bg-purple-500/20'} flex items-center justify-center`}>
+              <Phone className={`w-5 h-5 ${isMinuteCritical ? 'text-red-400' : 'text-purple-400'}`} />
             </div>
-            <p className="text-3xl font-bold text-white mb-2">
-              {minuteUsage.used} <span className="text-lg text-slate-500">/ {minuteUsage.included}</span>
-            </p>
-            <Progress
-              value={minutePercentage}
-              className="h-2 bg-purple-500/20 mb-2"
-            />
-            <p className="text-xs text-slate-500">
-              {Math.max(0, minuteUsage.included - minuteUsage.used)} minutes remaining this month
-            </p>
+            {isMinuteCritical && <Badge className="bg-red-500/20 text-red-300 border-0 text-xs">Low</Badge>}
           </div>
-        )}
+          <p className="text-2xl md:text-3xl font-bold text-white">
+            {minuteUsage.used}<span className="text-lg text-slate-500">/{minuteUsage.included}</span>
+          </p>
+          <Progress
+            value={minutePercentage}
+            className={`h-1.5 mt-2 ${isMinuteCritical ? 'bg-red-500/20' : 'bg-purple-500/20'}`}
+          />
+          <p className="text-xs text-slate-500 mt-2">AI Minutes</p>
+        </div>
+
+        {/* Members */}
+        <div
+          className="p-5 rounded-xl bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border border-cyan-500/20 hover:border-cyan-500/30 transition-colors cursor-pointer"
+          onClick={() => navigate("/people")}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+              <Users className="w-5 h-5 text-cyan-400" />
+            </div>
+          </div>
+          <p className="text-2xl md:text-3xl font-bold text-white">{memberCount}</p>
+          <p className="text-xs text-slate-500 mt-2">Total Members</p>
+        </div>
 
         {/* Active Campaigns */}
         <div
           className="p-5 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/20 hover:border-blue-500/30 transition-colors cursor-pointer"
           onClick={() => navigate("/communications")}
         >
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
               <Zap className="w-5 h-5 text-blue-400" />
             </div>
-            <Badge className="bg-blue-500/20 text-blue-300 border-0">Campaigns</Badge>
+            {activeCampaigns.length > 0 && (
+              <Badge className="bg-blue-500/20 text-blue-300 border-0 text-xs">Active</Badge>
+            )}
           </div>
-          <p className="text-3xl font-bold text-white mb-1">{campaigns.length}</p>
-          <p className="text-sm text-slate-400">
-            {activeCampaigns.length} active, {scheduledCampaigns.length} scheduled, {completedCampaigns.length} completed
-          </p>
+          <p className="text-2xl md:text-3xl font-bold text-white">{campaigns.length}</p>
+          <p className="text-xs text-slate-500 mt-2">Campaigns</p>
         </div>
 
-        {/* Call Success Rate */}
+        {/* Success Rate */}
         <div className="p-5 rounded-xl bg-gradient-to-br from-green-500/10 to-green-500/5 border border-green-500/20 hover:border-green-500/30 transition-colors">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
               <TrendingUp className="w-5 h-5 text-green-400" />
             </div>
-            <Badge className="bg-green-500/20 text-green-300 border-0">Success Rate</Badge>
           </div>
-          <p className="text-3xl font-bold text-white mb-1">{successRate}%</p>
-          <p className="text-sm text-slate-400">
-            {callStats.completed} of {callStats.total} calls completed
-          </p>
+          <p className="text-2xl md:text-3xl font-bold text-white">{successRate}%</p>
+          <p className="text-xs text-slate-500 mt-2">Success Rate (30d)</p>
         </div>
       </div>
 
@@ -280,18 +345,18 @@ export default function Dashboard() {
               variant="ghost"
               size="sm"
               className="text-purple-400 hover:text-purple-300 h-7 px-2"
-              onClick={() => navigate("/communications")}
+              onClick={() => navigate("/call-history")}
             >
               View All
             </Button>
           </div>
           <div className="space-y-3">
             {recentCalls.length > 0 ? (
-              recentCalls.slice(0, 3).map((call) => (
+              recentCalls.slice(0, 4).map((call) => (
                 <div key={call.id} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500/30 to-blue-500/30 flex items-center justify-center text-xs font-medium">
-                      {call.person_name.split(" ").map(n => n[0]).join("").substring(0, 2)}
+                      {call.person_name.split(" ").map((n: string) => n[0]).join("").substring(0, 2)}
                     </div>
                     <div>
                       <p className="text-sm font-medium text-white">{call.person_name}</p>
@@ -302,13 +367,12 @@ export default function Dashboard() {
                   </div>
                   <Badge
                     variant="outline"
-                    className={`text-xs ${
-                      call.status === "completed"
-                        ? "border-green-500/30 text-green-400"
-                        : call.status === "voicemail"
+                    className={`text-xs ${call.status === "completed"
+                      ? "border-green-500/30 text-green-400"
+                      : call.status === "voicemail"
                         ? "border-amber-500/30 text-amber-400"
                         : "border-slate-500/30 text-slate-400"
-                    }`}
+                      }`}
                   >
                     {call.status}
                   </Badge>
@@ -322,104 +386,90 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Escalation Alerts */}
-        {(isAdmin || isPastor) && (
-          <div className="p-5 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-white flex items-center gap-2">
-                <Bell className="w-4 h-4 text-amber-400" />
-                Escalation Alerts
-              </h3>
-              {escalations.total > 0 && (
-                <Badge className="bg-red-500/20 text-red-400 border-0">
-                  {escalations.total} new
-                </Badge>
-              )}
-            </div>
-            <div className="space-y-3">
-              {escalations.total > 0 ? (
-                <>
-                  {escalations.urgent > 0 && (
-                    <div className="p-3 rounded-lg bg-white/5 border-l-2 border-red-500">
-                      <div className="flex items-center gap-2 mb-1">
-                        <AlertTriangle className="w-4 h-4 text-red-400" />
-                        <p className="text-sm font-medium text-white">
-                          {escalations.urgent} Urgent Alert{escalations.urgent > 1 ? 's' : ''}
-                        </p>
-                      </div>
-                      <p className="text-xs text-slate-400">Requires immediate attention</p>
-                    </div>
-                  )}
-                  {escalations.high > 0 && (
-                    <div className="p-3 rounded-lg bg-white/5 border-l-2 border-amber-500">
-                      <div className="flex items-center gap-2 mb-1">
-                        <AlertTriangle className="w-4 h-4 text-amber-400" />
-                        <p className="text-sm font-medium text-white">
-                          {escalations.high} High Priority Alert{escalations.high > 1 ? 's' : ''}
-                        </p>
-                      </div>
-                      <p className="text-xs text-slate-400">Review when possible</p>
-                    </div>
-                  )}
-                  {escalations.medium > 0 && (
-                    <div className="p-3 rounded-lg bg-white/5 border-l-2 border-yellow-500">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Bell className="w-4 h-4 text-yellow-400" />
-                        <p className="text-sm font-medium text-white">
-                          {escalations.medium} Medium Priority Alert{escalations.medium > 1 ? 's' : ''}
-                        </p>
-                      </div>
-                      <p className="text-xs text-slate-400">For follow-up</p>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="text-center py-6 text-sm text-slate-500">
-                  No active escalations
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* Upcoming/Scheduled Calls */}
-        {(isAdmin || isPastor) && (
-          <div className="p-5 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-white flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-cyan-400" />
-                Scheduled
-              </h3>
-            </div>
-            <div className="space-y-3">
-              {upcomingCalls.length > 0 ? (
-                upcomingCalls.slice(0, 3).map((call) => (
-                  <div key={call.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                        <Phone className="w-4 h-4 text-purple-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-white">{call.person_name}</p>
-                        <p className="text-xs text-slate-500 capitalize">
-                          {call.trigger_type?.replace("_", " ") || "Scheduled call"}
-                        </p>
-                      </div>
+        <div className="p-5 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-white flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-cyan-400" />
+              Scheduled Calls
+            </h3>
+            <Badge className="bg-cyan-500/20 text-cyan-300 border-0 text-xs">
+              {upcomingCalls.length} Pending
+            </Badge>
+          </div>
+          <div className="space-y-3">
+            {upcomingCalls.length > 0 ? (
+              upcomingCalls.slice(0, 4).map((call) => (
+                <div key={call.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                      {call.trigger_type === 'sms' ? <MessageSquare className="w-4 h-4 text-cyan-400" /> : <Phone className="w-4 h-4 text-cyan-400" />}
                     </div>
-                    <div className="flex items-center gap-1 text-xs text-slate-400">
-                      <Clock className="w-3 h-3" />
-                      {call.scheduled_at ? new Date(call.scheduled_at).toLocaleDateString() : "Soon"}
+                    <div>
+                      <p className="text-sm font-medium text-white">{call.person_name}</p>
+                      <p className="text-xs text-slate-500 capitalize">
+                        {call.trigger_type === 'call' ? 'AI Call' : 'SMS Message'}
+                      </p>
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-6 text-sm text-slate-500">
-                  No scheduled calls
+                  <div className="flex items-center gap-1 text-xs text-slate-400">
+                    <Clock className="w-3 h-3" />
+                    {call.scheduled_at ? new Date(call.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Soon"}
+                  </div>
                 </div>
-              )}
-            </div>
+              ))
+            ) : (
+              <div className="text-center py-6 text-sm text-slate-500">
+                No scheduled calls
+              </div>
+            )}
           </div>
-        )}
+        </div>
+
+        {/* Quick Insights */}
+        <div className="p-5 rounded-xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 hover:border-indigo-500/30 transition-colors">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-white flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-indigo-400" />
+              Quick Actions
+            </h3>
+          </div>
+          <div className="space-y-3">
+            <Button
+              variant="outline"
+              className="w-full justify-start border-white/10 text-slate-300 hover:bg-white/5 h-12"
+              onClick={() => navigate("/people")}
+            >
+              <UserPlus className="w-4 h-4 mr-3 text-purple-400" />
+              <div className="text-left">
+                <p className="text-sm">Add New Member</p>
+                <p className="text-xs text-slate-500">Register a visitor or member</p>
+              </div>
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start border-white/10 text-slate-300 hover:bg-white/5 h-12"
+              onClick={() => navigate("/communications")}
+            >
+              <MessageSquare className="w-4 h-4 mr-3 text-blue-400" />
+              <div className="text-left">
+                <p className="text-sm">Send Message</p>
+                <p className="text-xs text-slate-500">SMS to group or individual</p>
+              </div>
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start border-white/10 text-slate-300 hover:bg-white/5 h-12"
+              onClick={() => navigate("/settings")}
+            >
+              <Phone className="w-4 h-4 mr-3 text-green-400" />
+              <div className="text-left">
+                <p className="text-sm">Manage Scripts</p>
+                <p className="text-xs text-slate-500">Edit AI call scripts</p>
+              </div>
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );

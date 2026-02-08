@@ -1,13 +1,18 @@
 ﻿import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
   DialogContent,
@@ -23,123 +28,64 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  ArrowLeft,
+  Zap,
+  Plus,
+  MoreVertical,
+  Trash2,
+  Edit,
+  Users,
+  MessageSquare,
+  Bell,
+  CheckCircle2,
+  AlertCircle,
+  Play,
+  PauseCircle,
+  Clock,
+  Settings2,
+  Phone,
+  Loader2
+} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Bell,
-  ArrowLeft,
-  Plus,
-  Zap,
-  Users,
-  UserPlus,
-  UserMinus,
-  Clock,
-  MessageSquare,
-  Mail,
-  MoreVertical,
-  Edit,
-  Trash2,
-  Copy,
-  Play,
-  Pause,
-  Calendar,
-  Award,
-  AlertTriangle,
-  CheckCircle2
-} from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
-interface Group {
-  id: string;
-  name: string;
-}
+import { cn } from '@/lib/utils';
 
 interface Automation {
   id: string;
   name: string;
-  description: string | null;
   trigger_type: string;
   status: string;
   action_type: string;
-  action_config: Record<string, unknown>;
-  trigger_config: Record<string, unknown>;
-  target_groups: string[];
-  total_executions: number;
-  last_executed_at: string | null;
+  action_config: any;
+  trigger_config: any;
   created_at: string;
 }
-
-const TRIGGER_TYPES = [
-  {
-    value: 'birthday',
-    label: 'Birthday',
-    icon: Calendar,
-    description: 'When a member has a birthday',
-  },
-  {
-    value: 'group_join',
-    label: 'Group Join',
-    icon: UserPlus,
-    description: 'When someone joins a group',
-  },
-  {
-    value: 'group_leave',
-    label: 'Group Leave',
-    icon: UserMinus,
-    description: 'When someone leaves a group',
-  },
-  {
-    value: 'first_visit_followup',
-    label: 'First Visit Follow-up',
-    icon: Users,
-    description: 'Follow up with first-time visitors',
-  },
-  {
-    value: 'missed_attendance',
-    label: 'Missed Attendance',
-    icon: AlertTriangle,
-    description: 'When a member misses multiple services',
-  },
-  {
-    value: 'milestone',
-    label: 'Milestone',
-    icon: Award,
-    description: 'Celebrate membership milestones',
-  },
-];
-
-const ACTION_TYPES = [
-  { value: 'send_sms', label: 'Send SMS', icon: MessageSquare },
-  { value: 'send_email', label: 'Send Email', icon: Mail },
-  { value: 'create_followup', label: 'Create Follow-up Task', icon: CheckCircle2 },
-  { value: 'notify_staff', label: 'Notify Staff', icon: Bell },
-];
 
 export default function EventTriggers() {
   const { currentOrganization } = useAuthStore();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [automations, setAutomations] = useState<Automation[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [editingAutomation, setEditingAutomation] = useState<Automation | null>(null);
+  const [showDialog, setShowDialog] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
     name: '',
-    description: '',
     triggerType: 'group_join',
     actionType: 'send_sms',
     message: '',
-    targetGroups: [] as string[],
-    delayHours: '0',
-    sendTime: '09:00',
+    delayHours: 0,
   });
 
   useEffect(() => {
@@ -158,25 +104,14 @@ export default function EventTriggers() {
         .from('automations')
         .select('*')
         .eq('organization_id', currentOrganization.id)
+        .neq('trigger_type', 'birthday')
         .order('created_at', { ascending: false });
 
-      if (autoError && autoError.code !== 'PGRST116') {
+      if (autoError && autoError.code !== 'PGRST116' && autoError.code !== 'PGRST205') {
         console.error('Error fetching automations:', autoError);
       }
 
       setAutomations(autoData || []);
-
-      // Fetch groups
-      const { data: groupData, error: groupError } = await supabase
-        .from('groups')
-        .select('id, name')
-        .eq('organization_id', currentOrganization.id);
-
-      if (groupError) {
-        console.error('Error fetching groups:', groupError);
-      }
-
-      setGroups(groupData || []);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -184,93 +119,62 @@ export default function EventTriggers() {
     }
   };
 
-  const createAutomation = async () => {
-    if (!currentOrganization?.id || !formData.name) return;
+  const handleSave = async () => {
+    if (!currentOrganization?.id) return;
+    if (!formData.name || !formData.message) {
+      toast({ title: 'Error', description: 'Please fill in all required fields', variant: 'destructive' });
+      return;
+    }
 
+    setSaving(true);
     try {
-      const actionConfig: Record<string, unknown> = {};
-      const triggerConfig: Record<string, unknown> = {};
-
-      if (formData.actionType === 'send_sms' || formData.actionType === 'send_email') {
-        actionConfig.message_content = formData.message;
-      }
-
-      if (['group_join', 'group_leave'].includes(formData.triggerType)) {
-        triggerConfig.delay_hours = parseInt(formData.delayHours);
-        triggerConfig.group_ids = formData.targetGroups;
-      }
-
-      if (formData.triggerType === 'first_visit_followup') {
-        triggerConfig.delay_days = 1;
-      }
-
-      if (formData.triggerType === 'missed_attendance') {
-        triggerConfig.consecutive_weeks = 2;
-      }
-
-      triggerConfig.send_time = formData.sendTime;
-
-      const { error } = await supabase.from('automations').insert({
+      const automationData = {
         organization_id: currentOrganization.id,
         name: formData.name,
-        description: formData.description || null,
         trigger_type: formData.triggerType,
-        status: 'active',
         action_type: formData.actionType,
-        action_config: actionConfig,
-        trigger_config: triggerConfig,
-        target_groups: formData.targetGroups,
-      });
+        status: 'active',
+        action_config: { message_content: formData.message },
+        trigger_config: { delay_hours: formData.delayHours },
+        updated_at: new Date().toISOString(),
+      };
 
-      if (error) throw error;
+      if (editingId) {
+        // Update
+        const { error } = await supabase
+          .from('automations')
+          .update(automationData)
+          .eq('id', editingId);
 
-      toast({
-        title: 'Automation created',
-        description: 'Your automation has been created and is now active.',
-      });
+        if (error) throw error;
 
-      setShowCreateDialog(false);
+        setAutomations(prev => prev.map(a => a.id === editingId ? { ...a, ...automationData } : a));
+        toast({ title: 'Automation updated' });
+      } else {
+        // Create
+        const { data, error } = await supabase
+          .from('automations')
+          .insert(automationData)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        if (data) setAutomations(prev => [data, ...prev]);
+        toast({ title: 'Automation created' });
+      }
+
+      setShowDialog(false);
       resetForm();
-      fetchData();
     } catch (error) {
-      console.error('Error creating automation:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to create automation.',
-        variant: 'destructive',
-      });
+      console.error('Error saving automation:', error);
+      toast({ title: 'Error', description: 'Failed to save automation', variant: 'destructive' });
+    } finally {
+      setSaving(false);
     }
   };
 
-  const toggleAutomation = async (id: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'active' ? 'paused' : 'active';
-
-    try {
-      const { error } = await supabase
-        .from('automations')
-        .update({ status: newStatus })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setAutomations((prev) =>
-        prev.map((a) => (a.id === id ? { ...a, status: newStatus } : a))
-      );
-
-      toast({
-        title: newStatus === 'active' ? 'Automation activated' : 'Automation paused',
-      });
-    } catch (error) {
-      console.error('Error toggling automation:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update automation.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const deleteAutomation = async (id: string) => {
+  const handleDelete = async (id: string) => {
     try {
       const { error } = await supabase
         .from('automations')
@@ -279,311 +183,201 @@ export default function EventTriggers() {
 
       if (error) throw error;
 
-      setAutomations((prev) => prev.filter((a) => a.id !== id));
-
-      toast({
-        title: 'Automation deleted',
-        description: 'The automation has been permanently deleted.',
-      });
+      setAutomations(prev => prev.filter(a => a.id !== id));
+      toast({ title: 'Automation deleted' });
     } catch (error) {
       console.error('Error deleting automation:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to delete automation.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Error', description: 'Failed to delete automation', variant: 'destructive' });
     }
   };
 
-  const duplicateAutomation = async (automation: Automation) => {
+  const toggleStatus = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'active' ? 'paused' : 'active';
     try {
-      const { error } = await supabase.from('automations').insert({
-        organization_id: currentOrganization?.id,
-        name: `${automation.name} (Copy)`,
-        description: automation.description,
-        trigger_type: automation.trigger_type,
-        status: 'draft',
-        action_type: automation.action_type,
-        action_config: automation.action_config,
-        trigger_config: automation.trigger_config,
-        target_groups: automation.target_groups,
-      });
+      const { error } = await supabase
+        .from('automations')
+        .update({ status: newStatus })
+        .eq('id', id);
 
       if (error) throw error;
 
-      toast({
-        title: 'Automation duplicated',
-        description: 'A copy of the automation has been created.',
-      });
-
-      fetchData();
+      setAutomations(prev => prev.map(a => a.id === id ? { ...a, status: newStatus } : a));
+      toast({ title: `Automation ${newStatus}` });
     } catch (error) {
-      console.error('Error duplicating automation:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to duplicate automation.',
-        variant: 'destructive',
-      });
+      console.error('Error updating status:', error);
+      toast({ title: 'Error', description: 'Failed to update status', variant: 'destructive' });
     }
   };
 
   const resetForm = () => {
     setFormData({
       name: '',
-      description: '',
       triggerType: 'group_join',
       actionType: 'send_sms',
       message: '',
-      targetGroups: [],
-      delayHours: '0',
-      sendTime: '09:00',
+      delayHours: 0,
     });
-    setEditingAutomation(null);
+    setEditingId(null);
   };
 
-  const getTriggerInfo = (type: string) => {
-    return TRIGGER_TYPES.find((t) => t.value === type) || TRIGGER_TYPES[0];
+  const openEdit = (automation: Automation) => {
+    setFormData({
+      name: automation.name,
+      triggerType: automation.trigger_type,
+      actionType: automation.action_type,
+      message: automation.action_config?.message_content || '',
+      delayHours: automation.trigger_config?.delay_hours || 0,
+    });
+    setEditingId(automation.id);
+    setShowDialog(true);
   };
 
-  const getActionInfo = (type: string) => {
-    return ACTION_TYPES.find((a) => a.value === type) || ACTION_TYPES[0];
+  const getTriggerIcon = (type: string) => {
+    switch (type) {
+      case 'group_join': return <Users className="h-5 w-5 text-blue-500" />;
+      case 'first_visit': return <CheckCircle2 className="h-5 w-5 text-emerald-500" />;
+      default: return <Zap className="h-5 w-5 text-amber-500" />;
+    }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link to="/automations">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Bell className="h-6 w-6 text-amber-500" />
-            Event Triggers
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Automate actions based on member events
-          </p>
+    <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-8">
+      {/* Header Banner */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-500 to-orange-600 p-8 text-white shadow-xl">
+        <div className="absolute top-0 right-0 -mt-8 -mr-8 h-48 w-48 rounded-full bg-white/20 blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-48 w-48 rounded-full bg-indigo-500/20 blur-3xl"></div>
+
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="space-y-4">
+            <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/20 px-0 hover:px-2 transition-all -ml-2">
+              <Link to="/automations">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Automations
+              </Link>
+            </Button>
+            <h1 className="text-4xl font-extrabold tracking-tight flex items-center gap-3">
+              <Zap className="h-10 w-10 text-amber-100" />
+              Event Triggers
+            </h1>
+            <p className="text-lg text-amber-50 max-w-xl">
+              Set it and forget it. Automatically respond when members join groups, visit for the first time, and more.
+            </p>
+          </div>
+
+          <Button
+            size="lg"
+            onClick={() => { resetForm(); setShowDialog(true); }}
+            className="bg-white text-orange-600 hover:bg-orange-50 shadow-lg border-0 font-semibold"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            Create Trigger
+          </Button>
         </div>
-        <Button
-          onClick={() => setShowCreateDialog(true)}
-          className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Create Trigger
-        </Button>
       </div>
 
-      {/* Trigger Types Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        {TRIGGER_TYPES.map((trigger) => {
-          const count = automations.filter(
-            (a) => a.trigger_type === trigger.value && a.status === 'active'
-          ).length;
-          return (
-            <Card
-              key={trigger.value}
-              className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => {
-                setFormData({ ...formData, triggerType: trigger.value });
-                setShowCreateDialog(true);
-              }}
-            >
-              <CardContent className="p-4 text-center">
-                <trigger.icon className="h-8 w-8 mx-auto mb-2 text-amber-500" />
-                <p className="text-sm font-medium">{trigger.label}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {count} active
-                </p>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Automations List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>All Event Triggers</CardTitle>
-          <CardDescription>
-            Manage your automated event-based actions
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="p-4 border rounded-lg">
-                  <Skeleton className="h-5 w-40 mb-2" />
-                  <Skeleton className="h-4 w-full mb-2" />
-                  <Skeleton className="h-4 w-24" />
-                </div>
-              ))}
-            </div>
-          ) : automations.length === 0 ? (
-            <div className="text-center py-12">
-              <Zap className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="font-medium mb-1">No event triggers</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Create your first trigger to automate member communications
-              </p>
-              <Button onClick={() => setShowCreateDialog(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Trigger
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {automations.map((automation) => {
-                const triggerInfo = getTriggerInfo(automation.trigger_type);
-                const actionInfo = getActionInfo(automation.action_type);
-                const TriggerIcon = triggerInfo.icon;
-                const ActionIcon = actionInfo.icon;
-
-                return (
-                  <div
-                    key={automation.id}
-                    className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-start gap-3">
-                        <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                          <TriggerIcon className="h-5 w-5 text-amber-500" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-medium">{automation.name}</h4>
-                            <Badge
-                              variant={automation.status === 'active' ? 'default' : 'secondary'}
-                              className={automation.status === 'active' ? 'bg-emerald-500' : ''}
-                            >
-                              {automation.status}
-                            </Badge>
-                          </div>
-                          {automation.description && (
-                            <p className="text-sm text-muted-foreground mb-2">
-                              {automation.description}
-                            </p>
-                          )}
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <TriggerIcon className="h-3 w-3" />
-                              {triggerInfo.label}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <ActionIcon className="h-3 w-3" />
-                              {actionInfo.label}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Zap className="h-3 w-3" />
-                              {automation.total_executions} runs
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={automation.status === 'active'}
-                          onCheckedChange={() =>
-                            toggleAutomation(automation.id, automation.status)
-                          }
-                        />
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => duplicateAutomation(automation)}
-                            >
-                              <Copy className="h-4 w-4 mr-2" />
-                              Duplicate
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                toggleAutomation(automation.id, automation.status)
-                              }
-                            >
-                              {automation.status === 'active' ? (
-                                <>
-                                  <Pause className="h-4 w-4 mr-2" />
-                                  Pause
-                                </>
-                              ) : (
-                                <>
-                                  <Play className="h-4 w-4 mr-2" />
-                                  Activate
-                                </>
-                              )}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => deleteAutomation(automation.id)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-48 rounded-xl" />)}
+        </div>
+      ) : automations.length === 0 ? (
+        <div className="text-center py-16 bg-slate-50 dark:bg-slate-900 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
+          <div className="h-20 w-20 bg-amber-100 dark:bg-amber-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Zap className="h-10 w-10 text-amber-500" />
+          </div>
+          <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">No active triggers</h3>
+          <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-8">
+            Create your first automation to start engaging with your members automatically.
+          </p>
+          <Button
+            size="lg"
+            onClick={() => { resetForm(); setShowDialog(true); }}
+            className="bg-amber-500 hover:bg-amber-600 text-white"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            Create Trigger
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {automations.map((automation) => (
+            <Card key={automation.id} className="group hover:shadow-xl transition-all duration-300 border-l-4 border-l-amber-500">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                      {getTriggerIcon(automation.trigger_type)}
                     </div>
-
-                    {/* Show action preview */}
-                    {automation.action_config &&
-                      (automation.action_config as { message_content?: string }).message_content && (
-                        <div className="mt-3 p-3 bg-muted/50 rounded-lg">
-                          <p className="text-xs text-muted-foreground mb-1">Message:</p>
-                          <p className="text-sm line-clamp-2">
-                            {(automation.action_config as { message_content?: string }).message_content}
-                          </p>
-                        </div>
-                      )}
+                    <div>
+                      <CardTitle className="text-lg">{automation.name}</CardTitle>
+                      <CardDescription>
+                        {automation.trigger_type.replace(/_/g, ' ')}
+                      </CardDescription>
+                    </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => openEdit(automation)}>
+                        <Edit className="h-4 w-4 mr-2" /> Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(automation.id)}>
+                        <Trash2 className="h-4 w-4 mr-2" /> Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </CardHeader>
+              <CardContent className="pb-3">
+                <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded-md border text-sm text-slate-600 dark:text-slate-300 mb-4 line-clamp-3 italic">
+                  "{automation.action_config?.message_content}"
+                </div>
+                <div className="flex items-center gap-4 text-sm text-slate-500">
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="h-4 w-4" />
+                    {automation.trigger_config?.delay_hours > 0
+                      ? `Wait ${automation.trigger_config.delay_hours}h`
+                      : 'Instant'}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {automation.action_type === 'send_sms' ? <MessageSquare className="h-4 w-4" /> : <Phone className="h-4 w-4" />}
+                    {automation.action_type === 'send_sms' ? 'SMS' : 'Call'}
+                  </div>
+                </div>
+              </CardContent>
+              <div className="p-4 pt-0 mt-auto border-t bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
+                <Badge variant={automation.status === 'active' ? 'default' : 'secondary'} className={automation.status === 'active' ? 'bg-emerald-500' : ''}>
+                  {automation.status === 'active' ? 'Active' : 'Paused'}
+                </Badge>
+                <Switch
+                  checked={automation.status === 'active'}
+                  onCheckedChange={() => toggleStatus(automation.id, automation.status)}
+                />
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
 
-      {/* Create Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={(open) => {
-        setShowCreateDialog(open);
-        if (!open) resetForm();
-      }}>
-        <DialogContent className="sm:max-w-lg">
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Create Event Trigger</DialogTitle>
+            <DialogTitle>{editingId ? 'Edit Automation' : 'Create Automation'}</DialogTitle>
             <DialogDescription>
-              Set up an automated action based on member events
+              Configure the trigger event and the action to take.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-            <div className="space-y-2">
-              <Label>Name</Label>
-              <Input
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Welcome new group members"
-              />
-            </div>
 
+          <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Description (optional)</Label>
+              <Label>Automation Name</Label>
               <Input
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-                placeholder="Sends a welcome message when someone joins a group"
+                placeholder="e.g., Welcome New Members"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
               />
             </div>
 
@@ -592,146 +386,69 @@ export default function EventTriggers() {
                 <Label>Trigger Event</Label>
                 <Select
                   value={formData.triggerType}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, triggerType: value })
-                  }
+                  onValueChange={(val) => setFormData(prev => ({ ...prev, triggerType: val }))}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {TRIGGER_TYPES.map((trigger) => (
-                      <SelectItem key={trigger.value} value={trigger.value}>
-                        <div className="flex items-center gap-2">
-                          <trigger.icon className="h-4 w-4" />
-                          {trigger.label}
-                        </div>
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="group_join">Member Joins Group</SelectItem>
+                    <SelectItem value="first_visit">First Visit</SelectItem>
+                    <SelectItem value="group_leave">Member Leaves Group</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <Label>Action</Label>
                 <Select
                   value={formData.actionType}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, actionType: value })
-                  }
+                  onValueChange={(val) => setFormData(prev => ({ ...prev, actionType: val }))}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {ACTION_TYPES.map((action) => (
-                      <SelectItem key={action.value} value={action.value}>
-                        <div className="flex items-center gap-2">
-                          <action.icon className="h-4 w-4" />
-                          {action.label}
-                        </div>
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="send_sms">Send SMS</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            {/* Group selection for group triggers */}
-            {['group_join', 'group_leave'].includes(formData.triggerType) && (
-              <div className="space-y-2">
-                <Label>Apply to Groups</Label>
-                <Select
-                  value={formData.targetGroups[0] || 'all'}
-                  onValueChange={(value) =>
-                    setFormData({
-                      ...formData,
-                      targetGroups: value === 'all' ? [] : [value],
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All groups" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Groups</SelectItem>
-                    {groups.map((group) => (
-                      <SelectItem key={group.id} value={group.id}>
-                        {group.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {/* Message content for SMS/Email actions */}
-            {['send_sms', 'send_email'].includes(formData.actionType) && (
-              <div className="space-y-2">
-                <Label>Message</Label>
-                <Textarea
-                  rows={4}
-                  value={formData.message}
-                  onChange={(e) =>
-                    setFormData({ ...formData, message: e.target.value })
-                  }
-                  placeholder="Welcome to our group, {Name}! We're excited to have you."
-                />
-                <p className="text-xs text-muted-foreground">
-                  Use {'{Name}'}, {'{GroupName}'} for personalization
-                </p>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-4">
-              {['group_join', 'group_leave'].includes(formData.triggerType) && (
-                <div className="space-y-2">
-                  <Label>Delay</Label>
-                  <Select
-                    value={formData.delayHours}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, delayHours: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">Immediately</SelectItem>
-                      <SelectItem value="1">1 hour</SelectItem>
-                      <SelectItem value="24">1 day</SelectItem>
-                      <SelectItem value="48">2 days</SelectItem>
-                      <SelectItem value="168">1 week</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label>Send Time</Label>
+            <div className="space-y-2">
+              <Label>Delay (Hours)</Label>
+              <div className="relative">
+                <Clock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                 <Input
-                  type="time"
-                  value={formData.sendTime}
-                  onChange={(e) =>
-                    setFormData({ ...formData, sendTime: e.target.value })
-                  }
+                  type="number"
+                  min="0"
+                  value={formData.delayHours}
+                  onChange={(e) => setFormData(prev => ({ ...prev, delayHours: parseInt(e.target.value) || 0 }))}
+                  className="pl-9"
                 />
+              </div>
+              <p className="text-xs text-muted-foreground">0 = Send immediately</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Message Content</Label>
+              <Textarea
+                placeholder="Welcome to the group! We're glad to have you."
+                value={formData.message}
+                onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
+                className="h-32"
+              />
+              <div className="flex gap-2">
+                <Badge variant="outline" className="cursor-pointer" onClick={() => setFormData(prev => ({ ...prev, message: prev.message + ' {Name}' }))}>+ Name</Badge>
+                <Badge variant="outline" className="cursor-pointer" onClick={() => setFormData(prev => ({ ...prev, message: prev.message + ' {Group}' }))}>+ Group</Badge>
               </div>
             </div>
           </div>
+
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowCreateDialog(false);
-                resetForm();
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={createAutomation} disabled={!formData.name}>
-              <Zap className="h-4 w-4 mr-2" />
-              Create Trigger
+            <Button variant="outline" onClick={() => setShowDialog(false)}>Cancel</Button>
+            <Button onClick={handleSave} disabled={saving} className="bg-amber-600 hover:bg-amber-700">
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Automation
             </Button>
           </DialogFooter>
         </DialogContent>

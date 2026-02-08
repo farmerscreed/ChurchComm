@@ -1,95 +1,55 @@
 ﻿import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Cake,
   ArrowLeft,
-  Plus,
+  Cake,
   MessageSquare,
-  Calendar,
   Clock,
-  User,
-  Mail,
-  Phone,
-  Settings2,
+  Save,
+  Loader2,
   Sparkles,
+  PartyPopper,
   Gift,
-  Send,
-  Edit,
-  Trash2,
-  PartyPopper
+  Check
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
-interface Person {
-  id: string;
-  first_name: string;
-  last_name: string;
-  phone_number: string | null;
-  email: string | null;
-  birthday: string;
-}
-
-interface BirthdayAutomation {
+interface Automation {
   id: string;
   name: string;
+  trigger_type: string;
   status: string;
-  action_type: string;
-  action_config: {
-    message_content?: string;
-  };
-  trigger_config: {
-    days_before?: number;
-    send_time?: string;
-  };
-  total_executions: number;
+  action_config: any;
+  trigger_config: any;
 }
 
 export default function BirthdayAutomations() {
   const { currentOrganization } = useAuthStore();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [automations, setAutomations] = useState<BirthdayAutomation[]>([]);
-  const [upcomingBirthdays, setUpcomingBirthdays] = useState<Person[]>([]);
-  const [todaysBirthdays, setTodaysBirthdays] = useState<Person[]>([]);
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [showSendDialog, setShowSendDialog] = useState(false);
-  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [automations, setAutomations] = useState<Automation[]>([]);
+  const [birthdayCount, setBirthdayCount] = useState(0);
 
-  // Form state
-  const [formData, setFormData] = useState({
-    name: 'Birthday Wishes',
-    message: 'Happy Birthday, {Name}! Wishing you a wonderful day filled with joy and blessings. From all of us at {ChurchName}.',
-    daysBefore: '0',
+  // Default state for new automation if none exists
+  const [config, setConfig] = useState({
+    id: '',
+    status: 'active',
+    message: 'Happy Birthday {Name}! We hope you have a blessed day filled with joy. - {Church}',
     sendTime: '09:00',
+    daysBefore: 0,
   });
-
-  const [directMessage, setDirectMessage] = useState('');
 
   useEffect(() => {
     if (currentOrganization?.id) {
@@ -109,74 +69,31 @@ export default function BirthdayAutomations() {
         .eq('organization_id', currentOrganization.id)
         .eq('trigger_type', 'birthday');
 
-      if (autoError && autoError.code !== 'PGRST116') {
+      if (autoError && autoError.code !== 'PGRST116' && autoError.code !== 'PGRST205') {
         console.error('Error fetching automations:', autoError);
       }
 
-      setAutomations(autoData || []);
-
-      // Fetch people with birthdays
-      const today = new Date();
-      const currentMonth = today.getMonth() + 1;
-      const currentDay = today.getDate();
-
-      const { data: peopleData, error: peopleError } = await supabase
+      // Fetch upcoming birthdays check
+      const { data: bdayData } = await supabase
         .from('people')
-        .select('id, first_name, last_name, phone_number, email, birthday')
+        .select('id', { count: 'exact' })
         .eq('organization_id', currentOrganization.id)
-        .not('birthday', 'is', null)
-        .order('birthday', { ascending: true });
+        .not('birthday', 'is', null);
 
-      if (peopleError) {
-        console.error('Error fetching people:', peopleError);
+      setBirthdayCount(bdayData?.length || 0);
+
+      if (autoData && autoData.length > 0) {
+        setAutomations(autoData);
+        // Load first birthday automation into config
+        const auto = autoData[0];
+        setConfig({
+          id: auto.id,
+          status: auto.status,
+          message: auto.action_config?.message_content || 'Happy Birthday {Name}!',
+          sendTime: auto.trigger_config?.send_time || '09:00',
+          daysBefore: auto.trigger_config?.days_before || 0,
+        });
       }
-
-      const people = peopleData || [];
-
-      // Filter today's birthdays and upcoming
-      const todayList: Person[] = [];
-      const upcomingList: Person[] = [];
-
-      people.forEach((person) => {
-        if (!person.birthday) return;
-
-        const bday = new Date(person.birthday);
-        const bdayMonth = bday.getMonth() + 1;
-        const bdayDay = bday.getDate();
-
-        if (bdayMonth === currentMonth && bdayDay === currentDay) {
-          todayList.push(person);
-        } else {
-          // Calculate days until birthday
-          const thisYearBday = new Date(today.getFullYear(), bdayMonth - 1, bdayDay);
-          if (thisYearBday < today) {
-            thisYearBday.setFullYear(today.getFullYear() + 1);
-          }
-          const daysUntil = Math.ceil((thisYearBday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-
-          if (daysUntil <= 30) {
-            upcomingList.push({
-              ...person,
-              birthday: person.birthday,
-            });
-          }
-        }
-      });
-
-      // Sort upcoming by days until birthday
-      upcomingList.sort((a, b) => {
-        const getDaysUntil = (bday: string) => {
-          const d = new Date(bday);
-          const today = new Date();
-          const thisYear = new Date(today.getFullYear(), d.getMonth(), d.getDate());
-          if (thisYear < today) thisYear.setFullYear(today.getFullYear() + 1);
-          return Math.ceil((thisYear.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        };
-        return getDaysUntil(a.birthday) - getDaysUntil(b.birthday);
-      });
-
-      setTodaysBirthdays(todayList);
-      setUpcomingBirthdays(upcomingList);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -184,544 +101,245 @@ export default function BirthdayAutomations() {
     }
   };
 
-  const getDaysUntil = (birthday: string) => {
-    const today = new Date();
-    const bday = new Date(birthday);
-    const thisYearBday = new Date(today.getFullYear(), bday.getMonth(), bday.getDate());
-    if (thisYearBday < today) {
-      thisYearBday.setFullYear(today.getFullYear() + 1);
-    }
-    const days = Math.ceil((thisYearBday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    return days;
-  };
-
-  const createAutomation = async () => {
+  const handleSave = async () => {
     if (!currentOrganization?.id) return;
 
+    setSaving(true);
     try {
-      const { error } = await supabase.from('automations').insert({
+      const automationData = {
         organization_id: currentOrganization.id,
-        name: formData.name,
+        name: 'Birthday Greetings',
         trigger_type: 'birthday',
-        status: 'active',
+        status: config.status,
         action_type: 'send_sms',
         action_config: {
-          message_content: formData.message,
+          message_content: config.message,
         },
         trigger_config: {
-          days_before: parseInt(formData.daysBefore),
-          send_time: formData.sendTime,
+          send_time: config.sendTime,
+          days_before: config.daysBefore,
         },
-      });
+        updated_at: new Date().toISOString(),
+      };
+
+      let error;
+
+      if (config.id) {
+        // Update existing
+        const { error: updateError } = await supabase
+          .from('automations')
+          .update(automationData)
+          .eq('id', config.id);
+        error = updateError;
+      } else {
+        // Create new
+        const { data, error: insertError } = await supabase
+          .from('automations')
+          .insert(automationData)
+          .select()
+          .single();
+
+        if (data) setConfig(prev => ({ ...prev, id: data.id }));
+        error = insertError;
+      }
 
       if (error) throw error;
 
       toast({
-        title: 'Automation created',
-        description: 'Birthday automation has been created successfully.',
+        title: 'Changes saved',
+        description: 'Your birthday automation settings have been updated.',
       });
-
-      setShowCreateDialog(false);
-      fetchData();
     } catch (error) {
-      console.error('Error creating automation:', error);
+      console.error('Error saving automation:', error);
       toast({
         title: 'Error',
-        description: 'Failed to create automation.',
+        description: 'Failed to save changes.',
         variant: 'destructive',
       });
+    } finally {
+      setSaving(false);
     }
   };
 
-  const toggleAutomation = async (id: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'active' ? 'paused' : 'active';
-
-    try {
-      const { error } = await supabase
-        .from('automations')
-        .update({ status: newStatus })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setAutomations((prev) =>
-        prev.map((a) => (a.id === id ? { ...a, status: newStatus } : a))
-      );
-
-      toast({
-        title: newStatus === 'active' ? 'Automation activated' : 'Automation paused',
-      });
-    } catch (error) {
-      console.error('Error toggling automation:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update automation.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const sendBirthdayMessage = async () => {
-    if (!selectedPerson || !directMessage) return;
-
-    try {
-      // Call the send-sms function
-      const { error } = await supabase.functions.invoke('send-sms', {
-        body: {
-          recipientType: 'individual',
-          personId: selectedPerson.id,
-          message: directMessage.replace('{Name}', selectedPerson.first_name),
-          organizationId: currentOrganization?.id,
-        },
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: 'Message sent!',
-        description: `Birthday message sent to ${selectedPerson.first_name}.`,
-      });
-
-      setShowSendDialog(false);
-      setSelectedPerson(null);
-      setDirectMessage('');
-    } catch (error) {
-      console.error('Error sending message:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to send message.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const openSendDialog = (person: Person) => {
-    setSelectedPerson(person);
-    setDirectMessage(`Happy Birthday, ${person.first_name}! Wishing you a wonderful day filled with joy and blessings. From all of us at ${currentOrganization?.name || 'our church'}.`);
-    setShowSendDialog(true);
-  };
-
-  const formatBirthday = (birthday: string) => {
-    const date = new Date(birthday);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
+  if (loading) {
+    return (
+      <div className="p-8 space-y-6">
+        <Skeleton className="h-48 w-full rounded-2xl" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Skeleton className="h-64 w-full rounded-xl" />
+          <Skeleton className="h-64 w-full rounded-xl" />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link to="/automations">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Cake className="h-6 w-6 text-pink-500" />
-            Birthday Automations
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Automatically celebrate your members on their special day
-          </p>
+    <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-8">
+      {/* Header Banner */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-pink-500 to-rose-600 p-8 text-white shadow-xl">
+        <div className="absolute top-0 right-0 -mt-8 -mr-8 h-48 w-48 rounded-full bg-white/20 blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-48 w-48 rounded-full bg-yellow-400/20 blur-3xl"></div>
+
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="space-y-4">
+            <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/20 px-0 hover:px-2 transition-all -ml-2">
+              <Link to="/automations">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Automations
+              </Link>
+            </Button>
+            <h1 className="text-4xl font-extrabold tracking-tight flex items-center gap-3">
+              <Cake className="h-10 w-10 text-pink-100" />
+              Birthday Automations
+            </h1>
+            <p className="text-lg text-pink-50 max-w-xl">
+              Make your members feel loved on their special day. Automatically send personalized birthday wishes.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/20">
+            <div className="h-12 w-12 bg-white/20 rounded-full flex items-center justify-center">
+              <Gift className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{birthdayCount}</p>
+              <p className="text-sm text-pink-100">Members with birthdays</p>
+            </div>
+          </div>
         </div>
-        <Button
-          onClick={() => setShowCreateDialog(true)}
-          className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Create Automation
-        </Button>
       </div>
 
-      {/* Today's Birthdays Alert */}
-      {todaysBirthdays.length > 0 && (
-        <Card className="bg-gradient-to-r from-pink-500/10 to-rose-500/10 border-pink-500/20">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-pink-500/20 flex items-center justify-center">
-                <PartyPopper className="h-6 w-6 text-pink-500" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg">Today's Birthdays!</h3>
-                <p className="text-sm text-muted-foreground">
-                  {todaysBirthdays.length} member{todaysBirthdays.length > 1 ? 's have' : ' has'} a birthday today
-                </p>
-              </div>
-              <div className="flex gap-2">
-                {todaysBirthdays.slice(0, 3).map((person) => (
-                  <Button
-                    key={person.id}
-                    size="sm"
-                    variant="outline"
-                    onClick={() => openSendDialog(person)}
-                  >
-                    <Gift className="h-4 w-4 mr-1" />
-                    {person.first_name}
-                  </Button>
-                ))}
-                {todaysBirthdays.length > 3 && (
-                  <Badge variant="secondary">+{todaysBirthdays.length - 3} more</Badge>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-      <Tabs defaultValue="upcoming" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="upcoming">
-            <Calendar className="h-4 w-4 mr-2" />
-            Upcoming Birthdays
-          </TabsTrigger>
-          <TabsTrigger value="automations">
-            <Sparkles className="h-4 w-4 mr-2" />
-            Automations
-          </TabsTrigger>
-          <TabsTrigger value="settings">
-            <Settings2 className="h-4 w-4 mr-2" />
-            Settings
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Upcoming Birthdays Tab */}
-        <TabsContent value="upcoming" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Upcoming Birthdays (Next 30 Days)</CardTitle>
-              <CardDescription>
-                Members with birthdays coming up soon
-              </CardDescription>
+        {/* Configuration Panel */}
+        <div className="lg:col-span-2 space-y-6">
+          <Card className="border-none shadow-lg overflow-hidden">
+            <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Settings</CardTitle>
+                  <CardDescription>Configure how and when messages are sent</CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={cn(
+                    "text-sm font-medium px-2 py-1 rounded-full",
+                    config.status === 'active' ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"
+                  )}>
+                    {config.status === 'active' ? 'Active' : 'Paused'}
+                  </span>
+                  <Switch
+                    checked={config.status === 'active'}
+                    onCheckedChange={(checked) => setConfig(prev => ({ ...prev, status: checked ? 'active' : 'paused' }))}
+                  />
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
-              {loading ? (
+            <CardContent className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Skeleton className="h-10 w-10 rounded-full" />
-                        <div>
-                          <Skeleton className="h-4 w-32 mb-1" />
-                          <Skeleton className="h-3 w-24" />
-                        </div>
-                      </div>
-                      <Skeleton className="h-8 w-20" />
-                    </div>
-                  ))}
+                  <Label className="text-base">Send Time</Label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                    <Input
+                      type="time"
+                      value={config.sendTime}
+                      onChange={(e) => setConfig(prev => ({ ...prev, sendTime: e.target.value }))}
+                      className="pl-10"
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground">Local time to send the message</p>
                 </div>
-              ) : upcomingBirthdays.length === 0 ? (
-                <div className="text-center py-12">
-                  <Cake className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="font-medium mb-1">No upcoming birthdays</h3>
-                  <p className="text-sm text-muted-foreground">
-                    No members have birthdays in the next 30 days
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {upcomingBirthdays.map((person) => {
-                    const daysUntil = getDaysUntil(person.birthday);
-                    return (
-                      <div
-                        key={person.id}
-                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-full bg-pink-500/10 flex items-center justify-center">
-                            <User className="h-5 w-5 text-pink-500" />
-                          </div>
-                          <div>
-                            <p className="font-medium">
-                              {person.first_name} {person.last_name}
-                            </p>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {formatBirthday(person.birthday)}
-                              </span>
-                              {person.phone_number && (
-                                <span className="flex items-center gap-1">
-                                  <Phone className="h-3 w-3" />
-                                  {person.phone_number}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Badge
-                            variant={daysUntil <= 7 ? 'default' : 'secondary'}
-                            className={daysUntil <= 7 ? 'bg-pink-500' : ''}
-                          >
-                            {daysUntil === 1 ? 'Tomorrow' : `${daysUntil} days`}
-                          </Badge>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => openSendDialog(person)}
-                            disabled={!person.phone_number}
-                          >
-                            <Send className="h-4 w-4 mr-1" />
-                            Send
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Automations Tab */}
-        <TabsContent value="automations" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Birthday Automations</CardTitle>
-              <CardDescription>
-                Automated birthday messages for your members
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
                 <div className="space-y-3">
-                  {[1, 2].map((i) => (
-                    <div key={i} className="p-4 border rounded-lg">
-                      <Skeleton className="h-5 w-40 mb-2" />
-                      <Skeleton className="h-4 w-full mb-2" />
-                      <Skeleton className="h-4 w-3/4" />
-                    </div>
-                  ))}
-                </div>
-              ) : automations.length === 0 ? (
-                <div className="text-center py-12">
-                  <Sparkles className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="font-medium mb-1">No birthday automations</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Create an automation to automatically send birthday wishes
-                  </p>
-                  <Button onClick={() => setShowCreateDialog(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Automation
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {automations.map((automation) => (
-                    <div
-                      key={automation.id}
-                      className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h4 className="font-medium">{automation.name}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Sends {automation.trigger_config.days_before === 0 ? 'on' : `${automation.trigger_config.days_before} days before`} birthday at {automation.trigger_config.send_time}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant={automation.status === 'active' ? 'default' : 'secondary'}
-                            className={automation.status === 'active' ? 'bg-emerald-500' : ''}
-                          >
-                            {automation.status}
-                          </Badge>
-                          <Switch
-                            checked={automation.status === 'active'}
-                            onCheckedChange={() =>
-                              toggleAutomation(automation.id, automation.status)
-                            }
-                          />
-                        </div>
-                      </div>
-                      <div className="p-3 bg-muted/50 rounded-lg text-sm">
-                        <p className="text-muted-foreground">
-                          {automation.action_config.message_content}
-                        </p>
-                      </div>
-                      <div className="flex items-center justify-between mt-3">
-                        <span className="text-xs text-muted-foreground">
-                          {automation.total_executions} messages sent
-                        </span>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="ghost">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button size="sm" variant="ghost" className="text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Settings Tab */}
-        <TabsContent value="settings" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Birthday Settings</CardTitle>
-              <CardDescription>
-                Configure default settings for birthday messages
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Default Send Time</Label>
-                  <Input type="time" defaultValue="09:00" />
-                  <p className="text-xs text-muted-foreground">
-                    Time of day to send birthday messages
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Days Before Birthday</Label>
-                  <Select defaultValue="0">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">On the day</SelectItem>
-                      <SelectItem value="1">1 day before</SelectItem>
-                      <SelectItem value="2">2 days before</SelectItem>
-                      <SelectItem value="7">1 week before</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-base">Timing</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-3 text-slate-400 font-bold text-xs">DAYS</span>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="30"
+                      value={config.daysBefore}
+                      onChange={(e) => setConfig(prev => ({ ...prev, daysBefore: parseInt(e.target.value) || 0 }))}
+                      className="pl-10"
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground">0 = On birthday, 1 = Day before</p>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Default Message Template</Label>
+
+              <div className="space-y-3">
+                <Label className="text-base">Message Content</Label>
                 <Textarea
-                  rows={3}
-                  defaultValue="Happy Birthday, {Name}! Wishing you a wonderful day filled with joy and blessings. From all of us at {ChurchName}."
+                  value={config.message}
+                  onChange={(e) => setConfig(prev => ({ ...prev, message: e.target.value }))}
+                  className="min-h-[120px] font-medium"
+                  placeholder="Type your message here..."
                 />
-                <p className="text-xs text-muted-foreground">
-                  Variables: {'{Name}'}, {'{ChurchName}'}, {'{Age}'}
-                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="secondary" className="cursor-pointer hover:bg-slate-200" onClick={() => setConfig(prev => ({ ...prev, message: prev.message + ' {Name}' }))}>
+                    + Name
+                  </Badge>
+                  <Badge variant="secondary" className="cursor-pointer hover:bg-slate-200" onClick={() => setConfig(prev => ({ ...prev, message: prev.message + ' {Church}' }))}>
+                    + Church Name
+                  </Badge>
+                </div>
               </div>
-              <Button>Save Settings</Button>
+            </CardContent>
+            <CardFooter className="bg-slate-50 dark:bg-slate-900 border-t p-4 flex justify-end">
+              <Button onClick={handleSave} disabled={saving} className="bg-pink-600 hover:bg-pink-700">
+                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                Save Changes
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+
+        {/* Preview Panel */}
+        <div className="space-y-6">
+          <Card className="bg-slate-950 text-white border-slate-800 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-pink-500 to-purple-500"></div>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-slate-200">
+                <MessageSquare className="h-5 w-5" />
+                Preview
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="bg-slate-800/50 rounded-2xl p-4 rounded-tl-none border border-slate-700">
+                  <p className="text-sm leading-relaxed">
+                    {config.message
+                      .replace(/\{Name\}/g, 'John')
+                      .replace(/\{Church\}/g, currentOrganization?.name || 'Grace Church')}
+                  </p>
+                  <p className="text-[10px] text-slate-500 mt-2 text-right uppercase tracking-wider">
+                    {config.sendTime} AM • SMS
+                  </p>
+                </div>
+                <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
+                  <Sparkles className="h-3 w-3 text-yellow-500" />
+                  <span>Will send automatically</span>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
 
-      {/* Create Automation Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Create Birthday Automation</DialogTitle>
-            <DialogDescription>
-              Set up automatic birthday messages for your members
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Automation Name</Label>
-              <Input
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Birthday Wishes"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Message</Label>
-              <Textarea
-                rows={4}
-                value={formData.message}
-                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-              />
-              <p className="text-xs text-muted-foreground">
-                Use {'{Name}'} to personalize the message
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>When to Send</Label>
-                <Select
-                  value={formData.daysBefore}
-                  onValueChange={(value) => setFormData({ ...formData, daysBefore: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">On birthday</SelectItem>
-                    <SelectItem value="1">1 day before</SelectItem>
-                    <SelectItem value="2">2 days before</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Send Time</Label>
-                <Input
-                  type="time"
-                  value={formData.sendTime}
-                  onChange={(e) => setFormData({ ...formData, sendTime: e.target.value })}
-                />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={createAutomation}>Create Automation</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Send Message Dialog */}
-      <Dialog open={showSendDialog} onOpenChange={setShowSendDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              Send Birthday Message to {selectedPerson?.first_name}
-            </DialogTitle>
-            <DialogDescription>
-              Send a personalized birthday message
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {selectedPerson && (
-              <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                <div className="h-10 w-10 rounded-full bg-pink-500/10 flex items-center justify-center">
-                  <User className="h-5 w-5 text-pink-500" />
+          <Card className="bg-gradient-to-br from-indigo-50 to-pink-50 dark:from-indigo-900/10 dark:to-pink-900/10 border-none">
+            <CardContent className="p-6">
+              <div className="flex gap-4">
+                <div className="h-10 w-10 rounded-full bg-white shadow-sm flex items-center justify-center shrink-0">
+                  <PartyPopper className="h-5 w-5 text-pink-500" />
                 </div>
                 <div>
-                  <p className="font-medium">
-                    {selectedPerson.first_name} {selectedPerson.last_name}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedPerson.phone_number}
+                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">Did you know?</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                    Personalized birthday messages have a 98% open rate and significantly increase member retention.
                   </p>
                 </div>
               </div>
-            )}
-            <div className="space-y-2">
-              <Label>Message</Label>
-              <Textarea
-                rows={4}
-                value={directMessage}
-                onChange={(e) => setDirectMessage(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSendDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={sendBirthdayMessage} disabled={!directMessage}>
-              <Send className="h-4 w-4 mr-2" />
-              Send Message
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
