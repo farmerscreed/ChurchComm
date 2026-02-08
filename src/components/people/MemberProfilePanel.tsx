@@ -228,7 +228,7 @@ export function MemberProfilePanel({
                 .from('call_attempts')
                 .select('*')
                 .eq('person_id', person.id)
-                .order('created_at', { ascending: false })
+                .order('attempted_at', { ascending: false })
                 .limit(10);
 
             if (error) {
@@ -636,11 +636,10 @@ export function MemberProfilePanel({
                                                     <button
                                                         key={memory.id}
                                                         onClick={() => setSelectedMemoryIndex(idx)}
-                                                        className={`w-full text-left p-3 rounded-lg transition-all ${
-                                                            isSelected
+                                                        className={`w-full text-left p-3 rounded-lg transition-all ${isSelected
                                                                 ? 'bg-purple-500/20 border border-purple-500/30'
                                                                 : 'bg-white/5 hover:bg-white/10 border border-transparent'
-                                                        }`}
+                                                            }`}
                                                     >
                                                         <div className="flex items-center justify-between mb-1">
                                                             <div className="flex items-center gap-2">
@@ -650,15 +649,14 @@ export function MemberProfilePanel({
                                                                 </span>
                                                             </div>
                                                             <Badge
-                                                                className={`text-xs border-0 ${
-                                                                    memory.memory_type === 'call_summary'
+                                                                className={`text-xs border-0 ${memory.memory_type === 'call_summary'
                                                                         ? 'bg-blue-500/20 text-blue-400'
                                                                         : memory.memory_type === 'prayer_request'
-                                                                        ? 'bg-purple-500/20 text-purple-400'
-                                                                        : memory.memory_type === 'personal_note'
-                                                                        ? 'bg-green-500/20 text-green-400'
-                                                                        : 'bg-amber-500/20 text-amber-400'
-                                                                }`}
+                                                                            ? 'bg-purple-500/20 text-purple-400'
+                                                                            : memory.memory_type === 'personal_note'
+                                                                                ? 'bg-green-500/20 text-green-400'
+                                                                                : 'bg-amber-500/20 text-amber-400'
+                                                                    }`}
                                                             >
                                                                 {config.label}
                                                             </Badge>

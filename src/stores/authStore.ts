@@ -17,6 +17,7 @@ type Organization = {
   subscription_status?: string;
   stripe_customer_id?: string;
   member_count?: number;
+  timezone?: string;
   created_at: string;
   updated_at: string;
 };

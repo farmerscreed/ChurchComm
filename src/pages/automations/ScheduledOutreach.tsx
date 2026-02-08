@@ -549,42 +549,66 @@ export default function ScheduledOutreach() {
 
             {/* Create Dialog */}
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-                <DialogContent className="sm:max-w-lg bg-slate-900 border-white/10">
-                    <DialogHeader>
-                        <DialogTitle className="text-white">Schedule Outreach</DialogTitle>
-                        <DialogDescription>
-                            Schedule an SMS message or AI call for future delivery
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
+                <DialogContent className="sm:max-w-xl bg-slate-950 border-white/10 max-h-[90vh] overflow-y-auto p-0 gap-0">
+                    <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 p-6 border-b border-white/10">
+                        <DialogHeader className="p-0">
+                            <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
+                                <CalendarClock className="h-6 w-6 text-blue-400" />
+                                Schedule Outreach
+                            </DialogTitle>
+                            <DialogDescription className="text-slate-400 text-base">
+                                Setup a new campaign to reach your members.
+                            </DialogDescription>
+                        </DialogHeader>
+                    </div>
+                    <div className="space-y-6 p-6">
                         {/* Outreach Type */}
-                        <div className="space-y-2">
-                            <Label className="text-slate-300">Outreach Type</Label>
-                            <div className="grid grid-cols-2 gap-3">
-                                <Button
-                                    type="button"
-                                    variant={formData.outreachType === 'sms' ? 'default' : 'outline'}
-                                    className={formData.outreachType === 'sms'
-                                        ? 'bg-green-600 hover:bg-green-500'
-                                        : 'border-white/10 text-slate-300 hover:bg-white/5'
-                                    }
+                        <div className="space-y-4">
+                            <Label className="text-slate-300 text-base font-medium">What type of outreach?</Label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div
                                     onClick={() => setFormData({ ...formData, outreachType: 'sms' })}
+                                    className={`cursor-pointer relative overflow-hidden rounded-xl border-2 p-4 transition-all duration-200 hover:shadow-lg ${formData.outreachType === 'sms'
+                                            ? 'border-green-500 bg-green-500/10 shadow-green-900/20'
+                                            : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
+                                        }`}
                                 >
-                                    <MessageSquare className="h-4 w-4 mr-2" />
-                                    SMS Message
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant={formData.outreachType === 'call' ? 'default' : 'outline'}
-                                    className={formData.outreachType === 'call'
-                                        ? 'bg-purple-600 hover:bg-purple-500'
-                                        : 'border-white/10 text-slate-300 hover:bg-white/5'
-                                    }
+                                    <div className="flex items-start gap-3">
+                                        <div className={`p-3 rounded-full ${formData.outreachType === 'sms' ? 'bg-green-500 text-white' : 'bg-white/10 text-slate-400'
+                                            }`}>
+                                            <MessageSquare className="h-6 w-6" />
+                                        </div>
+                                        <div>
+                                            <h3 className={`font-bold ${formData.outreachType === 'sms' ? 'text-green-400' : 'text-slate-200'
+                                                }`}>Send SMS</h3>
+                                            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                                                Send a text message directly to members' phones.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
                                     onClick={() => setFormData({ ...formData, outreachType: 'call' })}
+                                    className={`cursor-pointer relative overflow-hidden rounded-xl border-2 p-4 transition-all duration-200 hover:shadow-lg ${formData.outreachType === 'call'
+                                            ? 'border-purple-500 bg-purple-500/10 shadow-purple-900/20'
+                                            : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
+                                        }`}
                                 >
-                                    <Phone className="h-4 w-4 mr-2" />
-                                    AI Call
-                                </Button>
+                                    <div className="flex items-start gap-3">
+                                        <div className={`p-3 rounded-full ${formData.outreachType === 'call' ? 'bg-purple-500 text-white' : 'bg-white/10 text-slate-400'
+                                            }`}>
+                                            <Phone className="h-6 w-6" />
+                                        </div>
+                                        <div>
+                                            <h3 className={`font-bold ${formData.outreachType === 'call' ? 'text-purple-400' : 'text-slate-200'
+                                                }`}>AI Voice Call</h3>
+                                            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                                                Initiate an interactive AI phone call to members.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -705,25 +729,25 @@ export default function ScheduledOutreach() {
                             </span>
                         </div>
                     </div>
-                    <DialogFooter>
+                    <DialogFooter className="p-6 pt-2 bg-slate-950/50 backdrop-blur-sm sticky bottom-0 border-t border-white/5">
                         <Button
                             variant="outline"
                             onClick={() => setShowCreateDialog(false)}
-                            className="border-white/10 text-slate-300 hover:bg-white/5"
+                            className="border-white/10 text-slate-300 hover:bg-white/5 hover:text-white"
                         >
                             Cancel
                         </Button>
                         <Button
                             onClick={createScheduledOutreach}
                             disabled={scheduling}
-                            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500"
+                            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-lg shadow-blue-900/20"
                         >
                             {scheduling ? (
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                             ) : (
                                 <Send className="h-4 w-4 mr-2" />
                             )}
-                            Schedule
+                            Schedule Campaign
                         </Button>
                     </DialogFooter>
                 </DialogContent>

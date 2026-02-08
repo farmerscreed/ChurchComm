@@ -46,7 +46,8 @@ import {
   Clock,
   Settings2,
   Phone,
-  Loader2
+  Loader2,
+  XCircle
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -363,15 +364,20 @@ export default function EventTriggers() {
       )}
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>{editingId ? 'Edit Automation' : 'Create Automation'}</DialogTitle>
-            <DialogDescription>
-              Configure the trigger event and the action to take.
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-0 gap-0">
+          <div className="bg-gradient-to-r from-amber-500 to-orange-600 p-6">
+            <DialogHeader className="p-0">
+              <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
+                <Zap className="h-6 w-6 text-amber-100" />
+                {editingId ? 'Edit Automation' : 'Create Automation'}
+              </DialogTitle>
+              <DialogDescription className="text-amber-50 text-base">
+                Configure the trigger event and the automated response.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
 
-          <div className="space-y-4 py-4">
+          <div className="space-y-6 p-6">
             <div className="space-y-2">
               <Label>Automation Name</Label>
               <Input
@@ -382,21 +388,39 @@ export default function EventTriggers() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Trigger Event</Label>
-                <Select
-                  value={formData.triggerType}
-                  onValueChange={(val) => setFormData(prev => ({ ...prev, triggerType: val }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="group_join">Member Joins Group</SelectItem>
-                    <SelectItem value="first_visit">First Visit</SelectItem>
-                    <SelectItem value="group_leave">Member Leaves Group</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="space-y-4 col-span-2">
+                <Label className="text-base font-medium">When should this happen?</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {[
+                    { id: 'group_join', label: 'Joins Group', icon: Users, color: 'blue' },
+                    { id: 'first_visit', label: 'First Visit', icon: CheckCircle2, color: 'emerald' },
+                    { id: 'group_leave', label: 'Leaves Group', icon: XCircle, color: 'red' }
+                  ].map((trigger) => (
+                    <div
+                      key={trigger.id}
+                      onClick={() => setFormData(prev => ({ ...prev, triggerType: trigger.id }))}
+                      className={`cursor-pointer relative overflow-hidden rounded-xl border-2 p-3 transition-all duration-200 hover:shadow-md ${formData.triggerType === trigger.id
+                        ? `border-${trigger.color}-500 bg-${trigger.color}-50 dark:bg-${trigger.color}-900/10`
+                        : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                        }`}
+                    >
+                      <div className="flex flex-col items-center text-center gap-2">
+                        <div className={`p-2 rounded-full ${formData.triggerType === trigger.id
+                          ? `bg-${trigger.color}-500 text-white`
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                          }`}>
+                          <trigger.icon className="h-5 w-5" />
+                        </div>
+                        <span className={`text-sm font-semibold ${formData.triggerType === trigger.id
+                          ? `text-${trigger.color}-600 dark:text-${trigger.color}-400`
+                          : 'text-slate-600 dark:text-slate-400'
+                          }`}>
+                          {trigger.label}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Action</Label>
@@ -444,15 +468,15 @@ export default function EventTriggers() {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="p-6 pt-2 bg-slate-50 dark:bg-slate-900 sticky bottom-0 border-t">
             <Button variant="outline" onClick={() => setShowDialog(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={saving} className="bg-amber-600 hover:bg-amber-700">
+            <Button onClick={handleSave} disabled={saving} className="bg-amber-600 hover:bg-amber-700 text-white">
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Automation
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </div >
   );
 }
