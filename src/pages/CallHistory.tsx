@@ -577,98 +577,161 @@ export default function CallHistory() {
         </div>
       </div>
 
-      {/* Call Detail Dialog */}
+      {/* Call Detail Dialog - Overhauled Modern Design */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col bg-slate-950 border-white/10">
-          <DialogHeader>
-            <DialogTitle className="flex items-start sm:items-center gap-3 flex-col sm:flex-row">
-              <Avatar className="h-12 w-12 border-2 border-slate-800">
-                <AvatarFallback className={cn(
-                  "text-sm font-bold",
-                  selectedCall?.member_response_type === 'positive' && "bg-gradient-to-br from-teal-500/40 to-teal-500/30 text-teal-300",
-                  selectedCall?.member_response_type === 'negative' && "bg-gradient-to-br from-rose-500/40 to-rose-500/30 text-rose-300",
-                  selectedCall?.member_response_type === 'neutral' && "bg-gradient-to-br from-amber-500/40 to-amber-500/30 text-amber-300",
-                  !selectedCall?.member_response_type && "bg-gradient-to-br from-slate-500/40 to-slate-500/30 text-slate-300"
-                )}>
-                  {getInitials(selectedCall?.people?.first_name ?? undefined, selectedCall?.people?.last_name ?? undefined)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="flex items-center flex-wrap gap-2">
-                  <span className="text-lg text-white">
-                    {selectedCall?.people?.first_name || selectedCall?.people?.last_name
-                      ? `${selectedCall?.people?.first_name || ''} ${selectedCall?.people?.last_name || ''}`.trim()
-                      : selectedCall?.phone_number_used || 'Unknown Caller'}
-                  </span>
-                  {getSentimentBadge(selectedCall?.member_response_type || null)}
+        <DialogContent className="max-w-3xl max-h-[95vh] w-[95vw] sm:w-full overflow-hidden flex flex-col bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 border-white/10 p-0">
+          {/* Header with gradient background */}
+          <div className="relative px-6 pt-6 pb-4 bg-gradient-to-r from-purple-900/30 via-blue-900/20 to-slate-900/30 border-b border-white/10">
+            <DialogHeader>
+              <DialogTitle className="flex items-start sm:items-center gap-4 flex-col sm:flex-row">
+                <div className="relative">
+                  <Avatar className="h-16 w-16 border-2 border-white/20 shadow-xl">
+                    <AvatarFallback className={cn(
+                      "text-xl font-bold",
+                      selectedCall?.member_response_type === 'positive' && "bg-gradient-to-br from-teal-500 to-emerald-600 text-white",
+                      selectedCall?.member_response_type === 'negative' && "bg-gradient-to-br from-rose-500 to-red-600 text-white",
+                      selectedCall?.member_response_type === 'neutral' && "bg-gradient-to-br from-amber-500 to-orange-600 text-white",
+                      !selectedCall?.member_response_type && "bg-gradient-to-br from-slate-500 to-slate-600 text-white"
+                    )}>
+                      {getInitials(selectedCall?.people?.first_name ?? undefined, selectedCall?.people?.last_name ?? undefined)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className={cn(
+                    "absolute -bottom-1 -right-1 rounded-full p-1.5 shadow-lg border-2 border-slate-900",
+                    selectedCall?.member_response_type === 'positive' && "bg-teal-500",
+                    selectedCall?.member_response_type === 'negative' && "bg-rose-500",
+                    selectedCall?.member_response_type === 'neutral' && "bg-amber-500",
+                    !selectedCall?.member_response_type && "bg-slate-500"
+                  )}>
+                    {getSentimentIcon(selectedCall?.member_response_type || null)}
+                  </div>
                 </div>
-                <p className="text-sm font-normal text-slate-400">
-                  {selectedCall?.phone_number_used || selectedCall?.people?.phone_number || 'No phone number'}
-                </p>
-              </div>
-            </DialogTitle>
-            <DialogDescription className="sr-only">Call details and transcript</DialogDescription>
-          </DialogHeader>
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center flex-wrap gap-2">
+                    <span className="text-xl font-semibold text-white">
+                      {selectedCall?.people?.first_name || selectedCall?.people?.last_name
+                        ? `${selectedCall?.people?.first_name || ''} ${selectedCall?.people?.last_name || ''}`.trim()
+                        : 'Unknown Caller'}
+                    </span>
+                    {/* Status badge */}
+                    <span className={cn(
+                      "px-2.5 py-1 rounded-full text-xs font-medium uppercase tracking-wide flex items-center gap-1.5",
+                      (selectedCall?.call_status === 'completed' || selectedCall?.call_status === 'ended') && "bg-green-500/20 text-green-400 border border-green-500/30",
+                      selectedCall?.call_status === 'failed' && "bg-red-500/20 text-red-400 border border-red-500/30",
+                      selectedCall?.call_status === 'no_answer' && "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30",
+                      (selectedCall?.call_status === 'in_progress' || selectedCall?.call_status === 'queued') && "bg-blue-500/20 text-blue-400 border border-blue-500/30",
+                      !['completed', 'ended', 'failed', 'no_answer', 'in_progress', 'queued'].includes(selectedCall?.call_status || '') && "bg-slate-500/20 text-slate-400 border border-slate-500/30"
+                    )}>
+                      {getStatusIcon(selectedCall?.call_status || '')}
+                      {selectedCall?.call_status?.replace('_', ' ') || 'Unknown'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm text-slate-400">
+                    <span className="flex items-center gap-1.5">
+                      <Phone className="h-3.5 w-3.5" />
+                      {selectedCall?.phone_number_used || selectedCall?.people?.phone_number || 'No phone'}
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1.5">
+                      <Calendar className="h-3.5 w-3.5" />
+                      {selectedCall && format(new Date(selectedCall.created_at), 'MMM d, yyyy')}
+                    </span>
+                  </div>
+                </div>
+              </DialogTitle>
+              <DialogDescription className="sr-only">Call details and transcript</DialogDescription>
+            </DialogHeader>
+          </div>
 
-          <ScrollArea className="flex-1 -mx-6 px-6">
-            <div className="space-y-6 pb-4">
-              {/* Call Info */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-white/5 rounded-lg border border-white/10">
-                  <Calendar className="h-5 w-5 mx-auto text-purple-400 mb-1" />
-                  <p className="text-xs text-slate-500">Date</p>
-                  <p className="font-medium text-sm text-white">
-                    {selectedCall && format(new Date(selectedCall.created_at), 'MMM d, yyyy')}
-                  </p>
+          {/* Stats Bar */}
+          <div className="px-6 py-3 bg-white/5 border-b border-white/10">
+            <div className="flex flex-wrap items-center justify-center gap-6 text-center">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                  <Clock className="h-4 w-4 text-blue-400" />
                 </div>
-                <div className="text-center p-4 bg-white/5 rounded-lg border border-white/10">
-                  <Clock className="h-5 w-5 mx-auto text-blue-400 mb-1" />
-                  <p className="text-xs text-slate-500">Time</p>
-                  <p className="font-medium text-sm text-white">
+                <div className="text-left">
+                  <p className="text-[10px] uppercase tracking-wider text-slate-500">Time</p>
+                  <p className="text-sm font-semibold text-white">
                     {selectedCall && format(new Date(selectedCall.created_at), 'h:mm a')}
                   </p>
                 </div>
-                <div className="text-center p-4 bg-white/5 rounded-lg border border-white/10">
-                  <Timer className="h-5 w-5 mx-auto text-cyan-400 mb-1" />
-                  <p className="text-xs text-slate-500">Duration</p>
-                  <p className="font-medium text-sm text-white">
-                    {formatDuration(selectedCall?.call_duration || 0)}
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                  <Timer className="h-4 w-4 text-cyan-400" />
+                </div>
+                <div className="text-left">
+                  <p className="text-[10px] uppercase tracking-wider text-slate-500">Duration</p>
+                  <p className="text-sm font-semibold text-white">
+                    {selectedCall?.call_duration ? formatDuration(selectedCall.call_duration) : '—'}
                   </p>
                 </div>
               </div>
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  "w-9 h-9 rounded-lg flex items-center justify-center",
+                  selectedCall?.member_response_type === 'positive' && "bg-teal-500/20",
+                  selectedCall?.member_response_type === 'negative' && "bg-rose-500/20",
+                  (!selectedCall?.member_response_type || selectedCall?.member_response_type === 'neutral') && "bg-amber-500/20"
+                )}>
+                  {selectedCall?.member_response_type === 'positive' && <ThumbsUp className="h-4 w-4 text-teal-400" />}
+                  {selectedCall?.member_response_type === 'negative' && <ThumbsDown className="h-4 w-4 text-rose-400" />}
+                  {(!selectedCall?.member_response_type || selectedCall?.member_response_type === 'neutral') && <Minus className="h-4 w-4 text-amber-400" />}
+                </div>
+                <div className="text-left">
+                  <p className="text-[10px] uppercase tracking-wider text-slate-500">Sentiment</p>
+                  <p className={cn(
+                    "text-sm font-semibold capitalize",
+                    selectedCall?.member_response_type === 'positive' && "text-teal-400",
+                    selectedCall?.member_response_type === 'negative' && "text-rose-400",
+                    (!selectedCall?.member_response_type || selectedCall?.member_response_type === 'neutral') && "text-amber-400"
+                  )}>
+                    {selectedCall?.member_response_type || 'Neutral'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
 
-              {/* Alerts */}
+          {/* Content Sections - Replaced ScrollArea with native div for better mobile scrolling */}
+          <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
+            <div className="space-y-6 pb-10">
+              {/* Alert Badges */}
               {(selectedCall?.crisis_indicators || selectedCall?.needs_pastoral_care || selectedCall?.follow_up_needed) && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 p-3 bg-red-500/10 rounded-xl border border-red-500/20">
+                  <span className="w-full text-xs uppercase tracking-wider text-red-400/70 mb-1 font-medium">⚠️ Attention Required</span>
                   {selectedCall?.crisis_indicators && (
-                    <Badge className="gap-1 bg-red-500/20 text-red-400 border-0">
-                      <AlertTriangle className="h-3 w-3" />
+                    <Badge className="gap-1.5 bg-red-500/30 text-red-300 border border-red-500/40 px-3 py-1">
+                      <AlertTriangle className="h-3.5 w-3.5" />
                       Crisis Detected
                     </Badge>
                   )}
                   {selectedCall?.needs_pastoral_care && (
-                    <Badge className="bg-pink-500/20 text-pink-400 border-0 gap-1">
-                      <Heart className="h-3 w-3" />
+                    <Badge className="bg-pink-500/30 text-pink-300 border border-pink-500/40 px-3 py-1 gap-1.5">
+                      <Heart className="h-3.5 w-3.5" />
                       Needs Pastoral Care
                     </Badge>
                   )}
                   {selectedCall?.follow_up_needed && (
-                    <Badge className="bg-blue-500/20 text-blue-400 border-0 gap-1">
-                      <PhoneCall className="h-3 w-3" />
+                    <Badge className="bg-blue-500/30 text-blue-300 border border-blue-500/40 px-3 py-1 gap-1.5">
+                      <PhoneCall className="h-3.5 w-3.5" />
                       Follow-up Required
                     </Badge>
                   )}
                 </div>
               )}
 
-              {/* Summary */}
+              {/* AI Summary */}
               {selectedCall?.call_summary && (
-                <div>
-                  <h4 className="font-medium text-white mb-2 flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-purple-400" />
-                    AI Summary
-                  </h4>
-                  <div className="p-4 bg-purple-500/10 rounded-lg border border-purple-500/20">
+                <div className="rounded-xl overflow-hidden border border-purple-500/20">
+                  <div className="px-4 py-2.5 bg-gradient-to-r from-purple-500/20 to-blue-500/20 border-b border-purple-500/20">
+                    <h4 className="font-medium text-white flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-purple-400" />
+                      AI Summary
+                    </h4>
+                  </div>
+                  <div className="p-4 bg-purple-500/5">
                     <p className="text-sm text-slate-300 leading-relaxed">{selectedCall.call_summary}</p>
                   </div>
                 </div>
@@ -676,63 +739,153 @@ export default function CallHistory() {
 
               {/* Crisis Details */}
               {selectedCall?.crisis_details && (
-                <div>
-                  <h4 className="font-medium text-red-400 mb-2 flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4" />
-                    Crisis Details
-                  </h4>
-                  <div className="p-4 bg-red-500/10 rounded-lg border border-red-500/20">
-                    <p className="text-sm text-red-300">{selectedCall.crisis_details}</p>
+                <div className="rounded-xl overflow-hidden border border-red-500/30">
+                  <div className="px-4 py-2.5 bg-gradient-to-r from-red-500/20 to-orange-500/20 border-b border-red-500/30">
+                    <h4 className="font-medium text-red-300 flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      Crisis Details
+                    </h4>
+                  </div>
+                  <div className="p-4 bg-red-500/5">
+                    <p className="text-sm text-red-200">{selectedCall.crisis_details}</p>
                   </div>
                 </div>
               )}
 
               {/* Prayer Requests */}
               {selectedCall?.prayer_requests && selectedCall.prayer_requests.length > 0 && (
-                <div>
-                  <h4 className="font-medium text-white mb-2 flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-purple-400" />
-                    Prayer Requests
-                  </h4>
-                  <ul className="space-y-2">
+                <div className="rounded-xl overflow-hidden border border-purple-500/20">
+                  <div className="px-4 py-2.5 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-b border-purple-500/20">
+                    <h4 className="font-medium text-white flex items-center gap-2">
+                      <Heart className="h-4 w-4 text-pink-400" />
+                      Prayer Requests ({selectedCall.prayer_requests.length})
+                    </h4>
+                  </div>
+                  <div className="p-4 bg-purple-500/5 space-y-2">
                     {selectedCall.prayer_requests.map((prayer, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-sm text-purple-300 p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                        <span className="text-purple-400 font-bold">•</span>
-                        {prayer}
-                      </li>
+                      <div key={idx} className="flex items-start gap-3 text-sm text-purple-200 p-3 bg-purple-500/10 rounded-lg">
+                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-purple-500/30 text-purple-300 flex items-center justify-center text-xs font-medium">
+                          {idx + 1}
+                        </span>
+                        <span className="leading-relaxed">{prayer}</span>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               )}
 
               {/* Interests */}
               {selectedCall?.specific_interests && selectedCall.specific_interests.length > 0 && (
-                <div>
-                  <h4 className="font-medium text-white mb-2">Interests Mentioned</h4>
-                  <div className="flex flex-wrap gap-2">
+                <div className="rounded-xl overflow-hidden border border-cyan-500/20">
+                  <div className="px-4 py-2.5 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border-b border-cyan-500/20">
+                    <h4 className="font-medium text-white flex items-center gap-2">
+                      <Activity className="h-4 w-4 text-cyan-400" />
+                      Interests Mentioned
+                    </h4>
+                  </div>
+                  <div className="p-4 bg-cyan-500/5 flex flex-wrap gap-2">
                     {selectedCall.specific_interests.map((interest, idx) => (
-                      <Badge key={idx} variant="outline" className="border-white/10 text-slate-300">{interest}</Badge>
+                      <Badge key={idx} className="bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-3 py-1">
+                        {interest}
+                      </Badge>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Transcript */}
-              {selectedCall?.full_transcript && (
-                <div>
-                  <h4 className="font-medium text-white mb-2 flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-cyan-400" />
-                    Full Transcript
+              {/* Full Transcript - Conversation Style (No nested scroll) */}
+              <div className="rounded-xl overflow-hidden border border-white/10">
+                <div className="px-4 py-2.5 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border-b border-white/10 flex items-center justify-between sticky top-0 z-10 backdrop-blur-sm">
+                  <h4 className="font-medium text-white flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-blue-400" />
+                    Call Transcript
                   </h4>
-                  <div className="p-4 bg-slate-900/50 rounded-lg border border-white/10 max-h-64 overflow-y-auto">
-                    <p className="text-sm text-slate-300 whitespace-pre-wrap font-mono leading-relaxed">
-                      {selectedCall.full_transcript}
-                    </p>
-                  </div>
+                  {selectedCall?.full_transcript && (
+                    <span className="text-xs text-slate-500">
+                      {selectedCall.full_transcript.split('\n').filter(l => l.trim()).length} messages
+                    </span>
+                  )}
                 </div>
-              )}
+                <div className="p-4 bg-slate-900/50">
+                  {selectedCall?.full_transcript ? (
+                    <div className="space-y-4">
+                      {selectedCall.full_transcript.split('\n').filter(line => line.trim()).map((line, idx) => {
+                        const isAI = line.toLowerCase().startsWith('ai:') || line.toLowerCase().startsWith('assistant:') || line.toLowerCase().startsWith('bot:');
+                        const isUser = line.toLowerCase().startsWith('user:') || line.toLowerCase().startsWith('customer:') || line.toLowerCase().startsWith('human:');
+                        const cleanLine = line.replace(/^(ai|assistant|bot|user|customer|human):\s*/i, '').trim();
+
+                        // If we can't determine the speaker, check for patterns
+                        const inferredIsAI = !isUser && (isAI || idx % 2 === 0);
+
+                        return (
+                          <div key={idx} className={cn(
+                            "flex gap-3",
+                            inferredIsAI ? "justify-start" : "justify-end"
+                          )}>
+                            <div className={cn(
+                              "max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 text-sm shadow-sm",
+                              inferredIsAI
+                                ? "bg-gradient-to-br from-blue-600/20 to-purple-600/10 text-slate-200 rounded-tl-sm border border-blue-500/20"
+                                : "bg-gradient-to-br from-slate-700/40 to-slate-800/30 text-slate-200 rounded-tr-sm border border-slate-500/20"
+                            )}>
+                              <div className={cn(
+                                "text-[10px] uppercase tracking-wider mb-1 font-bold flex items-center gap-1.5",
+                                inferredIsAI ? "text-blue-400" : "text-amber-500/80"
+                              )}>
+                                {inferredIsAI ? '🤖 AI Assistant' : '👤 Member'}
+                              </div>
+                              <p className="leading-relaxed text-sm">{cleanLine || line}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-slate-500">
+                      <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                      <p className="text-sm font-medium">No transcript available</p>
+                      <p className="text-xs mt-1 opacity-70">The call may still be processing or no conversation was recorded</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-3 pt-4 border-t border-white/10">
+                <Button
+                  variant="outline"
+                  className="gap-2 border-white/10 text-slate-300 hover:bg-white/5 hover:text-white h-11"
+                  onClick={() => {
+                    if (selectedCall?.people?.phone_number) {
+                      window.location.href = `tel:${selectedCall.people.phone_number}`;
+                    }
+                  }}
+                  disabled={!selectedCall?.people?.phone_number}
+                >
+                  <Phone className="h-4 w-4" />
+                  Call Back
+                </Button>
+                <Button
+                  variant="outline"
+                  className="gap-2 border-white/10 text-slate-300 hover:bg-white/5 hover:text-white h-11"
+                  onClick={() => {
+                    // Copy transcript to clipboard
+                    if (selectedCall?.full_transcript) {
+                      navigator.clipboard.writeText(selectedCall.full_transcript);
+                      toast({
+                        title: 'Copied!',
+                        description: 'Transcript copied to clipboard',
+                      });
+                    }
+                  }}
+                  disabled={!selectedCall?.full_transcript}
+                >
+                  <FileText className="h-4 w-4" />
+                  Copy Text
+                </Button>
+              </div>
             </div>
-          </ScrollArea>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

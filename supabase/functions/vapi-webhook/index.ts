@@ -327,8 +327,25 @@ serve(async (req) => {
     const status = call.status || message.status || 'ended'
     const endedReason = message.endedReason || call.endedReason || 'unknown'
 
-    // Duration is in seconds
-    const duration = call.duration || message.duration || 0
+    // Duration: VAPI may send as durationSeconds, durationMinutes, or duration
+    // Try all possible fields and convert to seconds
+    let duration = 0
+    if (call.durationSeconds) {
+      duration = call.durationSeconds
+    } else if (message.durationSeconds) {
+      duration = message.durationSeconds
+    } else if (call.durationMinutes) {
+      duration = Math.round(call.durationMinutes * 60)
+    } else if (message.durationMinutes) {
+      duration = Math.round(message.durationMinutes * 60)
+    } else if (call.duration) {
+      // duration could be in seconds or milliseconds, check if > 1000 (likely ms)
+      duration = call.duration > 1000 ? Math.round(call.duration / 1000) : call.duration
+    } else if (message.duration) {
+      duration = message.duration > 1000 ? Math.round(message.duration / 1000) : message.duration
+    }
+
+    console.log('Duration extraction:', { callDuration: call.duration, messageDuration: message.duration, durationSeconds: call.durationSeconds, finalDuration: duration })
 
     // Extract artifact (contains transcript and messages)
     const artifact = message.artifact || {}
@@ -401,15 +418,28 @@ serve(async (req) => {
 
     // Helper function to map VAPI status to user-friendly status
     const mapCallStatus = (s: string, reason: string): string => {
-      const st = s?.toLowerCase()
-      const r = reason?.toLowerCase()
-      if (st === 'ended' && (r === 'assistant-ended-call' || r === 'customer-ended-call')) return 'completed'
-      if (st === 'ended' || st === 'completed') return 'completed'
-      if (r?.includes('no-answer') || r?.includes('unanswered')) return 'no_answer'
-      if (r?.includes('busy')) return 'busy'
-      if (r?.includes('fail') || r?.includes('error')) return 'failed'
-      if (st === 'in-progress' || st === 'in_progress') return 'in_progress'
-      if (st === 'queued' || st === 'initiated' || st === 'ringing') return 'in_progress'
+      const st = s?.toLowerCase() || ''
+      const r = reason?.toLowerCase() || ''
+
+      console.log('Status mapping input:', { status: st, reason: r })
+
+      // For end-of-call-report, the call has ended - determine outcome
+      // Check ended reasons first for more specific status
+      if (r.includes('no-answer') || r.includes('unanswered') || r === 'customer-did-not-pick-up') return 'no_answer'
+      if (r.includes('busy') || r === 'customer-busy') return 'busy'
+      if (r.includes('fail') || r.includes('error') || r === 'pipeline-error-openai-voice-failed') return 'failed'
+      if (r.includes('voicemail')) return 'voicemail'
+
+      // Normal call endings
+      if (st === 'ended' || st === 'completed' || r === 'assistant-ended-call' || r === 'customer-ended-call') return 'completed'
+
+      // If we're in end-of-call-report, the call is done - default to completed
+      // This handles cases like 'ended' with various reasons
+      if (r || st === 'ended') return 'completed'
+
+      // Fallback for truly in-progress (shouldn't reach here for end-of-call-report)
+      if (st === 'in-progress' || st === 'in_progress' || st === 'queued' || st === 'initiated' || st === 'ringing') return 'in_progress'
+
       return 'completed'
     }
 
