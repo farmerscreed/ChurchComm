@@ -108,7 +108,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   fetchSession: async () => {
-    console.log('fetchSession: Starting');
+
     set({ loading: true, error: null });
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
@@ -117,13 +117,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         throw error;
       }
 
-      console.log('fetchSession: Session data:', session);
+
       if (session?.user) {
-        console.log('fetchSession: User found in session, setting user and loading organization.');
+
         set({ user: session.user, session: session });
         await get().fetchOrganizations();
       } else {
-        console.log('fetchSession: No user in session, setting loading to false.');
+
         set({ user: null, session: null, loading: false });
       }
     } catch (error: any) {
@@ -133,12 +133,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   fetchOrganizations: async () => {
-    console.log('--- loadUserOrganization START ---');
+
     const { user, currentOrganization } = get();
 
     // Prevent re-fetching if organization is already loaded
     if (currentOrganization && currentOrganization.id) {
-      console.log('Organization already in store. Skipping fetch.');
+
       set({ loading: false }); // Ensure loading is false if we skip
       return;
     }
@@ -150,10 +150,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     set({ loading: true, error: null });
-    console.log('Set loading to true. User ID:', user.id);
+
 
     try {
-      console.log("Step 1: Fetching membership from 'organization_members'");
+
       const { data: membership, error: membershipError } = await supabase
         .from('organization_members')
         .select('organization_id')
