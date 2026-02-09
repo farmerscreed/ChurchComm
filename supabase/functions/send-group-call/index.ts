@@ -4,6 +4,13 @@ import { corsHeaders } from '../_shared/cors.ts'
 import { substituteVariables, calculateMembershipDuration } from '../_shared/substitute-variables.ts'
 import { buildEnhancedPrompt } from '../_shared/context-injection.ts'
 
+// Helper to format address object into readable string
+function formatAddress(address: { street?: string; city?: string; state?: string; zip?: string; country?: string } | null): string {
+  if (!address) return ''
+  const parts = [address.street, address.city, address.state, address.zip].filter(Boolean)
+  return parts.join(', ')
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -87,7 +94,7 @@ serve(async (req) => {
     // If they do, caller ID will show their church name instead of "KeepFlock"
     const { data: orgData } = await supabaseAdmin
       .from('organizations')
-      .select('name, vapi_phone_number_id, subscription_tier, pastor_name, service_times, ministry_list, ai_context_notes')
+      .select('name, vapi_phone_number_id, subscription_tier, pastor_name, service_times, ministry_list, ai_context_notes, website, address, email, phone')
       .eq('id', organizationId)
       .single()
 
@@ -98,6 +105,11 @@ serve(async (req) => {
     const serviceTimes = orgData?.service_times || ''
     const ministryList = orgData?.ministry_list || ''
     const aiContextNotes = orgData?.ai_context_notes || ''
+    // General org info for AI knowledge
+    const orgWebsite = orgData?.website || ''
+    const orgAddress = orgData?.address ? formatAddress(orgData.address) : ''
+    const orgEmail = orgData?.email || ''
+    const orgPhone = orgData?.phone || ''
     const isPremium = orgData?.subscription_tier === 'premium' || orgData?.subscription_tier === 'enterprise'
 
     console.log('VAPI Config - API Key present:', !!VAPI_API_KEY)
@@ -282,10 +294,15 @@ serve(async (req) => {
         // Build comprehensive system prompt with the script as guidance
         // Build church knowledge section from org data
         let churchKnowledge = ''
-        if (serviceTimes || ministryList || aiContextNotes) {
+        const hasAIFields = serviceTimes || ministryList || aiContextNotes
+        const hasOrgInfo = orgWebsite || orgAddress || orgPhone
+        if (hasAIFields || hasOrgInfo) {
           churchKnowledge = `\n\nCHURCH KNOWLEDGE (use naturally in conversation if relevant):
 ${serviceTimes ? `- Service Times: ${serviceTimes}` : ''}
 ${ministryList ? `- Available Ministries: ${ministryList}` : ''}
+${orgWebsite ? `- Website: ${orgWebsite}` : ''}
+${orgAddress ? `- Address: ${orgAddress}` : ''}
+${orgPhone ? `- Church Phone: ${orgPhone}` : ''}
 ${aiContextNotes ? `- Additional Notes: ${aiContextNotes}` : ''}`
         }
 
