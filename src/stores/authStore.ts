@@ -156,7 +156,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       const { data: membership, error: membershipError } = await supabase
         .from('organization_members')
-        .select('organization_id')
+        .select('*')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -192,7 +192,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.log('Step 2 SUCCESS. Organization found:', org.name);
 
       console.log('Step 3: Setting organization in store.');
-      set({ organization: org, currentOrganization: org, loading: false, error: null });
+      set({
+        organization: org,
+        currentOrganization: org,
+        currentMember: membership as OrganizationMember,
+        loading: false,
+        error: null
+      });
       console.log('--- loadUserOrganization END ---');
 
     } catch (error: any) {
