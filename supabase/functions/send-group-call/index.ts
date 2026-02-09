@@ -87,13 +87,17 @@ serve(async (req) => {
     // If they do, caller ID will show their church name instead of "KeepFlock"
     const { data: orgData } = await supabaseAdmin
       .from('organizations')
-      .select('name, vapi_phone_number_id, subscription_tier')
+      .select('name, vapi_phone_number_id, subscription_tier, pastor_name, service_times, ministry_list, ai_context_notes')
       .eq('id', organizationId)
       .single()
 
     // Use org's dedicated number if available, otherwise use shared KeepFlock number
     const VAPI_PHONE_NUMBER_ID = orgData?.vapi_phone_number_id || DEFAULT_PHONE_NUMBER_ID
     const orgName = orgData?.name || 'your church'
+    const pastorName = orgData?.pastor_name || 'the Pastor'
+    const serviceTimes = orgData?.service_times || ''
+    const ministryList = orgData?.ministry_list || ''
+    const aiContextNotes = orgData?.ai_context_notes || ''
     const isPremium = orgData?.subscription_tier === 'premium' || orgData?.subscription_tier === 'enterprise'
 
     console.log('VAPI Config - API Key present:', !!VAPI_API_KEY)
@@ -241,7 +245,7 @@ serve(async (req) => {
           first_name: recipient.first_name || 'Friend',
           last_name: recipient.last_name || '',
           church_name: orgName,
-          pastor_name: '',
+          pastor_name: pastorName,
           day_of_week: new Date().toLocaleDateString('en-US', { weekday: 'long' }),
           membership_duration: recipient.created_at
             ? calculateMembershipDuration(new Date(recipient.created_at))
@@ -276,6 +280,15 @@ serve(async (req) => {
         const firstGreeting = `Hi ${firstName}! This is a friendly call from ${orgName}. How are you doing today?`
 
         // Build comprehensive system prompt with the script as guidance
+        // Build church knowledge section from org data
+        let churchKnowledge = ''
+        if (serviceTimes || ministryList || aiContextNotes) {
+          churchKnowledge = `\n\nCHURCH KNOWLEDGE (use naturally in conversation if relevant):
+${serviceTimes ? `- Service Times: ${serviceTimes}` : ''}
+${ministryList ? `- Available Ministries: ${ministryList}` : ''}
+${aiContextNotes ? `- Additional Notes: ${aiContextNotes}` : ''}`
+        }
+
         const systemPrompt = `You are a warm, friendly church assistant making a caring outreach call on behalf of ${orgName}.
 
 IMPORTANT GUIDELINES:
@@ -284,6 +297,7 @@ IMPORTANT GUIDELINES:
 - Listen actively and respond empathetically
 - If they mention any crisis, distress, or pastoral care needs, note it carefully
 - Keep the conversation warm and supportive
+- If they ask about church events, services, or ministries, use the knowledge below to help them${churchKnowledge}
 
 YOUR CONVERSATION GUIDE (use as guidance, not a script to read):
 ${finalPrompt}

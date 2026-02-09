@@ -716,7 +716,21 @@ export default function Communications() {
                   {/* Listen to AI Button */}
                   {selectedScript && (
                     <Button
-                      onClick={() => setIsPlaying(!isPlaying)}
+                      onClick={() => {
+                        if (isPlaying) {
+                          window.speechSynthesis.cancel();
+                          setIsPlaying(false);
+                        } else {
+                          const textToSpeak = selectedScript.content.replace(/{Name}/g, 'John');
+                          const utterance = new SpeechSynthesisUtterance(textToSpeak);
+                          utterance.rate = 0.95;
+                          utterance.pitch = 1;
+                          utterance.onend = () => setIsPlaying(false);
+                          utterance.onerror = () => setIsPlaying(false);
+                          window.speechSynthesis.speak(utterance);
+                          setIsPlaying(true);
+                        }
+                      }}
                       className={isPlaying
                         ? "w-full bg-red-500 hover:bg-red-600"
                         : "w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500"

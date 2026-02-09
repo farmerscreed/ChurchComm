@@ -51,7 +51,8 @@ import {
   Instagram,
   Twitter,
   Youtube,
-  Zap
+  Zap,
+  Calendar
 } from 'lucide-react';
 import { ScriptTemplateGallery } from '@/components/communications/ScriptTemplateGallery';
 import { ScriptBuilder } from '@/components/communications/ScriptBuilder';
@@ -60,6 +61,7 @@ import { ScriptList } from '@/components/communications/ScriptList';
 import { VOICE_PRESETS, DEFAULT_VOICE } from '@/lib/voice-presets';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ChurchContextManager } from '@/components/settings/ChurchContextManager';
+import { AIKnowledgeSettings } from '@/components/settings/AIKnowledgeSettings';
 import { BillingSettings } from '@/components/settings/BillingSettings';
 import { AutoTriggerManager } from '@/components/settings/AutoTriggerManager';
 import { cn } from '@/lib/utils';
@@ -1209,22 +1211,41 @@ export default function Settings() {
       )}
 
       {aiSubSection === 'context' && (
-        <Card className="bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-cyan-500/20">
-                <Brain className="h-5 w-5 text-cyan-400" />
+        <div className="space-y-6">
+          <Card className="bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-purple-500/20">
+                  <Brain className="h-5 w-5 text-purple-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg text-slate-50">AI Knowledge Base</CardTitle>
+                  <CardDescription className="text-slate-400">Basic church information for AI to reference</CardDescription>
+                </div>
               </div>
-              <div>
-                <CardTitle className="text-lg text-slate-50">AI Context</CardTitle>
-                <CardDescription className="text-slate-400">Information the AI uses during calls</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AIKnowledgeSettings />
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-cyan-500/20">
+                  <Calendar className="h-5 w-5 text-cyan-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg text-slate-50">Events & Announcements</CardTitle>
+                  <CardDescription className="text-slate-400">Dynamic context for upcoming events and news</CardDescription>
+                </div>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <ChurchContextManager />
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              <ChurchContextManager />
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
