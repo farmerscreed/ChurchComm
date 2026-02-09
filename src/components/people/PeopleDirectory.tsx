@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -63,6 +63,15 @@ function getAvatarColor(name: string): string {
 export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) => {
   const { currentOrganization } = useAuthStore();
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [search]);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [profilePanelOpen, setProfilePanelOpen] = useState(false);
@@ -70,7 +79,7 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
 
   const { data: people, isLoading, error, refetch } = useQuery({
-    queryKey: ['people', currentOrganization?.id, search, statusFilter],
+    queryKey: ['people', currentOrganization?.id, debouncedSearch, statusFilter],
     queryFn: async (): Promise<Person[]> => {
       if (!currentOrganization?.id) return [];
 
@@ -80,8 +89,8 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
         .eq('organization_id', currentOrganization.id)
         .order('created_at', { ascending: false });
 
-      if (search) {
-        query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%`);
+      if (debouncedSearch) {
+        query = query.or(`first_name.ilike.%${debouncedSearch}%,last_name.ilike.%${debouncedSearch}%,email.ilike.%${debouncedSearch}%`);
       }
 
       if (statusFilter && statusFilter !== 'all') {
@@ -349,12 +358,11 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
                       <td className="p-4">
                         <Badge
                           variant="outline"
-                          className={`text-xs border-0 ${
-                            person.member_status === 'member' ? 'bg-green-500/20 text-green-400' :
+                          className={`text-xs border-0 ${person.member_status === 'member' ? 'bg-green-500/20 text-green-400' :
                             person.member_status === 'visitor' || person.member_status === 'first_time_visitor' ? 'bg-cyan-500/20 text-cyan-400' :
-                            person.member_status === 'child' ? 'bg-amber-500/20 text-amber-400' :
-                            'bg-slate-500/20 text-slate-400'
-                          }`}
+                              person.member_status === 'child' ? 'bg-amber-500/20 text-amber-400' :
+                                'bg-slate-500/20 text-slate-400'
+                            }`}
                         >
                           {person.member_status.replace(/_/g, ' ')}
                         </Badge>
@@ -456,12 +464,11 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
                         {person.first_name} {person.last_name}
                       </h3>
                       <Badge
-                        className={`border-0 text-[10px] uppercase tracking-wide font-medium shrink-0 ${
-                          person.member_status === 'member' ? 'bg-green-500/20 text-green-400' :
+                        className={`border-0 text-[10px] uppercase tracking-wide font-medium shrink-0 ${person.member_status === 'member' ? 'bg-green-500/20 text-green-400' :
                           person.member_status === 'visitor' || person.member_status === 'first_time_visitor' ? 'bg-cyan-500/20 text-cyan-400' :
-                          person.member_status === 'child' ? 'bg-amber-500/20 text-amber-400' :
-                          'bg-slate-500/20 text-slate-400'
-                        }`}
+                            person.member_status === 'child' ? 'bg-amber-500/20 text-amber-400' :
+                              'bg-slate-500/20 text-slate-400'
+                          }`}
                       >
                         {person.member_status.replace('_', ' ')}
                       </Badge>
