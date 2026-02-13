@@ -243,10 +243,29 @@ export default function BirthdayAutomations() {
     return true; // upcoming (all)
   });
 
+  // Compute birthday stats
+  const today = new Date();
+  const currentMonth = today.getMonth();
+  const thisMonthCount = birthdayPeople.filter(p => {
+    const bday = new Date(p.birthday + 'T00:00:00');
+    return bday.getMonth() === currentMonth;
+  }).length;
+
+  const nextWeekCount = birthdayPeople.filter(p => {
+    const bday = new Date(p.birthday + 'T00:00:00');
+    const thisYearBday = new Date(today.getFullYear(), bday.getMonth(), bday.getDate());
+    if (thisYearBday < today) thisYearBday.setFullYear(today.getFullYear() + 1);
+    const daysUntil = Math.ceil((thisYearBday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    return daysUntil >= 0 && daysUntil <= 7;
+  }).length;
+
   if (loading) {
     return (
       <div className="p-8 space-y-6">
         <Skeleton className="h-48 w-full rounded-2xl" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24 rounded-xl" />)}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Skeleton className="h-64 w-full rounded-xl" />
           <Skeleton className="h-64 w-full rounded-xl" />
@@ -257,7 +276,7 @@ export default function BirthdayAutomations() {
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-8">
-      {/* Header Banner - Retaining existing design */}
+      {/* Header Banner */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-pink-500 via-rose-500 to-red-500 p-8 text-white shadow-2xl">
         <div className="absolute top-0 right-0 -mt-20 -mr-20 h-80 w-80 rounded-full bg-orange-400/30 blur-3xl animate-pulse"></div>
         <div className="absolute bottom-0 left-0 -mb-20 -ml-20 h-80 w-80 rounded-full bg-pink-400/30 blur-3xl animate-pulse delay-700"></div>
@@ -287,10 +306,62 @@ export default function BirthdayAutomations() {
             </div>
             <div className="text-center">
               <p className="text-3xl font-bold">{birthdayCount}</p>
-              <p className="text-sm font-medium text-pink-100 uppercase tracking-wide">Upcoming</p>
+              <p className="text-sm font-medium text-pink-100 uppercase tracking-wide">With Birthdays</p>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-white dark:bg-white/5 border-slate-200 dark:border-white/10">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Next 7 Days</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">{nextWeekCount}</p>
+              </div>
+              <PartyPopper className="h-8 w-8 text-pink-500/30" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-white dark:bg-white/5 border-slate-200 dark:border-white/10">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500 dark:text-slate-400">This Month</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">{thisMonthCount}</p>
+              </div>
+              <Calendar className="h-8 w-8 text-rose-500/30" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-white dark:bg-white/5 border-slate-200 dark:border-white/10">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500 dark:text-slate-400">SMS</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                  {smsConfig.status === 'active' ? 'On' : 'Off'}
+                </p>
+              </div>
+              <MessageSquare className="h-8 w-8 text-green-500/30" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-white dark:bg-white/5 border-slate-200 dark:border-white/10">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500 dark:text-slate-400">AI Call</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                  {callConfig.enabled ? 'On' : 'Off'}
+                </p>
+              </div>
+              <Phone className="h-8 w-8 text-purple-500/30" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -428,8 +499,14 @@ export default function BirthdayAutomations() {
 
       </div>
 
-      {/* Save Button */}
-      <div className="flex justify-end">
+      {/* Timezone + Save */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-500/10 rounded-lg border border-blue-200 dark:border-blue-500/20">
+          <Globe className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+          <span className="text-sm text-blue-700 dark:text-blue-300">
+            Times are in your organization's timezone: <strong>{currentOrganization?.timezone || 'America/New_York'}</strong>
+          </span>
+        </div>
         <Button onClick={handleSave} disabled={saving} size="lg" className="bg-pink-600 hover:bg-pink-700 text-white shadow-md">
           {saving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Save className="mr-2 h-5 w-5" />}
           Save All Changes

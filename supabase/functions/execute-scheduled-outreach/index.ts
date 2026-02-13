@@ -46,15 +46,15 @@ serve(async (req) => {
                     .eq("id", outreach.id);
 
                 // Get recipients
-                let recipients: { id: string; phone: string; first_name: string }[] = [];
+                let recipients: { id: string; phone_number: string; first_name: string }[] = [];
 
                 if (outreach.recipient_type === "all") {
                     // Get all members with phone numbers
                     const { data: members } = await supabase
                         .from("people")
-                        .select("id, phone, first_name")
+                        .select("id, phone_number, first_name")
                         .eq("organization_id", outreach.organization_id)
-                        .not("phone", "is", null);
+                        .not("phone_number", "is", null);
                     recipients = members || [];
                 } else if (outreach.recipient_type === "group" && outreach.recipient_ids?.length > 0) {
                     // Get members of specific group(s)
@@ -64,7 +64,7 @@ serve(async (req) => {
                         .select(`
               people:person_id (
                 id,
-                phone,
+                phone_number,
                 first_name
               )
             `)
@@ -72,7 +72,7 @@ serve(async (req) => {
 
                     recipients = (groupMembers || [])
                         .map((gm: any) => gm.people)
-                        .filter((p: any) => p && p.phone);
+                        .filter((p: any) => p && p.phone_number);
                 }
 
                 console.log(`Found ${recipients.length} recipients for outreach ${outreach.id}`);
@@ -92,7 +92,7 @@ serve(async (req) => {
 
                             const { error: smsError } = await supabase.functions.invoke("send-sms", {
                                 body: {
-                                    to: recipient.phone,
+                                    to: recipient.phone_number,
                                     message: personalizedContent,
                                     organization_id: outreach.organization_id,
                                 },
@@ -101,7 +101,7 @@ serve(async (req) => {
                             if (smsError) throw smsError;
                             sentCount++;
                         } catch (err) {
-                            console.error(`Failed to send SMS to ${recipient.phone}:`, err);
+                            console.error(`Failed to send SMS to ${recipient.phone_number}:`, err);
                             failedCount++;
                         }
                     }

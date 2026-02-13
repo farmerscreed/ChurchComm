@@ -237,9 +237,15 @@ export default function EventTriggers() {
     switch (type) {
       case 'group_join': return <Users className="h-5 w-5 text-blue-500" />;
       case 'first_visit': return <CheckCircle2 className="h-5 w-5 text-emerald-500" />;
+      case 'group_leave': return <XCircle className="h-5 w-5 text-red-500" />;
       default: return <Zap className="h-5 w-5 text-amber-500" />;
     }
   };
+
+  const activeCount = automations.filter(a => a.status === 'active').length;
+  const pausedCount = automations.filter(a => a.status === 'paused').length;
+  const smsCount = automations.filter(a => a.action_type === 'send_sms').length;
+  const callCount = automations.filter(a => a.action_type === 'make_call').length;
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-8">
@@ -274,6 +280,54 @@ export default function EventTriggers() {
             Create Trigger
           </Button>
         </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-white dark:bg-white/5 border-slate-200 dark:border-white/10">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Total Triggers</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">{automations.length}</p>
+              </div>
+              <Zap className="h-8 w-8 text-amber-500/30" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-white dark:bg-white/5 border-slate-200 dark:border-white/10">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Active</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">{activeCount}</p>
+              </div>
+              <Play className="h-8 w-8 text-emerald-500/30" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-white dark:bg-white/5 border-slate-200 dark:border-white/10">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500 dark:text-slate-400">SMS Actions</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">{smsCount}</p>
+              </div>
+              <MessageSquare className="h-8 w-8 text-green-500/30" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-white dark:bg-white/5 border-slate-200 dark:border-white/10">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500 dark:text-slate-400">AI Call Actions</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">{callCount}</p>
+              </div>
+              <Phone className="h-8 w-8 text-purple-500/30" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {loading ? (
@@ -392,29 +446,47 @@ export default function EventTriggers() {
                 <Label className="text-base font-medium">When should this happen?</Label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {[
-                    { id: 'group_join', label: 'Joins Group', icon: Users, color: 'blue' },
-                    { id: 'first_visit', label: 'First Visit', icon: CheckCircle2, color: 'emerald' },
-                    { id: 'group_leave', label: 'Leaves Group', icon: XCircle, color: 'red' }
+                    {
+                      id: 'group_join', label: 'Joins Group', icon: Users,
+                      activeBorder: 'border-blue-500', activeBg: 'bg-blue-50 dark:bg-blue-900/10',
+                      activeIcon: 'bg-blue-500 text-white', activeText: 'text-blue-600 dark:text-blue-400',
+                    },
+                    {
+                      id: 'first_visit', label: 'First Visit', icon: CheckCircle2,
+                      activeBorder: 'border-emerald-500', activeBg: 'bg-emerald-50 dark:bg-emerald-900/10',
+                      activeIcon: 'bg-emerald-500 text-white', activeText: 'text-emerald-600 dark:text-emerald-400',
+                    },
+                    {
+                      id: 'group_leave', label: 'Leaves Group', icon: XCircle,
+                      activeBorder: 'border-red-500', activeBg: 'bg-red-50 dark:bg-red-900/10',
+                      activeIcon: 'bg-red-500 text-white', activeText: 'text-red-600 dark:text-red-400',
+                    }
                   ].map((trigger) => (
                     <div
                       key={trigger.id}
                       onClick={() => setFormData(prev => ({ ...prev, triggerType: trigger.id }))}
-                      className={`cursor-pointer relative overflow-hidden rounded-xl border-2 p-3 transition-all duration-200 hover:shadow-md ${formData.triggerType === trigger.id
-                        ? `border-${trigger.color}-500 bg-${trigger.color}-50 dark:bg-${trigger.color}-900/10`
-                        : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                        }`}
+                      className={cn(
+                        'cursor-pointer relative overflow-hidden rounded-xl border-2 p-3 transition-all duration-200 hover:shadow-md',
+                        formData.triggerType === trigger.id
+                          ? `${trigger.activeBorder} ${trigger.activeBg}`
+                          : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                      )}
                     >
                       <div className="flex flex-col items-center text-center gap-2">
-                        <div className={`p-2 rounded-full ${formData.triggerType === trigger.id
-                          ? `bg-${trigger.color}-500 text-white`
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
-                          }`}>
+                        <div className={cn(
+                          'p-2 rounded-full',
+                          formData.triggerType === trigger.id
+                            ? trigger.activeIcon
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                        )}>
                           <trigger.icon className="h-5 w-5" />
                         </div>
-                        <span className={`text-sm font-semibold ${formData.triggerType === trigger.id
-                          ? `text-${trigger.color}-600 dark:text-${trigger.color}-400`
-                          : 'text-slate-600 dark:text-slate-400'
-                          }`}>
+                        <span className={cn(
+                          'text-sm font-semibold',
+                          formData.triggerType === trigger.id
+                            ? trigger.activeText
+                            : 'text-slate-600 dark:text-slate-400'
+                        )}>
                           {trigger.label}
                         </span>
                       </div>

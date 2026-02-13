@@ -160,11 +160,31 @@ export default function ScheduledOutreach() {
             return;
         }
 
-        // The time the user enters is interpreted as their browser's local timezone
-        // and converted to UTC for storage. The scheduled_for column is timestamp with time zone.
-        const scheduledFor = new Date(
-            `${formData.scheduledDate}T${formData.scheduledTime}`
-        ).toISOString();
+        // Interpret the user's date/time input as the organization's timezone
+        // and convert to UTC for storage. The scheduled_for column is timestamp with time zone.
+        const orgTimezone = currentOrganization?.timezone || 'America/New_York';
+        const localDateTimeStr = `${formData.scheduledDate}T${formData.scheduledTime}:00`;
+
+        // Build a Date object in the org's timezone by calculating the UTC offset
+        // Using Intl.DateTimeFormat to determine the offset for the org's timezone
+        const tempDate = new Date(localDateTimeStr + 'Z'); // treat as UTC temporarily
+        const utcFormatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: orgTimezone,
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
+            hour12: false,
+        });
+        // Get what UTC time looks like in the org's timezone
+        const orgParts = utcFormatter.formatToParts(tempDate);
+        const getPartValue = (type: string) => orgParts.find(p => p.type === type)?.value || '0';
+        const orgViewOfUtc = new Date(
+            `${getPartValue('year')}-${getPartValue('month')}-${getPartValue('day')}T${getPartValue('hour')}:${getPartValue('minute')}:${getPartValue('second')}Z`
+        );
+        // The offset is the difference between UTC and what UTC looks like in the org TZ
+        const offsetMs = orgViewOfUtc.getTime() - tempDate.getTime();
+        // Subtract the offset from the user's intended local time to get UTC
+        const utcTime = new Date(tempDate.getTime() - offsetMs);
+        const scheduledFor = utcTime.toISOString();
 
         setScheduling(true);
         try {
@@ -341,23 +361,23 @@ export default function ScheduledOutreach() {
 
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card className="bg-white/5 border-white/10">
+                <Card className="bg-white dark:bg-white/5 border-slate-200 dark:border-white/10">
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-slate-400">Scheduled</p>
-                                <p className="text-2xl font-bold text-white">{scheduledOutreaches.length}</p>
+                                <p className="text-sm text-slate-500 dark:text-slate-400">Scheduled</p>
+                                <p className="text-2xl font-bold text-slate-900 dark:text-white">{scheduledOutreaches.length}</p>
                             </div>
                             <Clock className="h-8 w-8 text-blue-500/30" />
                         </div>
                     </CardContent>
                 </Card>
-                <Card className="bg-white/5 border-white/10">
+                <Card className="bg-white dark:bg-white/5 border-slate-200 dark:border-white/10">
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-slate-400">SMS Queued</p>
-                                <p className="text-2xl font-bold text-white">
+                                <p className="text-sm text-slate-500 dark:text-slate-400">SMS Queued</p>
+                                <p className="text-2xl font-bold text-slate-900 dark:text-white">
                                     {scheduledOutreaches.filter(o => o.message_type === 'sms').length}
                                 </p>
                             </div>
@@ -365,12 +385,12 @@ export default function ScheduledOutreach() {
                         </div>
                     </CardContent>
                 </Card>
-                <Card className="bg-white/5 border-white/10">
+                <Card className="bg-white dark:bg-white/5 border-slate-200 dark:border-white/10">
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-slate-400">AI Calls Queued</p>
-                                <p className="text-2xl font-bold text-white">
+                                <p className="text-sm text-slate-500 dark:text-slate-400">AI Calls Queued</p>
+                                <p className="text-2xl font-bold text-slate-900 dark:text-white">
                                     {scheduledOutreaches.filter(o => o.message_type === 'call').length}
                                 </p>
                             </div>
@@ -378,12 +398,12 @@ export default function ScheduledOutreach() {
                         </div>
                     </CardContent>
                 </Card>
-                <Card className="bg-white/5 border-white/10">
+                <Card className="bg-white dark:bg-white/5 border-slate-200 dark:border-white/10">
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-slate-400">Completed</p>
-                                <p className="text-2xl font-bold text-white">
+                                <p className="text-sm text-slate-500 dark:text-slate-400">Completed</p>
+                                <p className="text-2xl font-bold text-slate-900 dark:text-white">
                                     {completedOutreaches.filter(o => o.status === 'sent' || o.status === 'completed').length}
                                 </p>
                             </div>
@@ -394,27 +414,27 @@ export default function ScheduledOutreach() {
             </div>
 
             {/* Scheduled Outreaches */}
-            <Card className="bg-white/5 border-white/10">
+            <Card className="bg-white dark:bg-white/5 border-slate-200 dark:border-white/10">
                 <CardHeader>
-                    <CardTitle className="text-white">Upcoming Outreach</CardTitle>
+                    <CardTitle className="text-slate-900 dark:text-white">Upcoming Outreach</CardTitle>
                     <CardDescription>Scheduled SMS and AI Calls waiting to be sent</CardDescription>
                 </CardHeader>
                 <CardContent>
                     {loading ? (
                         <div className="space-y-3">
                             {[1, 2, 3].map((i) => (
-                                <div key={i} className="p-4 border border-white/10 rounded-lg">
-                                    <Skeleton className="h-5 w-40 mb-2 bg-white/10" />
-                                    <Skeleton className="h-4 w-full mb-2 bg-white/10" />
-                                    <Skeleton className="h-4 w-24 bg-white/10" />
+                                <div key={i} className="p-4 border border-slate-200 dark:border-white/10 rounded-lg">
+                                    <Skeleton className="h-5 w-40 mb-2 bg-slate-100 dark:bg-white/10" />
+                                    <Skeleton className="h-4 w-full mb-2 bg-slate-100 dark:bg-white/10" />
+                                    <Skeleton className="h-4 w-24 bg-slate-100 dark:bg-white/10" />
                                 </div>
                             ))}
                         </div>
                     ) : scheduledOutreaches.length === 0 ? (
                         <div className="text-center py-12">
                             <CalendarClock className="h-12 w-12 text-slate-500 mx-auto mb-4" />
-                            <h3 className="font-medium text-white mb-1">No scheduled outreach</h3>
-                            <p className="text-sm text-slate-400 mb-4">
+                            <h3 className="font-medium text-slate-900 dark:text-white mb-1">No scheduled outreach</h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
                                 Schedule your first SMS or AI Call campaign
                             </p>
                             <Button onClick={() => setShowCreateDialog(true)}>
@@ -427,7 +447,7 @@ export default function ScheduledOutreach() {
                             {scheduledOutreaches.map((outreach) => (
                                 <div
                                     key={outreach.id}
-                                    className="p-4 border border-white/10 rounded-lg hover:bg-white/5 transition-colors"
+                                    className="p-4 border border-slate-200 dark:border-white/10 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
                                 >
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex items-start gap-3">
@@ -451,7 +471,7 @@ export default function ScheduledOutreach() {
                                                     </Badge>
                                                     {getStatusBadge(outreach.status)}
                                                 </div>
-                                                <p className="text-sm text-slate-300 line-clamp-2">{outreach.content}</p>
+                                                <p className="text-sm text-slate-600 dark:text-slate-300 line-clamp-2">{outreach.content}</p>
                                             </div>
                                         </div>
                                         <DropdownMenu>
@@ -475,7 +495,7 @@ export default function ScheduledOutreach() {
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </div>
-                                    <div className="flex items-center gap-4 text-sm text-slate-400 flex-wrap">
+                                    <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400 flex-wrap">
                                         <span className="flex items-center gap-1">
                                             <Users className="h-4 w-4" />
                                             {getRecipientLabel(outreach)}
@@ -491,7 +511,7 @@ export default function ScheduledOutreach() {
                                                 minute: '2-digit',
                                             })}
                                         </span>
-                                        <Badge variant="secondary" className="ml-auto bg-white/10 text-slate-300">
+                                        <Badge variant="secondary" className="ml-auto bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300">
                                             {formatTimeUntil(outreach.scheduled_for)}
                                         </Badge>
                                     </div>
@@ -504,9 +524,9 @@ export default function ScheduledOutreach() {
 
             {/* History */}
             {completedOutreaches.length > 0 && (
-                <Card className="bg-white/5 border-white/10">
+                <Card className="bg-white dark:bg-white/5 border-slate-200 dark:border-white/10">
                     <CardHeader>
-                        <CardTitle className="text-white">Outreach History</CardTitle>
+                        <CardTitle className="text-slate-900 dark:text-white">Outreach History</CardTitle>
                         <CardDescription>Previously sent campaigns</CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -514,7 +534,7 @@ export default function ScheduledOutreach() {
                             {completedOutreaches.slice(0, 10).map((outreach) => (
                                 <div
                                     key={outreach.id}
-                                    className="p-4 border border-white/10 rounded-lg opacity-75"
+                                    className="p-4 border border-slate-200 dark:border-white/10 rounded-lg opacity-75"
                                 >
                                     <div className="flex items-start justify-between mb-2">
                                         <div className="flex items-center gap-2">
@@ -531,7 +551,7 @@ export default function ScheduledOutreach() {
                                             {new Date(outreach.scheduled_for).toLocaleDateString()}
                                         </span>
                                     </div>
-                                    <p className="text-sm line-clamp-1 text-slate-400">
+                                    <p className="text-sm line-clamp-1 text-slate-600 dark:text-slate-400">
                                         {outreach.content}
                                     </p>
                                     {(outreach.status === 'sent' || outreach.status === 'completed') && (
@@ -549,14 +569,14 @@ export default function ScheduledOutreach() {
 
             {/* Create Dialog */}
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-                <DialogContent className="sm:max-w-xl bg-slate-950 border-white/10 max-h-[90vh] overflow-y-auto p-0 gap-0">
-                    <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 p-6 border-b border-white/10">
+                <DialogContent className="sm:max-w-xl bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 max-h-[90vh] overflow-y-auto p-0 gap-0">
+                    <div className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 dark:from-blue-600/20 dark:to-purple-600/20 p-6 border-b border-slate-200 dark:border-white/10">
                         <DialogHeader className="p-0">
-                            <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
-                                <CalendarClock className="h-6 w-6 text-blue-400" />
+                            <DialogTitle className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <CalendarClock className="h-6 w-6 text-blue-500 dark:text-blue-400" />
                                 Schedule Outreach
                             </DialogTitle>
-                            <DialogDescription className="text-slate-400 text-base">
+                            <DialogDescription className="text-slate-500 dark:text-slate-400 text-base">
                                 Setup a new campaign to reach your members.
                             </DialogDescription>
                         </DialogHeader>
@@ -564,24 +584,24 @@ export default function ScheduledOutreach() {
                     <div className="space-y-6 p-6">
                         {/* Outreach Type */}
                         <div className="space-y-4">
-                            <Label className="text-slate-300 text-base font-medium">What type of outreach?</Label>
+                            <Label className="text-slate-700 dark:text-slate-300 text-base font-medium">What type of outreach?</Label>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div
                                     onClick={() => setFormData({ ...formData, outreachType: 'sms' })}
                                     className={`cursor-pointer relative overflow-hidden rounded-xl border-2 p-4 transition-all duration-200 hover:shadow-lg ${formData.outreachType === 'sms'
                                             ? 'border-green-500 bg-green-500/10 shadow-green-900/20'
-                                            : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
+                                            : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 hover:border-slate-300 dark:hover:border-white/20 hover:bg-slate-100 dark:hover:bg-white/10'
                                         }`}
                                 >
                                     <div className="flex items-start gap-3">
-                                        <div className={`p-3 rounded-full ${formData.outreachType === 'sms' ? 'bg-green-500 text-white' : 'bg-white/10 text-slate-400'
+                                        <div className={`p-3 rounded-full ${formData.outreachType === 'sms' ? 'bg-green-500 text-white' : 'bg-slate-100 dark:bg-white/10 text-slate-400'
                                             }`}>
                                             <MessageSquare className="h-6 w-6" />
                                         </div>
                                         <div>
-                                            <h3 className={`font-bold ${formData.outreachType === 'sms' ? 'text-green-400' : 'text-slate-200'
+                                            <h3 className={`font-bold ${formData.outreachType === 'sms' ? 'text-green-600 dark:text-green-400' : 'text-slate-700 dark:text-slate-200'
                                                 }`}>Send SMS</h3>
-                                            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
                                                 Send a text message directly to members' phones.
                                             </p>
                                         </div>
@@ -592,18 +612,18 @@ export default function ScheduledOutreach() {
                                     onClick={() => setFormData({ ...formData, outreachType: 'call' })}
                                     className={`cursor-pointer relative overflow-hidden rounded-xl border-2 p-4 transition-all duration-200 hover:shadow-lg ${formData.outreachType === 'call'
                                             ? 'border-purple-500 bg-purple-500/10 shadow-purple-900/20'
-                                            : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
+                                            : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 hover:border-slate-300 dark:hover:border-white/20 hover:bg-slate-100 dark:hover:bg-white/10'
                                         }`}
                                 >
                                     <div className="flex items-start gap-3">
-                                        <div className={`p-3 rounded-full ${formData.outreachType === 'call' ? 'bg-purple-500 text-white' : 'bg-white/10 text-slate-400'
+                                        <div className={`p-3 rounded-full ${formData.outreachType === 'call' ? 'bg-purple-500 text-white' : 'bg-slate-100 dark:bg-white/10 text-slate-400'
                                             }`}>
                                             <Phone className="h-6 w-6" />
                                         </div>
                                         <div>
-                                            <h3 className={`font-bold ${formData.outreachType === 'call' ? 'text-purple-400' : 'text-slate-200'
+                                            <h3 className={`font-bold ${formData.outreachType === 'call' ? 'text-purple-600 dark:text-purple-400' : 'text-slate-700 dark:text-slate-200'
                                                 }`}>AI Voice Call</h3>
-                                            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
                                                 Initiate an interactive AI phone call to members.
                                             </p>
                                         </div>
@@ -614,12 +634,12 @@ export default function ScheduledOutreach() {
 
                         {/* Recipients */}
                         <div className="space-y-2">
-                            <Label className="text-slate-300">Recipients</Label>
+                            <Label className="text-slate-700 dark:text-slate-300">Recipients</Label>
                             <Select
                                 value={formData.recipientType}
                                 onValueChange={(value) => setFormData({ ...formData, recipientType: value })}
                             >
-                                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                                <SelectTrigger className="bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -631,12 +651,12 @@ export default function ScheduledOutreach() {
 
                         {formData.recipientType === 'group' && (
                             <div className="space-y-2">
-                                <Label className="text-slate-300">Select Group</Label>
+                                <Label className="text-slate-700 dark:text-slate-300">Select Group</Label>
                                 <Select
                                     value={formData.groupId}
                                     onValueChange={(value) => setFormData({ ...formData, groupId: value })}
                                 >
-                                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                                    <SelectTrigger className="bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
                                         <SelectValue placeholder="Choose a group" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -653,13 +673,13 @@ export default function ScheduledOutreach() {
                         {/* SMS Message */}
                         {formData.outreachType === 'sms' && (
                             <div className="space-y-2">
-                                <Label className="text-slate-300">Message</Label>
+                                <Label className="text-slate-700 dark:text-slate-300">Message</Label>
                                 <Textarea
                                     rows={4}
                                     value={formData.content}
                                     onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                                     placeholder="Enter your message..."
-                                    className="bg-white/5 border-white/10 text-white placeholder:text-slate-500"
+                                    className="bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
                                 />
                                 <p className="text-xs text-slate-500">
                                     Use {'{Name}'} to personalize the message
@@ -670,12 +690,12 @@ export default function ScheduledOutreach() {
                         {/* AI Call Script */}
                         {formData.outreachType === 'call' && (
                             <div className="space-y-2">
-                                <Label className="text-slate-300">Call Script</Label>
+                                <Label className="text-slate-700 dark:text-slate-300">Call Script</Label>
                                 <Select
                                     value={formData.scriptId}
                                     onValueChange={(value) => setFormData({ ...formData, scriptId: value })}
                                 >
-                                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                                    <SelectTrigger className="bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
                                         <SelectValue placeholder="Select a script" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -701,39 +721,39 @@ export default function ScheduledOutreach() {
                         {/* Date and Time */}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label className="text-slate-300">Date</Label>
+                                <Label className="text-slate-700 dark:text-slate-300">Date</Label>
                                 <Input
                                     type="date"
                                     min={getMinDate()}
                                     value={formData.scheduledDate}
                                     onChange={(e) => setFormData({ ...formData, scheduledDate: e.target.value })}
-                                    className="bg-white/5 border-white/10 text-white"
+                                    className="bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-slate-300">Time</Label>
+                                <Label className="text-slate-700 dark:text-slate-300">Time</Label>
                                 <Input
                                     type="time"
                                     value={formData.scheduledTime}
                                     onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
-                                    className="bg-white/5 border-white/10 text-white"
+                                    className="bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white"
                                 />
                             </div>
                         </div>
 
                         {/* Timezone info */}
-                        <div className="flex items-center gap-2 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
-                            <Globe className="h-4 w-4 text-blue-400" />
-                            <span className="text-sm text-blue-300">
+                        <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-500/10 rounded-lg border border-blue-200 dark:border-blue-500/20">
+                            <Globe className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                            <span className="text-sm text-blue-700 dark:text-blue-300">
                                 Times are in your organization's timezone: <strong>{currentOrganization?.timezone || 'America/New_York'}</strong>
                             </span>
                         </div>
                     </div>
-                    <DialogFooter className="p-6 pt-2 bg-slate-950/50 backdrop-blur-sm sticky bottom-0 border-t border-white/5">
+                    <DialogFooter className="p-6 pt-2 bg-slate-50 dark:bg-slate-950/50 backdrop-blur-sm sticky bottom-0 border-t border-slate-200 dark:border-white/5">
                         <Button
                             variant="outline"
                             onClick={() => setShowCreateDialog(false)}
-                            className="border-white/10 text-slate-300 hover:bg-white/5 hover:text-white"
+                            className="border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white"
                         >
                             Cancel
                         </Button>

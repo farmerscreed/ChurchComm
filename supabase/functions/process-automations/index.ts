@@ -263,7 +263,7 @@ async function processBirthdayAutomation(
       const message = personalizeMessage(messageTemplate, person, org);
 
       // Send message based on action_type
-      if (automation.action_type === "sms" && person.phone_number) {
+      if ((automation.action_type === "send_sms" || automation.action_type === "sms") && person.phone_number) {
         await sendSMS(supabase, person.phone_number, message, automation.organization_id);
         results.messagesSent++;
 
@@ -361,7 +361,7 @@ async function processMembershipAnniversary(
         org
       );
 
-      if (automation.action_type === "sms" && person.phone_number) {
+      if ((automation.action_type === "send_sms" || automation.action_type === "sms") && person.phone_number) {
         await sendSMS(supabase, person.phone_number, message, automation.organization_id);
         results.messagesSent++;
 
@@ -399,6 +399,7 @@ function personalizeMessage(
     .replace(/{Name}/gi, person.first_name || "")
     .replace(/{FirstName}/gi, person.first_name || "")
     .replace(/{LastName}/gi, person.last_name || "")
+    .replace(/{Church}/gi, org.name || "")
     .replace(/{ChurchName}/gi, org.name || "")
     .replace(/{OrganizationName}/gi, org.name || "");
 }
