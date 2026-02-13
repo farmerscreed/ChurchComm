@@ -71,7 +71,7 @@ export default function Dashboard() {
       // 3. Recent Calls
       const { data: callData } = await supabase
         .from("call_attempts")
-        .select("id, status, attempted_at, people(first_name, last_name)")
+        .select("id, status, attempted_at, trigger_type, people(first_name, last_name)")
         .eq("organization_id", currentOrganization?.id)
         .order("attempted_at", { ascending: false, nullsFirst: false })
         .limit(5);
@@ -79,6 +79,7 @@ export default function Dashboard() {
       setRecentCalls((callData || []).map((c: any) => ({
         ...c,
         person_name: c.people ? `${c.people.first_name || ''} ${c.people.last_name || ''}`.trim() : 'Unknown',
+        trigger_type: c.trigger_type,
       })));
 
       // 4. Escalations
@@ -128,11 +129,13 @@ export default function Dashboard() {
 
       setMemberCount(peopleCount || 0);
 
-      // 8. Upcoming Calls (Next 24h) from scheduled_messages
+      // 8. Upcoming Calls (Next 24h)
+      // We combine 'scheduled_messages' (for SMS campaigns) and 'call_attempts' (for individual/auto calls)
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      const { data: upcomingData } = await supabase
+      // 8a. Scheduled SMS
+      const { data: upcomingSMS } = await supabase
         .from("scheduled_messages")
         .select("id, message_type, scheduled_for, content")
         .eq("organization_id", currentOrganization?.id)
@@ -141,12 +144,35 @@ export default function Dashboard() {
         .order("scheduled_for", { ascending: true })
         .limit(5);
 
-      setUpcomingCalls((upcomingData || []).map((c: any) => ({
-        id: c.id,
-        person_name: c.message_type === 'sms' ? 'SMS Campaign' : 'AI Call Campaign', // Placeholder as scheduled_messages might target groups
-        trigger_type: c.message_type,
-        scheduled_at: c.scheduled_for,
-      })));
+      // 8b. Scheduled Individual Calls (e.g. Birthday, First Timer)
+      const { data: upcomingCallsData } = await supabase
+        .from("call_attempts")
+        .select("id, trigger_type, scheduled_at, people(first_name, last_name)")
+        .eq("organization_id", currentOrganization?.id)
+        .eq("status", "scheduled")
+        .gte("scheduled_at", new Date().toISOString())
+        .lte("scheduled_at", tomorrow.toISOString())
+        .order("scheduled_at", { ascending: true })
+        .limit(5);
+
+      // Combine and Sort
+      const combinedUpcoming = [
+        ...(upcomingSMS || []).map((c: any) => ({
+          id: c.id,
+          person_name: 'SMS Campaign',
+          trigger_type: 'sms',
+          scheduled_at: c.scheduled_for,
+        })),
+        ...(upcomingCallsData || []).map((c: any) => ({
+          id: c.id,
+          person_name: c.people ? `${c.people.first_name || ''} ${c.people.last_name || ''}`.trim() : 'Unknown',
+          trigger_type: c.trigger_type || 'call',
+          scheduled_at: c.scheduled_at,
+        }))
+      ].sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())
+        .slice(0, 5);
+
+      setUpcomingCalls(combinedUpcoming);
 
     } catch (error) {
       console.error("Error fetching dashboard data:", error);

@@ -171,6 +171,7 @@ export default function Settings() {
     zip: '',
     country: 'USA'
   });
+  const [orgTimezone, setOrgTimezone] = useState('America/New_York');
   const [orgSocialMedia, setOrgSocialMedia] = useState({
     facebook: '',
     instagram: '',
@@ -216,6 +217,7 @@ export default function Settings() {
     setOrgEmail(currentOrganization.email || '');
     setOrgPhone(currentOrganization.phone || '');
     setOrgWebsite(currentOrganization.website || '');
+    setOrgTimezone(currentOrganization.timezone || 'America/New_York');
 
     if (currentOrganization.address) {
       setOrgAddress({
@@ -418,6 +420,7 @@ export default function Settings() {
           website: orgWebsite,
           address: orgAddress,
           social_media: orgSocialMedia,
+          timezone: orgTimezone,
           updated_at: new Date().toISOString()
         })
         .eq('id', currentOrganization.id);
@@ -682,6 +685,47 @@ export default function Settings() {
         </CardContent>
       </Card>
 
+      {/* Timezone & Location */}
+      <Card className="bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm">
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-indigo-500/20">
+              <Clock className="h-5 w-5 text-indigo-400" />
+            </div>
+            <div>
+              <CardTitle className="text-lg text-slate-50">Timezone & Location</CardTitle>
+              <CardDescription className="text-slate-400">Set your local time for automated actions</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="timezone">Organization Timezone</Label>
+            <Select value={orgTimezone} onValueChange={setOrgTimezone}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select timezone" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="America/New_York">Eastern Time (US & Canada)</SelectItem>
+                <SelectItem value="America/Chicago">Central Time (US & Canada)</SelectItem>
+                <SelectItem value="America/Denver">Mountain Time (US & Canada)</SelectItem>
+                <SelectItem value="America/Phoenix">Arizona</SelectItem>
+                <SelectItem value="America/Los_Angeles">Pacific Time (US & Canada)</SelectItem>
+                <SelectItem value="America/Anchorage">Alaska</SelectItem>
+                <SelectItem value="Pacific/Honolulu">Hawaii</SelectItem>
+                <SelectItem value="Europe/London">London</SelectItem>
+                <SelectItem value="Europe/Paris">Paris</SelectItem>
+                <SelectItem value="Australia/Sydney">Sydney</SelectItem>
+                <SelectItem value="Asia/Tokyo">Tokyo</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-slate-500">
+              This timezone will be used for all automated calls and messages.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Address */}
       <Card className="bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm">
         <CardHeader className="pb-4">
@@ -853,7 +897,7 @@ export default function Settings() {
           )}
         </Button>
       </div>
-    </div>
+    </div >
   );
 
   const renderTeamSection = () => (

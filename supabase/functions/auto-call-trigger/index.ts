@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
+import { zonedTimeToUtc } from 'https://esm.sh/date-fns-tz@2.0.0'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { buildEnhancedPrompt } from '../_shared/context-injection.ts'
 
@@ -164,10 +165,12 @@ async function processBirthdayTrigger(
   const now = new Date()
   const dateFormatter = new Intl.DateTimeFormat('en-US', {
     timeZone: timezone,
+    year: 'numeric',
     month: '2-digit',
     day: '2-digit',
   })
   const dateParts = dateFormatter.formatToParts(now)
+  const currentYear = dateParts.find(p => p.type === 'year')?.value
   const month = parseInt(dateParts.find(p => p.type === 'month')?.value || '1', 10)
   const day = parseInt(dateParts.find(p => p.type === 'day')?.value || '1', 10)
 
@@ -223,7 +226,13 @@ async function processBirthdayTrigger(
         provider: 'vapi',
         status: 'scheduled',
         trigger_type: 'birthday',
-        scheduled_at: new Date().toISOString(),
+        scheduled_at: (() => {
+          // Construct local time string: YYYY-MM-DD HH:mm:ss
+          const hour = String(trigger.delay_hours || 10).padStart(2, '0')
+          const dateStr = `${currentYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')} ${hour}:00:00`
+          const utcDate = zonedTimeToUtc(dateStr, timezone)
+          return utcDate.toISOString()
+        })(),
       })
 
     if (!insertError) {
@@ -241,8 +250,18 @@ async function processAnniversaryTrigger(
   trigger: AutoTrigger
 ): Promise<number> {
   const milestones = trigger.anniversary_milestones || [1, 6, 12]
-  const today = new Date()
-  const currentDay = today.getDate()
+  const timezone = org.timezone || 'America/New_York'
+  const now = new Date()
+  const dateFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+  const dateParts = dateFormatter.formatToParts(now)
+  const currentYear = parseInt(dateParts.find(p => p.type === 'year')?.value || '2024', 10)
+  const currentMonth = parseInt(dateParts.find(p => p.type === 'month')?.value || '1', 10)
+  const currentDay = parseInt(dateParts.find(p => p.type === 'day')?.value || '1', 10)
 
   console.log('Org ' + org.id + ': anniversary - milestones: ' + milestones.join(','))
 
@@ -268,13 +287,15 @@ async function processAnniversaryTrigger(
     if (joinDate.getDate() !== currentDay) continue
 
     // Calculate months since joining
-    const monthsSince = (today.getFullYear() - joinDate.getFullYear()) * 12 +
-      (today.getMonth() - joinDate.getMonth())
+    // Use currentMonth/currentYear (local) vs joinDate (might be UTC but we just need day of month matching usually)
+    // Actually, joinDate is UTC. But we care about "months passed".
+    const monthsSince = (currentYear - joinDate.getFullYear()) * 12 +
+      (currentMonth - (joinDate.getMonth() + 1))
 
     if (monthsSince <= 0 || !milestones.includes(monthsSince)) continue
 
     // Check for existing anniversary call this month
-    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
+    const monthStart = new Date(Date.UTC(currentYear, currentMonth - 1, 1))
     const { data: existing } = await supabase
       .from('call_attempts')
       .select('id')
@@ -295,7 +316,13 @@ async function processAnniversaryTrigger(
         provider: 'vapi',
         status: 'scheduled',
         trigger_type: 'anniversary',
-        scheduled_at: new Date().toISOString(),
+        scheduled_at: (() => {
+          // Construct local time string: YYYY-MM-DD HH:mm:ss
+          const hour = String(trigger.delay_hours || 10).padStart(2, '0')
+          const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay).padStart(2, '0')} ${hour}:00:00`
+          const utcDate = zonedTimeToUtc(dateStr, timezone)
+          return utcDate.toISOString()
+        })(),
       })
 
     if (!insertError) {
@@ -325,6 +352,7 @@ async function executeScheduledCalls(supabase: any, org: Organization): Promise<
     .select('id, person_id, script_id, trigger_type, phone_number, retry_count')
     .eq('organization_id', org.id)
     .eq('status', 'scheduled')
+    .lte('scheduled_at', new Date().toISOString())
     .limit(10) // Process max 10 at a time to avoid timeouts
 
   if (error || !scheduledCalls?.length) return 0

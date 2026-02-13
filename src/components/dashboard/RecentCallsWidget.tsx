@@ -8,6 +8,7 @@ interface RecentCall {
     person_name: string;
     status: string;
     attempted_at: string | null;
+    trigger_type?: string;
 }
 
 export function RecentCallsWidget({ calls }: { calls: RecentCall[] }) {
@@ -20,6 +21,17 @@ export function RecentCallsWidget({ calls }: { calls: RecentCall[] }) {
             case "scheduled": return <Clock className="h-4 w-4 text-blue-500" />;
             case "in-progress": return <Phone className="h-4 w-4 text-yellow-500 animate-pulse" />;
             default: return <Clock className="h-4 w-4 text-muted-foreground" />;
+        }
+    };
+
+    const getTriggerLabel = (type?: string) => {
+        if (!type) return "Call";
+        switch (type) {
+            case "birthday": return "Birthday";
+            case "first_timer": return "First Visit";
+            case "anniversary": return "Anniversary";
+            case "manual": return "Manual Call";
+            default: return type.replace("_", " ");
         }
     };
 
@@ -53,7 +65,12 @@ export function RecentCallsWidget({ calls }: { calls: RecentCall[] }) {
                             <div key={call.id} className="flex items-center justify-between">
                                 <div className="flex items-center gap-2.5">
                                     {getStatusIcon(call.status)}
-                                    <span className="text-sm truncate max-w-[150px]">{call.person_name}</span>
+                                    <div className="flex flex-col">
+                                        <span className="text-sm truncate max-w-[150px] font-medium">{call.person_name}</span>
+                                        <span className="text-[10px] text-muted-foreground capitalize">
+                                            {getTriggerLabel(call.trigger_type)}
+                                        </span>
+                                    </div>
                                 </div>
                                 <span className="text-xs text-muted-foreground whitespace-nowrap">
                                     {call.attempted_at ? formatDistanceToNow(new Date(call.attempted_at), { addSuffix: true }) : "Scheduled"}

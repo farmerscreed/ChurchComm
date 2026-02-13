@@ -418,7 +418,10 @@ export default function BirthdayAutomations() {
                   <SelectItem value="16">4:00 PM</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">Calls are constrained to your organizations calling window.</p>
+              <p className="text-xs text-muted-foreground">
+                Calls are constrained to your organizations calling window. <br />
+                Timezone: <span className="font-medium text-slate-700 dark:text-slate-300">{currentOrganization?.timezone || 'America/New_York'}</span>
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -543,6 +546,6 @@ export default function BirthdayAutomations() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </div >
   );
 }

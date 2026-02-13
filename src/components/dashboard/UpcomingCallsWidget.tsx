@@ -23,6 +23,7 @@ export function UpcomingCallsWidget({ calls }: { calls: UpcomingCall[] }) {
             case "birthday": return "Birthday";
             case "first_timer": return "Welcome";
             case "anniversary": return "Anniversary";
+            case "sms": return "SMS";
             default: return type?.replace("_", " ");
         }
     };
