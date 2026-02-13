@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,13 +14,15 @@ export function BillingSettings() {
     const [loading, setLoading] = useState(false);
     const { currentOrganization } = useAuthStore();
     const { toast } = useToast();
+    const navigate = useNavigate();
 
     const subscriptionPlan = currentOrganization?.subscription_plan || "free";
     const subscriptionStatus = currentOrganization?.subscription_status || "active";
-    const minutesUsed = (currentOrganization as any)?.minutes_used || 0;
-    const minutesIncluded = (currentOrganization as any)?.minutes_included || 15;
-    const trialEndsAt = (currentOrganization as any)?.trial_ends_at;
-    const currentPeriodEnd = (currentOrganization as any)?.current_period_end;
+    const minutesUsed = currentOrganization?.minutes_used || 0;
+    const minutesIncluded = currentOrganization?.minutes_included || 15;
+    const trialEndsAt = currentOrganization?.trial_ends_at;
+    const currentPeriodEnd = currentOrganization?.current_period_end;
+    const billingCycle = currentOrganization?.billing_cycle;
 
     const minutesPercentage = Math.min((minutesUsed / minutesIncluded) * 100, 100);
     const isTrialing = subscriptionStatus === "trialing";
@@ -29,6 +32,16 @@ export function BillingSettings() {
     const handleManageBilling = async () => {
         if (!currentOrganization?.id) return;
 
+        // If no Stripe customer exists yet, redirect to pricing to subscribe first
+        if (!currentOrganization.stripe_customer_id) {
+            toast({
+                title: "No Active Subscription",
+                description: "Subscribe to a plan first to manage your billing.",
+            });
+            navigate("/pricing");
+            return;
+        }
+
         setLoading(true);
         try {
             const { data, error } = await supabase.functions.invoke("stripe-portal", {
@@ -37,6 +50,11 @@ export function BillingSettings() {
 
             if (error) throw error;
 
+            // Edge function returns error in response body for non-200 status
+            if (data?.error) {
+                throw new Error(data.error);
+            }
+
             if (data?.url) {
                 window.location.href = data.url;
             } else {
@@ -44,8 +62,8 @@ export function BillingSettings() {
             }
         } catch (error: any) {
             toast({
-                title: "Error",
-                description: error.message || "Failed to open billing portal",
+                title: "Billing Portal Error",
+                description: error.message || "Failed to open billing portal. Please try again.",
                 variant: "destructive",
             });
         } finally {
@@ -113,6 +131,11 @@ export function BillingSettings() {
                             <p className="text-2xl font-bold">{getPlanName()}</p>
                             <div className="flex items-center gap-2 mt-1">
                                 {getStatusBadge()}
+                                {billingCycle && (
+                                    <Badge variant="outline" className="text-xs">
+                                        {billingCycle === 'annual' ? 'Annual' : 'Monthly'}
+                                    </Badge>
+                                )}
                                 {isTrialing && trialEndsAt && (
                                     <span className="text-sm text-muted-foreground">
                                         Trial ends {new Date(trialEndsAt).toLocaleDateString()}
@@ -171,7 +194,7 @@ export function BillingSettings() {
                                 Upgrade your plan for more AI calling capacity
                             </p>
                         </div>
-                        <Button variant="outline" onClick={() => window.location.href = "/pricing"}>
+                        <Button variant="outline" onClick={() => navigate("/pricing")}>
                             View Plans
                         </Button>
                     </div>

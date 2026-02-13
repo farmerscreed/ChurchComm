@@ -15,16 +15,16 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
 // Replace these with your actual Stripe price IDs
 const PRICE_IDS: Record<string, Record<string, string>> = {
     starter: {
-        monthly: Deno.env.get("STRIPE_PRICE_STARTER_MONTHLY") ?? "price_starter_monthly",
-        annual: Deno.env.get("STRIPE_PRICE_STARTER_ANNUAL") ?? "price_starter_annual",
+        monthly: Deno.env.get("STRIPE_PRICE_STARTER_MONTHLY") ?? "price_1T0MOi2K7IK9U3AnzKhOKntc",
+        annual: Deno.env.get("STRIPE_PRICE_STARTER_ANNUAL") ?? "price_1T0MOj2K7IK9U3Anx3RDsWkc",
     },
     growth: {
-        monthly: Deno.env.get("STRIPE_PRICE_GROWTH_MONTHLY") ?? "price_growth_monthly",
-        annual: Deno.env.get("STRIPE_PRICE_GROWTH_ANNUAL") ?? "price_growth_annual",
+        monthly: Deno.env.get("STRIPE_PRICE_GROWTH_MONTHLY") ?? "price_1T0MOk2K7IK9U3Anoyr56Z44",
+        annual: Deno.env.get("STRIPE_PRICE_GROWTH_ANNUAL") ?? "price_1T0MOl2K7IK9U3AnIhLUWhql",
     },
     enterprise: {
-        monthly: Deno.env.get("STRIPE_PRICE_ENTERPRISE_MONTHLY") ?? "price_enterprise_monthly",
-        annual: Deno.env.get("STRIPE_PRICE_ENTERPRISE_ANNUAL") ?? "price_enterprise_annual",
+        monthly: Deno.env.get("STRIPE_PRICE_ENTERPRISE_MONTHLY") ?? "price_1T0MOl2K7IK9U3AnBBnLOft1",
+        annual: Deno.env.get("STRIPE_PRICE_ENTERPRISE_ANNUAL") ?? "price_1T0MOm2K7IK9U3AnJYJVRMzF",
     },
 };
 
@@ -41,23 +41,26 @@ serve(async (req) => {
 
         // Get authenticated user
         const authHeader = req.headers.get("Authorization");
+        console.log("Auth header present:", !!authHeader);
         if (!authHeader) {
+            console.error("Missing authorization header");
             return new Response(JSON.stringify({ error: "Missing authorization header" }), {
                 status: 401,
                 headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
         }
 
-        const { data: { user }, error: authError } = await supabase.auth.getUser(
-            authHeader.replace("Bearer ", "")
-        );
+        const token = authHeader.replace("Bearer ", "");
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
         if (authError || !user) {
-            return new Response(JSON.stringify({ error: "Unauthorized" }), {
+            console.error("Auth error:", authError?.message, "User found:", !!user);
+            return new Response(JSON.stringify({ error: "Unauthorized", details: authError?.message }), {
                 status: 401,
                 headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
         }
+        console.log("Authenticated user:", user.id);
 
         const { tier, billing_cycle, organization_id } = await req.json();
 
@@ -136,7 +139,7 @@ serve(async (req) => {
         }
 
         // Create Stripe checkout session
-        const appUrl = Deno.env.get("APP_URL") ?? "http://localhost:8080";
+        const appUrl = Deno.env.get("APP_URL") ?? "https://keepflock.com";
 
         const session = await stripe.checkout.sessions.create({
             customer: customerId,

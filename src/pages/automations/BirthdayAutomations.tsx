@@ -123,7 +123,7 @@ export default function BirthdayAutomations() {
         name: 'Birthday Greetings',
         trigger_type: 'birthday',
         status: config.status,
-        action_type: 'sms',
+        action_type: 'send_sms',
         action_config: {
           message_template: config.message,
         },

@@ -16,6 +16,14 @@ type Organization = {
   subscription_plan?: string;
   subscription_status?: string;
   stripe_customer_id?: string;
+  stripe_subscription_id?: string;
+  subscription_tier?: string;
+  billing_cycle?: string;
+  trial_ends_at?: string;
+  credit_card_on_file?: boolean;
+  current_period_end?: string;
+  minutes_included?: number;
+  minutes_used?: number;
   member_count?: number;
   timezone?: string;
   created_at: string;

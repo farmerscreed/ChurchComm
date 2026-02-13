@@ -201,16 +201,31 @@ export default function PricingPage() {
                         <span className="text-sm font-medium text-white">Pricing</span>
                     </div>
                     <div className="flex items-center gap-4">
-                        <Link to="/login">
-                            <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-white/5">
-                                Sign In
-                            </Button>
-                        </Link>
-                        <Link to="/login">
-                            <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white border-0">
-                                Get Started
-                            </Button>
-                        </Link>
+                        {user ? (
+                            <>
+                                <Link to="/dashboard">
+                                    <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-white/5">
+                                        Dashboard
+                                    </Button>
+                                </Link>
+                                <span className="text-sm text-slate-400 hidden md:inline">
+                                    {user.email}
+                                </span>
+                            </>
+                        ) : (
+                            <>
+                                <Link to="/login">
+                                    <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-white/5">
+                                        Sign In
+                                    </Button>
+                                </Link>
+                                <Link to="/login">
+                                    <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white border-0">
+                                        Get Started
+                                    </Button>
+                                </Link>
+                            </>
+                        )}
                     </div>
                 </div>
             </nav>

@@ -1,9 +1,10 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PeopleDirectory } from '@/components/people/PeopleDirectory';
 import { CSVUpload } from '@/components/people/CSVUpload';
-import { Users, Upload } from 'lucide-react';
+import { Users, Upload, HelpCircle } from 'lucide-react';
 
 export default function People() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -92,6 +93,17 @@ export default function People() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Help Link */}
+      <div className="flex justify-center pt-2">
+        <div className="border-dashed border-2 dark:border-slate-800 rounded-xl px-6 py-4 text-center text-slate-500 dark:text-slate-400">
+          <HelpCircle className="h-5 w-5 mx-auto mb-1 opacity-50" />
+          <p className="text-sm">Need help getting started?</p>
+          <Link to="/people/docs" className="text-sm text-emerald-500 font-medium hover:underline">
+            View People Guide
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

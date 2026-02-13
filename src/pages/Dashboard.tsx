@@ -37,7 +37,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   // Widget Data States
-  const [minuteUsage, setMinuteUsage] = useState({ used: 0, included: 0 });
+  // Minutes read directly from currentOrganization (set by Stripe webhook via organizations table)
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [recentCalls, setRecentCalls] = useState<any[]>([]);
   const [escalations, setEscalations] = useState({ urgent: 0, high: 0, medium: 0, total: 0 });
@@ -55,18 +55,8 @@ export default function Dashboard() {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      // 1. Minute Usage
-      const { data: usage } = await supabase
-        .from("minute_usage")
-        .select("minutes_used, minutes_included")
-        .eq("organization_id", currentOrganization?.id)
-        .order("billing_period_start", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (usage) {
-        setMinuteUsage({ used: usage.minutes_used, included: usage.minutes_included });
-      }
+      // 1. Minute Usage - read from currentOrganization (synced by Stripe webhook)
+      // No separate query needed; uses currentOrganization.minutes_used / minutes_included
 
       // 2. Active Campaigns
       const { data: campaignData } = await supabase
@@ -179,8 +169,10 @@ export default function Dashboard() {
   // Calculate stats
   const activeCampaigns = campaigns.filter(c => c.status === "in_progress" || c.status === "scheduled");
   const successRate = callStats.total > 0 ? Math.round((callStats.completed / callStats.total) * 100) : 0;
-  const minutePercentage = minuteUsage.included > 0
-    ? Math.min((minuteUsage.used / minuteUsage.included) * 100, 100)
+  const orgMinutesUsed = currentOrganization?.minutes_used || 0;
+  const orgMinutesIncluded = currentOrganization?.minutes_included || 15;
+  const minutePercentage = orgMinutesIncluded > 0
+    ? Math.min((orgMinutesUsed / orgMinutesIncluded) * 100, 100)
     : 0;
   const isMinuteCritical = minutePercentage > 80;
 
@@ -280,7 +272,7 @@ export default function Dashboard() {
             {isMinuteCritical && <Badge className="bg-red-500/20 text-red-300 border-0 text-xs">Low</Badge>}
           </div>
           <p className="text-2xl md:text-3xl font-bold text-white">
-            {minuteUsage.used}<span className="text-lg text-slate-500">/{minuteUsage.included}</span>
+            {orgMinutesUsed}<span className="text-lg text-slate-500">/{orgMinutesIncluded}</span>
           </p>
           <Progress
             value={minutePercentage}

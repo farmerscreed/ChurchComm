@@ -16,9 +16,22 @@ const TIER_MINUTES: Record<string, number> = {
 };
 
 serve(async (req) => {
+    // Handle CORS preflight
+    if (req.method === "OPTIONS") {
+        return new Response("ok", { status: 200 });
+    }
+
     const signature = req.headers.get("stripe-signature");
 
+    console.log("Webhook received:", {
+        method: req.method,
+        hasSignature: !!signature,
+        hasEndpointSecret: !!endpointSecret && endpointSecret.length > 0,
+        endpointSecretPrefix: endpointSecret ? endpointSecret.substring(0, 10) + "..." : "EMPTY",
+    });
+
     if (!signature) {
+        console.error("Missing stripe-signature header");
         return new Response(JSON.stringify({ error: "Missing stripe-signature header" }), {
             status: 400,
         });
@@ -26,6 +39,7 @@ serve(async (req) => {
 
     try {
         const body = await req.text();
+        console.log("Body length:", body.length);
         const event = stripe.webhooks.constructEvent(body, signature, endpointSecret);
 
         const supabase = createClient(

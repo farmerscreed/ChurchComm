@@ -105,13 +105,14 @@ export function Sidebar({
         { name: 'Event Triggers', href: '/automations/triggers', icon: Bell },
       ],
     },
-    ...(canHandleEscalations
-      ? [{
-        name: 'Follow-ups',
-        href: '/follow-ups',
-        icon: PhoneForwarded,
-      }]
-      : []),
+    // Follow-ups hidden - feature not yet active
+    // ...(canHandleEscalations
+    //   ? [{
+    //     name: 'Follow-ups',
+    //     href: '/follow-ups',
+    //     icon: PhoneForwarded,
+    //   }]
+    //   : []),
   ];
 
   const toggleExpanded = (itemName: string) => {

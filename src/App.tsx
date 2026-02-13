@@ -22,6 +22,8 @@ import BirthdayAutomations from '@/pages/automations/BirthdayAutomations';
 import ScheduledOutreach from '@/pages/automations/ScheduledOutreach';
 import EventTriggers from '@/pages/automations/EventTriggers';
 import AutomationDocs from '@/pages/automations/AutomationDocs';
+import PeopleDocs from '@/pages/PeopleDocs';
+import CommunicationsDocs from '@/pages/CommunicationsDocs';
 import { Toaster } from '@/components/ui/toaster';
 
 function App() {
@@ -73,8 +75,10 @@ function App() {
         <Route element={user ? <AppLayout /> : <Navigate to="/login" replace />}>
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="people" element={<People />} />
+          <Route path="people/docs" element={<PeopleDocs />} />
           <Route path="groups" element={<Groups />} />
           <Route path="communications" element={<Communications />} />
+          <Route path="communications/docs" element={<CommunicationsDocs />} />
           <Route path="call-history" element={<CallHistory />} />
           <Route path="follow-ups" element={<FollowUpsPage />} />
           {/* Automations routes */}

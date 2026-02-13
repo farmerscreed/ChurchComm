@@ -96,7 +96,7 @@ serve(async (req) => {
         }
 
         // Create Stripe billing portal session
-        const appUrl = Deno.env.get("APP_URL") ?? "http://localhost:8080";
+        const appUrl = Deno.env.get("APP_URL") ?? "https://keepflock.com";
 
         const session = await stripe.billingPortal.sessions.create({
             customer: org.stripe_customer_id,

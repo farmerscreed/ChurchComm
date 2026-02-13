@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
-import { MessageSquare, Phone, Send, Loader2, Plus, PhoneCall, Rocket, Sparkles, FileText, Volume2, Zap } from 'lucide-react';
+import { MessageSquare, Phone, Send, Loader2, Plus, PhoneCall, Rocket, Sparkles, FileText, Volume2, Zap, HelpCircle } from 'lucide-react';
 import { CampaignBuilder } from '@/components/communications/CampaignBuilder';
 import { DemoDataNotice } from '@/components/demo/DemoDataNotice';
 import { PhonePreview } from '@/components/communications/PhonePreview';
@@ -971,6 +971,17 @@ export default function Communications() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Help Link */}
+      <div className="flex justify-center pt-2">
+        <div className="border-dashed border-2 border-white/10 rounded-xl px-6 py-4 text-center text-slate-400">
+          <HelpCircle className="h-5 w-5 mx-auto mb-1 opacity-50" />
+          <p className="text-sm">Need help getting started?</p>
+          <Link to="/communications/docs" className="text-sm text-blue-400 font-medium hover:underline">
+            View Communications Guide
+          </Link>
         </div>
       </div>
     </div>
