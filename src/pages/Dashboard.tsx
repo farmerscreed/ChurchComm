@@ -313,7 +313,10 @@ export default function Dashboard() {
         </div>
 
         {/* Success Rate */}
-        <div className="p-5 rounded-xl bg-gradient-to-br from-green-500/10 to-green-500/5 border border-green-500/20 hover:border-green-500/30 transition-colors">
+        <div
+          className="p-5 rounded-xl bg-gradient-to-br from-green-500/10 to-green-500/5 border border-green-500/20 hover:border-green-500/30 transition-colors cursor-pointer"
+          onClick={() => navigate("/call-history")}
+        >
           <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
               <TrendingUp className="w-5 h-5 text-green-400" />
@@ -385,9 +388,14 @@ export default function Dashboard() {
               <Calendar className="w-4 h-4 text-cyan-400" />
               Scheduled Calls
             </h3>
-            <Badge className="bg-cyan-500/20 text-cyan-300 border-0 text-xs">
-              {upcomingCalls.length} Pending
-            </Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-cyan-400 hover:text-cyan-300 h-7 px-2"
+              onClick={() => navigate("/automations/scheduled")}
+            >
+              View All
+            </Button>
           </div>
           <div className="space-y-3">
             {upcomingCalls.length > 0 ? (

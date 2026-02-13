@@ -26,6 +26,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 import { usePermissions } from '@/hooks/usePermissions';
+import { LogoIcon } from '@/components/ui/Logo';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -141,8 +142,8 @@ export function Sidebar({
         !isMobile && isCollapsed ? "justify-center px-0" : "justify-between"
       )}>
         <div className={cn("flex items-center gap-3 overflow-hidden transition-all duration-300", !isMobile && isCollapsed && "w-0 opacity-0 hidden")}>
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <span className="text-white text-xl">🐑</span>
+          <div className="w-10 h-10 flex items-center justify-center">
+            <LogoIcon className="w-10 h-10" />
           </div>
           <div className="flex flex-col">
             <h2 className="text-xl font-bold text-white tracking-tight">KeepFlock</h2>
@@ -156,8 +157,8 @@ export function Sidebar({
 
         {/* Collapsed Logo */}
         {!isMobile && isCollapsed && (
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <span className="text-white text-xl">🐑</span>
+          <div className="w-10 h-10 flex items-center justify-center">
+            <LogoIcon className="w-10 h-10" />
           </div>
         )}
 

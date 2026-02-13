@@ -33,8 +33,11 @@ import {
     CalendarClock,
     Gift,
     Power,
-    Settings2
+    Settings2,
+    Menu,
+    X
 } from "lucide-react";
+import { Logo } from "@/components/ui/Logo";
 
 // Demo data representing actual app features
 const DEMO_STATS = {
@@ -131,6 +134,7 @@ export default function DemoPage() {
     const [isPlaying, setIsPlaying] = useState(false);
     const [demoMessage, setDemoMessage] = useState("Hi {Name}, just a reminder about our Sunday service at 10am. Hope to see you there!");
     const [selectedHistoryIndex, setSelectedHistoryIndex] = useState(0);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-50 overflow-hidden relative selection:bg-purple-500/30">
@@ -144,20 +148,15 @@ export default function DemoPage() {
             {/* Navbar */}
             <nav className="fixed top-0 w-full z-50 border-b border-white/10 bg-slate-950/80 backdrop-blur-md">
                 <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-                    <Link to="/" className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-gradient-to-tr from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
-                            <Heart className="w-5 h-5 text-white fill-white" />
-                        </div>
-                        <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-                            KeepFlock
-                        </span>
+                    <Link to="/">
+                        <Logo />
                     </Link>
                     <div className="hidden md:flex items-center gap-8">
                         <Link to="/" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Home</Link>
                         <span className="text-sm font-medium text-white">Demo</span>
                         <Link to="/pricing" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Pricing</Link>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="hidden md:flex items-center gap-4">
                         <Link to="/login">
                             <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-white/5">
                                 Sign In
@@ -169,7 +168,32 @@ export default function DemoPage() {
                             </Button>
                         </Link>
                     </div>
+
+                    {/* Mobile Menu Toggle */}
+                    <Link to="#" onClick={(e) => { e.preventDefault(); setIsMobileMenuOpen(!isMobileMenuOpen); }} className="md:hidden p-2 text-slate-300 hover:text-white">
+                        {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                    </Link>
                 </div>
+
+                {/* Mobile Menu Dropdown */}
+                {isMobileMenuOpen && (
+                    <div className="md:hidden bg-slate-950 border-b border-white/10 px-6 py-4 flex flex-col gap-4 animate-in slide-in-from-top-4 duration-200">
+                        <Link to="/" className="text-sm font-medium text-slate-300 hover:text-white transition-colors py-2" onClick={() => setIsMobileMenuOpen(false)}>Home</Link>
+                        <span className="text-sm font-medium text-white py-2">Demo</span>
+                        <Link to="/pricing" className="text-sm font-medium text-slate-300 hover:text-white transition-colors py-2" onClick={() => setIsMobileMenuOpen(false)}>Pricing</Link>
+                        <div className="h-px bg-white/10 my-2" />
+                        <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                            <Button variant="ghost" className="w-full justify-start text-slate-300 hover:text-white hover:bg-white/5">
+                                Sign In
+                            </Button>
+                        </Link>
+                        <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                            <Button className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white border-0">
+                                Get Started
+                            </Button>
+                        </Link>
+                    </div>
+                )}
             </nav>
 
             {/* Hero Section */}

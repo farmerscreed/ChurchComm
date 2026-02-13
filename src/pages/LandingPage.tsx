@@ -7,7 +7,6 @@ import {
     ChevronRight,
     Clock,
     Globe,
-    Heart,
     MessageCircle,
     Phone,
     Play,
@@ -30,9 +29,12 @@ import {
     Volume2,
     Brain,
     Cake,
-    CalendarClock
+    CalendarClock,
+    Menu,
+    X
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Logo, LogoIcon } from "@/components/ui/Logo";
 
 // Animated counter hook
 function useCounter(end: number, duration: number = 2000, start: number = 0) {
@@ -60,6 +62,7 @@ function useCounter(end: number, duration: number = 2000, start: number = 0) {
 export default function LandingPage() {
     const [activeTestimonial, setActiveTestimonial] = useState(0);
     const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const churches = useCounter(500, 2000);
     const calls = useCounter(50000, 2500);
@@ -101,21 +104,19 @@ export default function LandingPage() {
             {/* Navbar */}
             <nav className="fixed top-0 w-full z-50 border-b border-white/10 bg-slate-950/70 backdrop-blur-xl">
                 <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-                    <Link to="/" className="flex items-center gap-2 group">
-                        <div className="w-9 h-9 bg-gradient-to-tr from-purple-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/25 group-hover:shadow-purple-500/40 transition-shadow">
-                            <Heart className="w-5 h-5 text-white fill-white" />
-                        </div>
-                        <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-                            KeepFlock
-                        </span>
+                    <Link to="/">
+                        <Logo />
                     </Link>
+
+                    {/* Desktop Menu */}
                     <div className="hidden md:flex items-center gap-8">
                         <a href="#features" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Features</a>
                         <a href="#how-it-works" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">How It Works</a>
                         <Link to="/demo" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Demo</Link>
                         <Link to="/pricing" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Pricing</Link>
                     </div>
-                    <div className="flex items-center gap-3">
+
+                    <div className="hidden md:flex items-center gap-3">
                         <Link to="/login">
                             <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-white/5">
                                 Sign In
@@ -128,7 +129,34 @@ export default function LandingPage() {
                             </Button>
                         </Link>
                     </div>
+
+                    {/* Mobile Menu Toggle */}
+                    <Link to="#" onClick={(e) => { e.preventDefault(); setIsMobileMenuOpen(!isMobileMenuOpen); }} className="md:hidden p-2 text-slate-300 hover:text-white">
+                        {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                    </Link>
                 </div>
+
+                {/* Mobile Menu Dropdown */}
+                {isMobileMenuOpen && (
+                    <div className="md:hidden bg-slate-950 border-b border-white/10 px-6 py-4 flex flex-col gap-4 animate-in slide-in-from-top-4 duration-200">
+                        <a href="#features" className="text-sm font-medium text-slate-400 hover:text-white transition-colors py-2" onClick={() => setIsMobileMenuOpen(false)}>Features</a>
+                        <a href="#how-it-works" className="text-sm font-medium text-slate-400 hover:text-white transition-colors py-2" onClick={() => setIsMobileMenuOpen(false)}>How It Works</a>
+                        <Link to="/demo" className="text-sm font-medium text-slate-400 hover:text-white transition-colors py-2" onClick={() => setIsMobileMenuOpen(false)}>Demo</Link>
+                        <Link to="/pricing" className="text-sm font-medium text-slate-400 hover:text-white transition-colors py-2" onClick={() => setIsMobileMenuOpen(false)}>Pricing</Link>
+                        <div className="h-px bg-white/10 my-2" />
+                        <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                            <Button variant="ghost" className="w-full justify-start text-slate-300 hover:text-white hover:bg-white/5">
+                                Sign In
+                            </Button>
+                        </Link>
+                        <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                            <Button className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white border-0">
+                                Start Free
+                                <ArrowRight className="w-4 h-4 ml-1" />
+                            </Button>
+                        </Link>
+                    </div>
+                )}
             </nav>
 
             {/* Hero Section */}
@@ -876,9 +904,7 @@ export default function LandingPage() {
                     <div className="grid md:grid-cols-5 gap-12 mb-12">
                         <div className="md:col-span-2">
                             <div className="flex items-center gap-2 mb-6">
-                                <div className="w-9 h-9 bg-gradient-to-tr from-purple-500 to-blue-500 rounded-xl flex items-center justify-center">
-                                    <Heart className="w-5 h-5 text-white fill-white" />
-                                </div>
+                                <LogoIcon className="w-9 h-9" />
                                 <span className="text-xl font-bold text-white">KeepFlock</span>
                             </div>
                             <p className="text-slate-500 mb-6 max-w-sm">
@@ -930,9 +956,6 @@ export default function LandingPage() {
                     <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
                         <p className="text-sm text-slate-600">
                             © {new Date().getFullYear()} KeepFlock by LawOne Cloud LLC. All rights reserved.
-                        </p>
-                        <p className="text-sm text-slate-600 flex items-center gap-2">
-                            Made with <Heart className="w-4 h-4 text-red-500 fill-red-500" /> for churches everywhere
                         </p>
                     </div>
                 </div>
