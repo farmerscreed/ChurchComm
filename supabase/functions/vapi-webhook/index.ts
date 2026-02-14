@@ -458,8 +458,11 @@ serve(async (req) => {
           prayer_requests: prayer_requests,
           specific_interests: interests,
           member_response_type: response_type,
+          member_response_type: response_type,
           raw_vapi_data: rawPayload,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          ended_reason: endedReason,
+          escalation_status: (crisis_detected || needs_pastoral_care) ? 'open' : 'resolved'
         })
         .eq('id', existingLog.id)
         .select()
@@ -497,7 +500,10 @@ serve(async (req) => {
           prayer_requests: prayer_requests,
           specific_interests: interests,
           member_response_type: response_type,
-          raw_vapi_data: rawPayload
+          member_response_type: response_type,
+          raw_vapi_data: rawPayload,
+          ended_reason: endedReason,
+          escalation_status: (crisis_detected || needs_pastoral_care) ? 'open' : 'resolved'
         })
         .select()
         .single()

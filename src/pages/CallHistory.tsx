@@ -44,7 +44,8 @@ import {
   Minus,
   RefreshCw,
   Download,
-  Eye
+  Eye,
+  Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -74,6 +75,8 @@ interface CallLog {
     phone_number: string | null;
     email: string | null;
   } | null;
+  ended_reason: string | null;
+  escalation_status: 'open' | 'resolved' | 'ignored' | null;
 }
 
 interface CallStats {
@@ -151,7 +154,11 @@ export default function CallHistory() {
       const positive = logs.filter(l => l.member_response_type === 'positive').length;
       const neutral = logs.filter(l => l.member_response_type === 'neutral' || !l.member_response_type).length;
       const negative = logs.filter(l => l.member_response_type === 'negative').length;
-      const escalations = logs.filter(l => l.crisis_indicators === true || l.needs_pastoral_care === true).length;
+      // Only count OPEN escalations for stats
+      const escalations = logs.filter(l =>
+        (l.crisis_indicators === true || l.needs_pastoral_care === true) &&
+        l.escalation_status === 'open'
+      ).length;
       const followUps = logs.filter(l => l.follow_up_needed === true).length;
 
       setStats({
@@ -250,6 +257,45 @@ export default function CallHistory() {
 
   const getInitials = (firstName?: string, lastName?: string) => {
     return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase() || '?';
+  };
+
+  const resolveEscalation = async (callId: string) => {
+    try {
+      const { error } = await supabase
+        .from('vapi_call_logs')
+        .update({ escalation_status: 'resolved' })
+        .eq('id', callId);
+
+      if (error) throw error;
+
+      // Update local state
+      setCallLogs(prev => prev.map(c =>
+        c.id === callId ? { ...c, escalation_status: 'resolved' } : c
+      ));
+
+      // Update stats (decrement escalations count)
+      setStats(prev => ({
+        ...prev,
+        escalations: Math.max(0, prev.escalations - 1)
+      }));
+
+      // Update selected call if open
+      if (selectedCall?.id === callId) {
+        setSelectedCall(prev => prev ? { ...prev, escalation_status: 'resolved' } : null);
+      }
+
+      toast({
+        title: 'Escalation Resolved',
+        description: 'The call has been marked as resolved.',
+      });
+    } catch (error) {
+      console.error('Error resolving escalation:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to resolve escalation.',
+        variant: 'destructive',
+      });
+    }
   };
 
   if (loading) {
@@ -567,6 +613,9 @@ export default function CallHistory() {
                         ) : (
                           <Badge className="h-5 text-[9px] px-2 bg-pink-500/20 text-pink-400 border-0">CARE</Badge>
                         )}
+                        {call.escalation_status === 'resolved' && (
+                          <Badge className="h-5 text-[9px] px-2 bg-green-500/20 text-green-400 border-0 ml-1">RESOLVED</Badge>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -625,6 +674,23 @@ export default function CallHistory() {
                       {getStatusIcon(selectedCall?.call_status || '')}
                       {selectedCall?.call_status?.replace('_', ' ') || 'Unknown'}
                     </span>
+                    {/* Resolution Button */}
+                    {(selectedCall?.crisis_indicators || selectedCall?.needs_pastoral_care) && selectedCall?.escalation_status === 'open' && (
+                      <Button
+                        size="sm"
+                        onClick={() => selectedCall && resolveEscalation(selectedCall.id)}
+                        className="ml-auto sm:ml-2 h-7 bg-green-600 hover:bg-green-700 text-white border-0 text-xs font-semibold shadow-lg shadow-green-900/20"
+                      >
+                        <Check className="h-3 w-3 mr-1.5" />
+                        Resolve Issue
+                      </Button>
+                    )}
+                    {(selectedCall?.crisis_indicators || selectedCall?.needs_pastoral_care) && selectedCall?.escalation_status === 'resolved' && (
+                      <Badge variant="outline" className="ml-auto sm:ml-2 border-green-500/30 text-green-400 bg-green-500/10">
+                        <Check className="h-3 w-3 mr-1" />
+                        Resolved
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex items-center gap-3 text-sm text-slate-400">
                     <span className="flex items-center gap-1.5">
@@ -636,6 +702,15 @@ export default function CallHistory() {
                       <Calendar className="h-3.5 w-3.5" />
                       {selectedCall && format(new Date(selectedCall.created_at), 'MMM d, yyyy')}
                     </span>
+                    {selectedCall?.ended_reason && (
+                      <>
+                        <span>•</span>
+                        <span className="flex items-center gap-1.5 text-slate-500" title="Ended Reason">
+                          <PhoneOff className="h-3.5 w-3.5" />
+                          {selectedCall.ended_reason}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
               </DialogTitle>

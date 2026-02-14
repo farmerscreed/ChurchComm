@@ -353,9 +353,24 @@ async function executeScheduledCalls(supabase: any, org: Organization): Promise<
     .eq('organization_id', org.id)
     .eq('status', 'scheduled')
     .lte('scheduled_at', new Date().toISOString())
-    .limit(10) // Process max 10 at a time to avoid timeouts
+    .limit(5) // Reduced batch size for better rate limiting control
 
   if (error || !scheduledCalls?.length) return 0
+
+  // Fetch minute usage for max duration calculation
+  const { data: usage } = await supabase
+    .from('minute_usage')
+    .select('minutes_used, minutes_included, overage_approved')
+    .eq('organization_id', org.id)
+    .order('billing_period_start', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const minutesUsed = usage ? parseFloat(String(usage.minutes_used)) || 0 : 0
+  const minutesIncluded = usage ? usage.minutes_included || 0 : 0
+  const remainingMinutes = Math.max(1, minutesIncluded - minutesUsed)
+  const maxDurationSeconds = Math.floor(remainingMinutes * 60)
+
 
   console.log('Org ' + org.id + ': Executing ' + scheduledCalls.length + ' scheduled call(s)')
 
@@ -428,16 +443,16 @@ async function executeScheduledCalls(supabase: any, org: Organization): Promise<
     const systemPrompt = `You are a warm, friendly church assistant making a caring outreach call on behalf of ${churchName}.
 
 IMPORTANT GUIDELINES:
-- Be conversational and natural - do NOT read scripts literally
-- Use the person's name (${firstName}) naturally in conversation
-- Listen actively and respond empathetically
-- If they mention any crisis, distress, or pastoral care needs, note it carefully
-- Keep the conversation warm and supportive
+- Be CONCISE and clear. Do not waste time with excessive pleasantries.
+- Use the person's name (${firstName}) naturally.
+- State the purpose of the call immediately after the greeting.
+- Listen actively but keep the conversation focused.
+- If they mention any crisis or needs, note it, then wrap up politely.
 
-YOUR CONVERSATION GUIDE (use as guidance, not a script to read):
+YOUR CONVERSATION GUIDE:
 ${conversationGuide}
 
-Remember: Have a natural conversation. Don't read the guide word-for-word. Adapt based on their responses.`
+Remember: Be efficient but kind. Don't read the guide word-for-word.`
 
     try {
       const vapiResponse = await fetch('https://api.vapi.ai/call/phone', {
@@ -461,8 +476,12 @@ Remember: Have a natural conversation. Don't read the guide word-for-word. Adapt
               voiceId: resolveVoiceId(script.voice_id),
             },
           },
+          maxDurationSeconds: usage?.overage_approved ? 3600 : maxDurationSeconds,
         }),
       })
+
+      // Add a 5-second delay to respect VAPI concurrency limits
+      await new Promise(resolve => setTimeout(resolve, 5000))
 
       if (vapiResponse.ok) {
         const vapiData = await vapiResponse.json()

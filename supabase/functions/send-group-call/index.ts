@@ -309,17 +309,18 @@ ${aiContextNotes ? `- Additional Notes: ${aiContextNotes}` : ''}`
         const systemPrompt = `You are a warm, friendly church assistant making a caring outreach call on behalf of ${orgName}.
 
 IMPORTANT GUIDELINES:
-- Be conversational and natural - do NOT read scripts literally
-- Use the person's name (${firstName}) naturally in conversation
-- Listen actively and respond empathetically
-- If they mention any crisis, distress, or pastoral care needs, note it carefully
-- Keep the conversation warm and supportive
-- If they ask about church events, services, or ministries, use the knowledge below to help them${churchKnowledge}
+- Be CONCISE and clear. Do not waste time with excessive pleasantries.
+- Use the person's name (${firstName}) naturally.
+- State the purpose of the call immediately after the greeting.
+- Listen actively but keep the conversation focused.
+- If asking for information, ask one question at a time.
+- If they mention crisis/needs, note it, then wrap up politely.
+- If they ask about church events, use the knowledge below briefly.${churchKnowledge}
 
-YOUR CONVERSATION GUIDE (use as guidance, not a script to read):
+YOUR CONVERSATION GUIDE:
 ${finalPrompt}
 
-Remember: Have a natural conversation. Don't read the guide word-for-word. Adapt based on their responses.`
+Remember: Be efficient but kind. Adapt based on their responses.`
 
         let vapiResponse: Response | null = null
         const payload = JSON.stringify({
@@ -373,7 +374,8 @@ Remember: Have a natural conversation. Don't read the guide word-for-word. Adapt
                 }
               }
             }
-          }
+          },
+          maxDurationSeconds: usage?.overage_approved ? 3600 : Math.max(60, ((usage?.minutes_included || 0) - (parseFloat(String(usage?.minutes_used)) || 0)) * 60)
         })
 
         console.log('Making VAPI call to:', formattedPhone)
@@ -498,8 +500,8 @@ Remember: Have a natural conversation. Don't read the guide word-for-word. Adapt
               call_id: vapiResult.id
             })
 
-            // Small delay to avoid rate limiting
-            await new Promise(resolve => setTimeout(resolve, 2000))
+            // 5 second delay to respect VAPI concurrency limits
+            await new Promise(resolve => setTimeout(resolve, 5000))
           }
         } else {
           const errorText = await vapiResponse.text()

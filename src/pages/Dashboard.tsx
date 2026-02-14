@@ -55,64 +55,69 @@ export default function Dashboard() {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      // 1. Minute Usage - read from currentOrganization (synced by Stripe webhook)
-      // No separate query needed; uses currentOrganization.minutes_used / minutes_included
+      // 1. Get High-Level Stats via RPC
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_dashboard_stats', {
+        p_organization_id: currentOrganization?.id
+      });
 
-      // 2. Active Campaigns
-      const { data: campaignData } = await supabase
-        .from("calling_campaigns")
-        .select("*")
+      if (rpcError) console.error('Error fetching dashboard stats:', rpcError);
+      const rpcStats = rpcData?.[0] || {
+        total_calls: 0,
+        total_minutes: 0,
+        active_campaigns: 0,
+        open_escalations: 0
+      };
+
+      setCampaigns(new Array(Number(rpcStats.active_campaigns || 0)).fill({ status: 'in_progress' })); // Mock for length count compatibility
+
+      // 2. Recent Calls (from vapi_call_logs)
+      const { data: callData } = await supabase
+        .from("vapi_call_logs")
+        .select("id, call_status, created_at, people(first_name, last_name)")
         .eq("organization_id", currentOrganization?.id)
         .order("created_at", { ascending: false })
         .limit(5);
 
-      setCampaigns(campaignData || []);
-
-      // 3. Recent Calls
-      const { data: callData } = await supabase
-        .from("call_attempts")
-        .select("id, status, attempted_at, trigger_type, people(first_name, last_name)")
-        .eq("organization_id", currentOrganization?.id)
-        .order("attempted_at", { ascending: false, nullsFirst: false })
-        .limit(5);
-
       setRecentCalls((callData || []).map((c: any) => ({
-        ...c,
+        id: c.id,
+        status: c.call_status,
+        attempted_at: c.created_at,
         person_name: c.people ? `${c.people.first_name || ''} ${c.people.last_name || ''}`.trim() : 'Unknown',
-        trigger_type: c.trigger_type,
+        trigger_type: 'AI Call',
       })));
 
-      // 4. Escalations
-      const { data: escalationData } = await supabase
-        .from("escalation_alerts")
-        .select("priority")
-        .eq("organization_id", currentOrganization?.id)
-        .eq("status", "open");
+      // 3. Escalations Breakdown
+      let escCounts = { urgent: 0, high: 0, medium: 0, total: Number(rpcStats.open_escalations || 0) };
 
-      const escalationCounts = {
-        urgent: escalationData?.filter(e => e.priority === "urgent").length || 0,
-        high: escalationData?.filter(e => e.priority === "high").length || 0,
-        medium: escalationData?.filter(e => e.priority === "medium").length || 0,
-        total: escalationData?.length || 0,
-      };
-      setEscalations(escalationCounts);
+      if (escCounts.total > 0) {
+        const { data: escData } = await supabase
+          .from("vapi_call_logs")
+          .select("escalation_priority")
+          .eq("organization_id", currentOrganization?.id)
+          .eq("escalation_status", "open");
 
-      // 5. Call Success (Last 30 Days)
+        escCounts.urgent = escData?.filter(e => e.escalation_priority === 'urgent').length || 0;
+        escCounts.high = escData?.filter(e => e.escalation_priority === 'high').length || 0;
+        escCounts.medium = escData?.filter(e => e.escalation_priority === 'medium').length || 0;
+      }
+      setEscalations(escCounts);
+
+      // 4. Call Success Rate (Last 30 Days)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const { data: statsData } = await supabase
-        .from("call_attempts")
-        .select("status")
+      const { data: successData } = await supabase
+        .from("vapi_call_logs")
+        .select("call_status")
         .eq("organization_id", currentOrganization?.id)
-        .gte("attempted_at", thirtyDaysAgo.toISOString());
+        .gte("created_at", thirtyDaysAgo.toISOString());
 
       setCallStats({
-        completed: statsData?.filter(c => c.status === "completed").length || 0,
-        total: statsData?.length || 0,
+        completed: successData?.filter(c => c.call_status === 'completed' || c.call_status === 'ended').length || 0,
+        total: successData?.length || 0,
       });
 
-      // 6. Check for demo data
+      // 5. Check for demo data
       const { count: demoCount } = await supabase
         .from("people")
         .select("id", { count: "exact", head: true })
@@ -121,7 +126,7 @@ export default function Dashboard() {
 
       setHasDemoData((demoCount || 0) > 0);
 
-      // 7. Member count
+      // 6. Member count
       const { count: peopleCount } = await supabase
         .from("people")
         .select("id", { count: "exact", head: true })
@@ -129,12 +134,12 @@ export default function Dashboard() {
 
       setMemberCount(peopleCount || 0);
 
-      // 8. Upcoming Calls (Next 24h)
-      // We combine 'scheduled_messages' (for SMS campaigns) and 'call_attempts' (for individual/auto calls)
+      // 7. Upcoming Calls (Next 24h)
+      // Keeping original logic for now, utilizing call_attempts for scheduled items if vapi_call_logs doesn't handle scheduling
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      // 8a. Scheduled SMS
+      // 7a. Scheduled SMS
       const { data: upcomingSMS } = await supabase
         .from("scheduled_messages")
         .select("id, message_type, scheduled_for, content")
@@ -144,7 +149,7 @@ export default function Dashboard() {
         .order("scheduled_for", { ascending: true })
         .limit(5);
 
-      // 8b. Scheduled Individual Calls (e.g. Birthday, First Timer)
+      // 7b. Scheduled Individual Calls
       const { data: upcomingCallsData } = await supabase
         .from("call_attempts")
         .select("id, trigger_type, scheduled_at, people(first_name, last_name)")
@@ -155,7 +160,6 @@ export default function Dashboard() {
         .order("scheduled_at", { ascending: true })
         .limit(5);
 
-      // Combine and Sort
       const combinedUpcoming = [
         ...(upcomingSMS || []).map((c: any) => ({
           id: c.id,

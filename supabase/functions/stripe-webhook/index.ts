@@ -62,9 +62,9 @@ serve(async (req) => {
                         .from("organizations")
                         .update({
                             subscription_plan: tier,
-                            subscription_status: "trialing",
+                            subscription_status: "active",
                             stripe_subscription_id: session.subscription as string,
-                            trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+                            trial_ends_at: null,
                             minutes_included: minutesIncluded,
                             minutes_used: 0,
                         })
