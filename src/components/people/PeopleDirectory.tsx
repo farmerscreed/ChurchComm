@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
-import { Mail, Phone, Search, UserPlus, Users, UserCheck, UserX, Baby, Sparkles, Calendar, Brain, LayoutGrid, LayoutList, MessageSquare, Crown } from 'lucide-react';
+import { Mail, Phone, Search, UserPlus, Users, UserCheck, UserX, Baby, Sparkles, Calendar, Brain, LayoutGrid, LayoutList, MessageSquare, Crown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { PersonDialog } from './PersonDialog';
 import { MemberProfilePanel } from './MemberProfilePanel';
 
@@ -78,6 +79,15 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number | 'all'>(10);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, statusFilter, itemsPerPage]);
+
   const { data: people, isLoading, error, refetch } = useQuery({
     queryKey: ['people', currentOrganization?.id, debouncedSearch, statusFilter],
     queryFn: async (): Promise<Person[]> => {
@@ -103,6 +113,15 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
     },
     enabled: !!currentOrganization?.id,
   });
+
+  // Pagination Logic
+  const safePeople = people || [];
+  const totalItems = safePeople.length;
+  const totalPages = itemsPerPage === 'all' ? 1 : Math.ceil(totalItems / itemsPerPage);
+
+  const indexOfLastItem = itemsPerPage === 'all' ? totalItems : currentPage * itemsPerPage;
+  const indexOfFirstItem = itemsPerPage === 'all' ? 0 : indexOfLastItem - itemsPerPage;
+  const currentPeople = itemsPerPage === 'all' ? safePeople : safePeople.slice(indexOfFirstItem, indexOfLastItem);
 
   const stats = {
     total: people?.length || 0,
@@ -139,6 +158,82 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
   const handleRefresh = () => {
     refetch();
     onRefresh?.();
+  };
+
+  /* Pagination Footer */
+  const renderPaginationFooter = () => {
+    if (!people || people.length === 0) return null;
+
+    return (
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-6 p-4 rounded-xl bg-white/5 border border-white/10">
+        <div className="flex items-center gap-2 text-sm text-slate-400">
+          <span>Rows per page:</span>
+          <Select
+            value={typeof itemsPerPage === 'number' ? itemsPerPage.toString() : 'all'}
+            onValueChange={(value) => setItemsPerPage(value === 'all' ? 'all' : Number(value))}
+          >
+            <SelectTrigger className="h-8 w-[70px] bg-white/5 border-white/10 text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="20">20</SelectItem>
+              <SelectItem value="30">30</SelectItem>
+              <SelectItem value="40">40</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+              <SelectItem value="all">All</SelectItem>
+            </SelectContent>
+          </Select>
+          <span className="ml-2">
+            Show {itemsPerPage === 'all' ? 1 : indexOfFirstItem + 1}-{itemsPerPage === 'all' ? totalItems : Math.min(indexOfLastItem, totalItems)} of {totalItems}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(1)}
+            disabled={currentPage === 1 || itemsPerPage === 'all'}
+            className="h-8 w-8 p-0 bg-white/5 border-white/10 text-slate-400 hover:text-white disabled:opacity-50"
+          >
+            <ChevronsLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1 || itemsPerPage === 'all'}
+            className="h-8 w-8 p-0 bg-white/5 border-white/10 text-slate-400 hover:text-white disabled:opacity-50"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+
+          <span className="text-sm text-slate-400 min-w-[3rem] text-center">
+            {currentPage} of {totalPages}
+          </span>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages || itemsPerPage === 'all'}
+            className="h-8 w-8 p-0 bg-white/5 border-white/10 text-slate-400 hover:text-white disabled:opacity-50"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(totalPages)}
+            disabled={currentPage === totalPages || itemsPerPage === 'all'}
+            className="h-8 w-8 p-0 bg-white/5 border-white/10 text-slate-400 hover:text-white disabled:opacity-50"
+          >
+            <ChevronsRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    );
   };
 
   if (isLoading) {
@@ -327,7 +422,7 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {people.map((person) => {
+                {currentPeople.map((person) => {
                   const config = STATUS_CONFIG[person.member_status] || STATUS_CONFIG.visitor;
                   const initials = getInitials(person.first_name, person.last_name);
                   const avatarColor = getAvatarColor(`${person.first_name}${person.last_name}`);
@@ -437,7 +532,7 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
       ) : (
         /* Card Grid View */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {people.map((person) => {
+          {currentPeople.map((person) => {
             const config = STATUS_CONFIG[person.member_status] || STATUS_CONFIG.visitor;
             const initials = getInitials(person.first_name, person.last_name);
             const avatarColor = getAvatarColor(`${person.first_name}${person.last_name}`);
@@ -535,6 +630,7 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
         person={selectedPerson}
         onEditClick={handleEditFromPanel}
       />
+      {renderPaginationFooter()}
     </div>
   );
 };
