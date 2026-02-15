@@ -58,6 +58,10 @@ serve(async (req) => {
                 if (organizationId && tier) {
                     const minutesIncluded = TIER_MINUTES[tier] || 15;
 
+                    // Note: Do NOT reset minutes_used here.
+                    // Minutes are only reset on new billing periods via
+                    // invoice.payment_succeeded. Resetting here would give
+                    // users back any free-trial minutes they already consumed.
                     await supabase
                         .from("organizations")
                         .update({
@@ -66,7 +70,6 @@ serve(async (req) => {
                             stripe_subscription_id: session.subscription as string,
                             trial_ends_at: null,
                             minutes_included: minutesIncluded,
-                            minutes_used: 0,
                         })
                         .eq("id", organizationId);
 

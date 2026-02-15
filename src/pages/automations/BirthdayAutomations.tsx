@@ -1,6 +1,5 @@
 ﻿import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -9,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   ArrowLeft,
   Cake,
@@ -84,7 +82,7 @@ export default function BirthdayAutomations() {
 
   // UI State
   const [periodFilter, setPeriodFilter] = useState('upcoming');
-  const [activeTab, setActiveTab] = useState('configuration');
+  const [activeTab, setActiveTab] = useState<'sms' | 'call'>('sms');
 
   useEffect(() => {
     if (currentOrganization?.id) {
@@ -266,29 +264,32 @@ export default function BirthdayAutomations() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-8">
-      {/* Standard Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Button variant="ghost" size="sm" asChild className="-ml-3 text-muted-foreground hover:text-foreground">
-              <Link to="/automations">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Automations
-              </Link>
-            </Button>
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight">Birthday Automations</h1>
-          <p className="text-muted-foreground mt-1">
+          <Link to="/automations" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white mb-3 transition-colors">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Automations
+          </Link>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-3">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center">
+              <Cake className="h-5 w-5 md:h-6 md:w-6 text-white" />
+            </div>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400">
+              Birthday Automations
+            </span>
+          </h1>
+          <p className="text-slate-400 mt-1">
             Build relationships by automating personal birthday wishes.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-md text-xs font-medium text-muted-foreground">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs font-medium text-slate-400">
             <Globe className="h-3.5 w-3.5" />
             {currentOrganization?.timezone || 'UTC'}
           </div>
-          <Button onClick={handleSave} disabled={saving} className="min-w-[120px]">
+          <Button onClick={handleSave} disabled={saving} className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white border-0 min-w-[120px]">
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             Save Changes
           </Button>
@@ -351,157 +352,162 @@ export default function BirthdayAutomations() {
 
         {/* Configuration Column */}
         <div className="lg:col-span-2 space-y-6">
-          <Tabs defaultValue="sms" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="sms" className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" /> SMS Configuration
-              </TabsTrigger>
-              <TabsTrigger value="call" className="flex items-center gap-2">
-                <Phone className="h-4 w-4" /> Call Configuration
-              </TabsTrigger>
-            </TabsList>
+          {/* Tab Switcher */}
+          <div className="inline-flex bg-white/5 border border-white/10 rounded-full p-1">
+            {[
+              { id: 'sms' as const, label: 'SMS Configuration', icon: MessageSquare },
+              { id: 'call' as const, label: 'Call Configuration', icon: Phone },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "flex items-center gap-2 px-5 py-2 rounded-full text-sm font-medium transition-all",
+                  activeTab === tab.id
+                    ? "bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-lg"
+                    : "text-slate-400 hover:text-white"
+                )}
+              >
+                <tab.icon className="h-4 w-4" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-            <TabsContent value="sms">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>SMS Greeting</CardTitle>
-                      <CardDescription>Configure the automated text message sent on birthdays.</CardDescription>
-                    </div>
-                    <Switch
-                      checked={smsConfig.status === 'active'}
-                      onCheckedChange={(checked) => setSmsConfig(prev => ({ ...prev, status: checked ? 'active' : 'paused' }))}
+          {activeTab === 'sms' && (
+            <div className="rounded-xl bg-white/5 border border-white/10 p-6 space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-white">SMS Greeting</h3>
+                  <p className="text-sm text-slate-400">Configure the automated text message sent on birthdays.</p>
+                </div>
+                <Switch
+                  checked={smsConfig.status === 'active'}
+                  onCheckedChange={(checked) => setSmsConfig(prev => ({ ...prev, status: checked ? 'active' : 'paused' }))}
+                />
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-slate-300">Message Template</Label>
+                <Textarea
+                  value={smsConfig.message}
+                  onChange={(e) => setSmsConfig(prev => ({ ...prev, message: e.target.value }))}
+                  className="min-h-[120px] bg-white/5 border-white/10"
+                  placeholder="Enter your birthday wish..."
+                />
+                <div className="flex flex-wrap gap-2 text-sm">
+                  <span className="text-slate-500">Variables:</span>
+                  <Badge variant="outline" className="cursor-pointer border-white/10 text-slate-400 hover:bg-white/5" onClick={() => setSmsConfig(prev => ({ ...prev, message: prev.message + ' {Name}' }))}>
+                    {'{Name}'}
+                  </Badge>
+                  <Badge variant="outline" className="cursor-pointer border-white/10 text-slate-400 hover:bg-white/5" onClick={() => setSmsConfig(prev => ({ ...prev, message: prev.message + ' {Church}' }))}>
+                    {'{Church}'}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <Label className="text-slate-300">Send Time</Label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                    <Input
+                      type="time"
+                      value={smsConfig.sendTime}
+                      onChange={(e) => setSmsConfig(prev => ({ ...prev, sendTime: e.target.value }))}
+                      className="pl-9 bg-white/5 border-white/10"
                     />
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-3">
-                    <Label>Message Template</Label>
-                    <Textarea
-                      value={smsConfig.message}
-                      onChange={(e) => setSmsConfig(prev => ({ ...prev, message: e.target.value }))}
-                      className="min-h-[120px]"
-                      placeholder="Enter your birthday wish..."
-                    />
-                    <div className="flex flex-wrap gap-2 text-sm">
-                      <span className="text-muted-foreground">Variables:</span>
-                      <Badge variant="outline" className="cursor-pointer hover:bg-muted" onClick={() => setSmsConfig(prev => ({ ...prev, message: prev.message + ' {Name}' }))}>
-                        {'{Name}'}
-                      </Badge>
-                      <Badge variant="outline" className="cursor-pointer hover:bg-muted" onClick={() => setSmsConfig(prev => ({ ...prev, message: prev.message + ' {Church}' }))}>
-                        {'{Church}'}
-                      </Badge>
-                    </div>
-                  </div>
+                </div>
+                <div className="space-y-3">
+                  <Label className="text-slate-300">When to Send</Label>
+                  <Select
+                    value={String(smsConfig.daysBefore)}
+                    onValueChange={(val) => setSmsConfig(prev => ({ ...prev, daysBefore: parseInt(val) }))}
+                  >
+                    <SelectTrigger className="bg-white/5 border-white/10">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">On Birthday (Same Day)</SelectItem>
+                      <SelectItem value="1">1 Day Before</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-3">
-                      <Label>Send Time</Label>
-                      <div className="relative">
-                        <Clock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          type="time"
-                          value={smsConfig.sendTime}
-                          onChange={(e) => setSmsConfig(prev => ({ ...prev, sendTime: e.target.value }))}
-                          className="pl-9"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-3">
-                      <Label>When to Send</Label>
-                      <Select
-                        value={String(smsConfig.daysBefore)}
-                        onValueChange={(val) => setSmsConfig(prev => ({ ...prev, daysBefore: parseInt(val) }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="0">On Birthday (Same Day)</SelectItem>
-                          <SelectItem value="1">1 Day Before</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+          {activeTab === 'call' && (
+            <div className="rounded-xl bg-white/5 border border-white/10 p-6 space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-white">AI Voice Call</h3>
+                  <p className="text-sm text-slate-400">Configure the AI phone call sent on birthdays.</p>
+                </div>
+                <Switch
+                  checked={callConfig.enabled}
+                  onCheckedChange={(checked) => setCallConfig(prev => ({ ...prev, enabled: checked }))}
+                />
+              </div>
 
-            <TabsContent value="call">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>AI Voice Call</CardTitle>
-                      <CardDescription>Configure the AI phone call sent on birthdays.</CardDescription>
-                    </div>
-                    <Switch
-                      checked={callConfig.enabled}
-                      onCheckedChange={(checked) => setCallConfig(prev => ({ ...prev, enabled: checked }))}
-                    />
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-3">
-                    <Label>Call Script</Label>
-                    <Select
-                      value={callConfig.script_id || ''}
-                      onValueChange={(val) => setCallConfig(prev => ({ ...prev, script_id: val }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a script..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {scripts.map(script => (
-                          <SelectItem key={script.id} value={script.id}>{script.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {callConfig.enabled && !callConfig.script_id && (
-                      <p className="text-xs text-destructive flex items-center gap-1">
-                        <Sparkles className="h-3 w-3" /> Please select a script to enable calls.
-                      </p>
-                    )}
-                  </div>
+              <div className="space-y-3">
+                <Label className="text-slate-300">Call Script</Label>
+                <Select
+                  value={callConfig.script_id || ''}
+                  onValueChange={(val) => setCallConfig(prev => ({ ...prev, script_id: val }))}
+                >
+                  <SelectTrigger className="bg-white/5 border-white/10">
+                    <SelectValue placeholder="Select a script..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {scripts.map(script => (
+                      <SelectItem key={script.id} value={script.id}>{script.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {callConfig.enabled && !callConfig.script_id && (
+                  <p className="text-xs text-red-400 flex items-center gap-1">
+                    <Sparkles className="h-3 w-3" /> Please select a script to enable calls.
+                  </p>
+                )}
+              </div>
 
-                  <div className="space-y-3">
-                    <Label>Call Time</Label>
-                    <Select
-                      value={String(callConfig.delay_hours)}
-                      onValueChange={(val) => setCallConfig(prev => ({ ...prev, delay_hours: parseInt(val) }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="9">9:00 AM</SelectItem>
-                        <SelectItem value="10">10:00 AM</SelectItem>
-                        <SelectItem value="11">11:00 AM</SelectItem>
-                        <SelectItem value="12">12:00 PM</SelectItem>
-                        <SelectItem value="14">2:00 PM</SelectItem>
-                        <SelectItem value="16">4:00 PM</SelectItem>
-                        <SelectItem value="18">6:00 PM</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      Calls are scheduled in your organization's timezone ({currentOrganization?.timezone || 'UTC'}).
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+              <div className="space-y-3">
+                <Label className="text-slate-300">Call Time</Label>
+                <Select
+                  value={String(callConfig.delay_hours)}
+                  onValueChange={(val) => setCallConfig(prev => ({ ...prev, delay_hours: parseInt(val) }))}
+                >
+                  <SelectTrigger className="bg-white/5 border-white/10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="9">9:00 AM</SelectItem>
+                    <SelectItem value="10">10:00 AM</SelectItem>
+                    <SelectItem value="11">11:00 AM</SelectItem>
+                    <SelectItem value="12">12:00 PM</SelectItem>
+                    <SelectItem value="14">2:00 PM</SelectItem>
+                    <SelectItem value="16">4:00 PM</SelectItem>
+                    <SelectItem value="18">6:00 PM</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-slate-500">
+                  Calls are scheduled in your organization's timezone ({currentOrganization?.timezone || 'UTC'}).
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Members Column */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold flex items-center gap-2">
-              <Users className="h-4 w-4" /> Members
+            <h3 className="font-semibold text-white flex items-center gap-2">
+              <Users className="h-4 w-4 text-slate-400" /> Members
             </h3>
             <Select value={periodFilter} onValueChange={setPeriodFilter}>
-              <SelectTrigger className="w-[130px] h-8 text-xs">
+              <SelectTrigger className="w-[130px] h-8 text-xs bg-white/5 border-white/10">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -512,10 +518,10 @@ export default function BirthdayAutomations() {
             </Select>
           </div>
 
-          <Card className="h-[600px] flex flex-col">
-            <CardContent className="p-0 flex-1 overflow-y-auto">
+          <div className="h-[600px] flex flex-col rounded-xl bg-white/5 border border-white/10">
+            <div className="flex-1 overflow-y-auto">
               {filteredPeople.length > 0 ? (
-                <div className="divide-y">
+                <div className="divide-y divide-white/5">
                   {filteredPeople
                     .sort((a, b) => {
                       const getNextBirthday = (bday: string) => {
@@ -538,17 +544,17 @@ export default function BirthdayAutomations() {
                       const isToday = daysUntil === 0;
 
                       return (
-                        <div key={person.id} className="flex items-center gap-3 p-4 hover:bg-muted/50 transition-colors">
+                        <div key={person.id} className="flex items-center gap-3 p-4 hover:bg-white/5 transition-colors">
                           <Avatar className="h-9 w-9">
-                            <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                            <AvatarFallback className="bg-pink-500/20 text-pink-400 text-xs">
                               {person.first_name[0]}{person.last_name[0]}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-medium truncate">
+                            <h4 className="text-sm font-medium text-white truncate">
                               {person.first_name} {person.last_name}
                             </h4>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <p className="text-xs text-slate-500 flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               {birthday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                             </p>
@@ -557,7 +563,7 @@ export default function BirthdayAutomations() {
                           {isToday ? (
                             <Badge className="bg-pink-500 hover:bg-pink-600 text-[10px] px-1.5 py-0.5" variant="secondary">Today</Badge>
                           ) : (
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                            <span className="text-xs text-slate-500 whitespace-nowrap">
                               {daysUntil} days
                             </span>
                           )}
@@ -566,17 +572,17 @@ export default function BirthdayAutomations() {
                     })}
                 </div>
               ) : (
-                <div className="h-full flex flex-col items-center justify-center p-6 text-center text-muted-foreground">
-                  <Cake className="h-10 w-10 mb-3 opacity-20" />
-                  <p className="text-sm font-medium">No birthdays found</p>
-                  <p className="text-xs mt-1">Try changing the filter period</p>
+                <div className="h-full flex flex-col items-center justify-center p-6 text-center">
+                  <Cake className="h-10 w-10 mb-3 text-slate-600" />
+                  <p className="text-sm font-medium text-slate-400">No birthdays found</p>
+                  <p className="text-xs mt-1 text-slate-500">Try changing the filter period</p>
                 </div>
               )}
-            </CardContent>
-            <div className="p-3 border-t bg-muted/20 text-xs text-center text-muted-foreground">
+            </div>
+            <div className="p-3 border-t border-white/10 text-xs text-center text-slate-500">
               Showing {filteredPeople.length} members
             </div>
-          </Card>
+          </div>
         </div>
 
       </div>

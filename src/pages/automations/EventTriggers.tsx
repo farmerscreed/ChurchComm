@@ -1,13 +1,7 @@
 ﻿import { useState, useEffect } from 'react';
 
 import { Link } from 'react-router-dom';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
+// Card components removed - using gradient divs
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -246,25 +240,28 @@ export default function EventTriggers() {
   const callCount = automations.filter(a => a.action_type === 'make_call').length;
 
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-8">
-      {/* Standard Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Button variant="ghost" size="sm" asChild className="-ml-3 text-muted-foreground hover:text-foreground">
-              <Link to="/automations">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Automations
-              </Link>
-            </Button>
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight">Event Triggers</h1>
-          <p className="text-muted-foreground mt-1">
+          <Link to="/automations" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white mb-3 transition-colors">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Automations
+          </Link>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-3">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+              <Zap className="h-5 w-5 md:h-6 md:w-6 text-white" />
+            </div>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400">
+              Event Triggers
+            </span>
+          </h1>
+          <p className="text-slate-400 mt-1">
             Automatically respond when members join groups, visit for the first time, and more.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button onClick={() => { resetForm(); setShowDialog(true); }}>
+          <Button onClick={() => { resetForm(); setShowDialog(true); }} className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white border-0">
             <Plus className="h-4 w-4 mr-2" />
             Create Trigger
           </Button>
@@ -328,91 +325,92 @@ export default function EventTriggers() {
           {[1, 2, 3].map(i => <Skeleton key={i} className="h-48 rounded-xl" />)}
         </div>
       ) : automations.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed rounded-xl bg-muted/30">
-          <div className="h-16 w-16 bg-muted rounded-full flex items-center justify-center mb-4">
-            <Zap className="h-8 w-8 text-muted-foreground" />
+        <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-white/10 rounded-xl bg-white/5">
+          <div className="h-16 w-16 bg-amber-500/20 rounded-full flex items-center justify-center mb-4">
+            <Zap className="h-8 w-8 text-amber-400" />
           </div>
-          <h3 className="text-xl font-semibold mb-2">No active triggers</h3>
-          <p className="text-muted-foreground max-w-sm mb-6">
+          <h3 className="text-xl font-semibold text-white mb-2">No active triggers</h3>
+          <p className="text-slate-400 max-w-sm mb-6">
             Create your first automation to start engaging with your members automatically.
           </p>
-          <Button onClick={() => { resetForm(); setShowDialog(true); }}>
+          <Button onClick={() => { resetForm(); setShowDialog(true); }} className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white border-0">
             <Plus className="h-4 w-4 mr-2" />
             Create Trigger
           </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {automations.map((automation) => (
-            <Card key={automation.id} className="group hover:shadow-lg transition-all duration-300 flex flex-col">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "p-2 rounded-lg",
-                      automation.trigger_type === 'group_join' ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" :
-                        automation.trigger_type === 'first_visit' ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400" :
-                          "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
-                    )}>
-                      {getTriggerIcon(automation.trigger_type)}
+          {automations.map((automation) => {
+            const triggerColors = automation.trigger_type === 'group_join'
+              ? { bg: 'bg-blue-500/20', text: 'text-blue-400', gradient: 'from-blue-500/10 to-blue-500/5', border: 'border-blue-500/20 hover:border-blue-500/30' }
+              : automation.trigger_type === 'first_visit'
+              ? { bg: 'bg-emerald-500/20', text: 'text-emerald-400', gradient: 'from-emerald-500/10 to-emerald-500/5', border: 'border-emerald-500/20 hover:border-emerald-500/30' }
+              : { bg: 'bg-amber-500/20', text: 'text-amber-400', gradient: 'from-amber-500/10 to-amber-500/5', border: 'border-amber-500/20 hover:border-amber-500/30' };
+
+            return (
+              <div key={automation.id} className={cn("group rounded-xl bg-gradient-to-br border transition-all hover:scale-[1.02] flex flex-col", triggerColors.gradient, triggerColors.border)}>
+                <div className="p-6 pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={cn("p-2 rounded-lg", triggerColors.bg)}>
+                        {getTriggerIcon(automation.trigger_type)}
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">{automation.name}</h3>
+                        <p className="text-sm text-slate-400 capitalize">
+                          {automation.trigger_type.replace(/_/g, ' ')}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <CardTitle className="text-lg">{automation.name}</CardTitle>
-                      <CardDescription>
-                        {automation.trigger_type.replace(/_/g, ' ')}
-                      </CardDescription>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity hover:text-white hover:bg-white/10">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEdit(automation)}>
+                          <Edit className="h-4 w-4 mr-2" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(automation.id)}>
+                          <Trash2 className="h-4 w-4 mr-2" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+                <div className="px-6 pb-3 flex-1">
+                  <div className="bg-white/5 min-h-[4.5rem] p-3 rounded-lg text-sm text-slate-400 italic mb-4 line-clamp-3 border border-white/5">
+                    "{automation.action_config?.message_content}"
+                  </div>
+                  <div className="flex items-center gap-4 text-sm text-slate-500">
+                    <div className="flex items-center gap-1.5" title="Execution Delay">
+                      <Clock className="h-4 w-4" />
+                      {automation.trigger_config?.delay_hours > 0
+                        ? `Wait ${automation.trigger_config.delay_hours}h`
+                        : 'Instant'}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {automation.action_type === 'send_sms' ? <MessageSquare className="h-4 w-4" /> : <Phone className="h-4 w-4" />}
+                      {automation.action_type === 'send_sms' ? 'SMS' : 'Call'}
                     </div>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => openEdit(automation)}>
-                        <Edit className="h-4 w-4 mr-2" /> Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(automation.id)}>
-                        <Trash2 className="h-4 w-4 mr-2" /> Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
-              </CardHeader>
-              <CardContent className="pb-3 flex-1">
-                <div className="bg-muted min-h-[4.5rem] p-3 rounded-md text-sm text-muted-foreground italic mb-4 line-clamp-3 relative">
-                  <span className="text-primary font-not-italic not-italic absolute -top-2 left-2 bg-background px-1 text-xs">Action Content</span>
-                  "{automation.action_config?.message_content}"
-                </div>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1.5" title="Execution Delay">
-                    <Clock className="h-4 w-4" />
-                    {automation.trigger_config?.delay_hours > 0
-                      ? `Wait ${automation.trigger_config.delay_hours}h`
-                      : 'Instant'}
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    {automation.action_type === 'send_sms' ? <MessageSquare className="h-4 w-4" /> : <Phone className="h-4 w-4" />}
-                    {automation.action_type === 'send_sms' ? 'SMS' : 'Call'}
-                  </div>
-                </div>
-              </CardContent>
-              <div className="p-4 pt-0 mt-auto border-t bg-muted/20 flex items-center justify-between rounded-b-lg">
-                <div className="flex items-center gap-2 pt-3">
-                  <Badge variant={automation.status === 'active' ? 'default' : 'secondary'} className={automation.status === 'active' ? 'bg-emerald-500 hover:bg-emerald-600' : ''}>
+                <div className="px-6 py-4 mt-auto border-t border-white/10 flex items-center justify-between">
+                  <Badge variant="outline" className={cn(
+                    "border-white/10",
+                    automation.status === 'active' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 text-slate-400'
+                  )}>
                     {automation.status === 'active' ? 'Active' : 'Paused'}
                   </Badge>
-                </div>
-                <div className="pt-3">
                   <Switch
                     checked={automation.status === 'active'}
                     onCheckedChange={() => toggleStatus(automation.id, automation.status)}
                   />
                 </div>
               </div>
-            </Card>
-          ))}
+            );
+          })}
         </div>
       )}
 

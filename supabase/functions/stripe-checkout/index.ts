@@ -11,20 +11,20 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
     apiVersion: "2023-10-16",
 });
 
-// Map tier + billing cycle to Stripe price IDs
-// Replace these with your actual Stripe price IDs
+// Map tier + billing cycle to Stripe price IDs from environment variables.
+// Set these via: supabase secrets set STRIPE_PRICE_STARTER_MONTHLY=price_xxx
 const PRICE_IDS: Record<string, Record<string, string>> = {
     starter: {
-        monthly: Deno.env.get("STRIPE_PRICE_STARTER_MONTHLY") ?? "price_1T0MOi2K7IK9U3AnzKhOKntc",
-        annual: Deno.env.get("STRIPE_PRICE_STARTER_ANNUAL") ?? "price_1T0MOj2K7IK9U3Anx3RDsWkc",
+        monthly: Deno.env.get("STRIPE_PRICE_STARTER_MONTHLY") ?? "",
+        annual: Deno.env.get("STRIPE_PRICE_STARTER_ANNUAL") ?? "",
     },
     growth: {
-        monthly: Deno.env.get("STRIPE_PRICE_GROWTH_MONTHLY") ?? "price_1T0MOk2K7IK9U3Anoyr56Z44",
-        annual: Deno.env.get("STRIPE_PRICE_GROWTH_ANNUAL") ?? "price_1T0MOl2K7IK9U3AnIhLUWhql",
+        monthly: Deno.env.get("STRIPE_PRICE_GROWTH_MONTHLY") ?? "",
+        annual: Deno.env.get("STRIPE_PRICE_GROWTH_ANNUAL") ?? "",
     },
     enterprise: {
-        monthly: Deno.env.get("STRIPE_PRICE_ENTERPRISE_MONTHLY") ?? "price_1T0MOl2K7IK9U3AnBBnLOft1",
-        annual: Deno.env.get("STRIPE_PRICE_ENTERPRISE_ANNUAL") ?? "price_1T0MOm2K7IK9U3AnJYJVRMzF",
+        monthly: Deno.env.get("STRIPE_PRICE_ENTERPRISE_MONTHLY") ?? "",
+        annual: Deno.env.get("STRIPE_PRICE_ENTERPRISE_ANNUAL") ?? "",
     },
 };
 

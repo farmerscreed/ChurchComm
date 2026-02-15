@@ -231,6 +231,36 @@ export default function CallHistory() {
     }
   };
 
+  const getFailureReason = (call: CallLog): string | null => {
+    if (call.call_status === 'completed' || call.call_status === 'ended') return null;
+    if (call.call_status === 'in_progress' || call.call_status === 'queued' || call.call_status === 'initiated') return null;
+
+    const reason = (call.ended_reason || call.call_status || '').toLowerCase();
+
+    if (reason.includes('no-answer') || reason.includes('unanswered') || reason === 'customer-did-not-pick-up' || reason === 'no_answer')
+      return 'Recipient did not answer';
+    if (reason.includes('busy') || reason === 'customer-busy')
+      return 'Phone line was busy';
+    if (reason.includes('voicemail'))
+      return 'Went to voicemail';
+    if (reason.includes('rejected') || reason.includes('declined'))
+      return 'Call was declined';
+    if (reason.includes('invalid') || reason.includes('wrong-number'))
+      return 'Invalid phone number';
+    if (reason.includes('pipeline-error') || reason.includes('error'))
+      return 'Technical error occurred';
+    if (reason.includes('silence') || reason.includes('timeout'))
+      return 'Call timed out (no response)';
+    if (reason.includes('max-duration'))
+      return 'Maximum call duration reached';
+    if (reason.includes('insufficient') || reason.includes('balance') || reason.includes('funds'))
+      return 'Insufficient account balance';
+    if (reason === 'failed')
+      return 'Call could not be connected';
+
+    return reason ? `Failed: ${call.ended_reason || call.call_status}` : 'Call failed';
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
@@ -549,6 +579,12 @@ export default function CallHistory() {
                               <span className="inline-flex items-center text-xs text-slate-400 bg-slate-500/20 px-2 py-0.5 rounded-full">
                                 <Timer className="h-3 w-3 mr-1" />
                                 {formatDuration(call.call_duration)}
+                              </span>
+                            )}
+                            {getFailureReason(call) && (
+                              <span className="inline-flex items-center text-xs text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">
+                                <AlertCircle className="h-3 w-3 mr-1" />
+                                {getFailureReason(call)}
                               </span>
                             )}
                           </div>

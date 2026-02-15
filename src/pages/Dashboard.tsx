@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ function getGreeting(): string {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentOrganization, user } = useAuthStore();
   const [loading, setLoading] = useState(true);
 
@@ -46,11 +47,35 @@ export default function Dashboard() {
   const [hasDemoData, setHasDemoData] = useState(false);
   const [memberCount, setMemberCount] = useState(0);
 
+  // Re-fetch on every navigation to the dashboard (location.key changes each navigation)
   useEffect(() => {
     if (currentOrganization?.id) {
       fetchDashboardData();
     }
-  }, [currentOrganization]);
+  }, [currentOrganization, location.key]);
+
+  // Re-fetch when the user navigates back to the dashboard (tab becomes visible again)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && currentOrganization?.id) {
+        fetchDashboardData();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Also re-fetch on window focus (covers SPA navigation back)
+    const handleFocus = () => {
+      if (currentOrganization?.id) {
+        fetchDashboardData();
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [currentOrganization?.id]);
 
   const fetchDashboardData = async () => {
     setLoading(true);

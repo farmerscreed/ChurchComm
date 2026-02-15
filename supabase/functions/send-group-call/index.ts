@@ -230,6 +230,35 @@ serve(async (req) => {
 
     if (campaignError) throw campaignError
 
+    // --- Concurrency control ---
+    // VAPI enforces concurrency limits per account. Before each call,
+    // check how many calls are currently in_progress and wait if needed.
+    const MAX_CONCURRENT_CALLS = 1 // Safe default; increase if your VAPI plan allows more
+    const INTER_CALL_DELAY_MS = 10000 // 10s between call initiations
+
+    const waitForConcurrencySlot = async () => {
+      const maxWaitMs = 300000 // 5 minutes max wait
+      const pollIntervalMs = 5000
+      let waited = 0
+
+      while (waited < maxWaitMs) {
+        const { count } = await supabaseAdmin
+          .from('call_attempts')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'in_progress')
+          .eq('organization_id', organizationId)
+
+        if ((count || 0) < MAX_CONCURRENT_CALLS) return true
+
+        console.log(`Concurrency limit reached (${count} active), waiting ${pollIntervalMs}ms...`)
+        await new Promise(resolve => setTimeout(resolve, pollIntervalMs))
+        waited += pollIntervalMs
+      }
+
+      console.warn('Concurrency wait timed out after 5 minutes')
+      return false
+    }
+
     // Process calls
     let scheduled = 0
     let failed = 0
@@ -237,6 +266,43 @@ serve(async (req) => {
 
     for (const recipient of recipients) {
       try {
+        // Wait for a concurrency slot before proceeding
+        const hasSlot = await waitForConcurrencySlot()
+        if (!hasSlot) {
+          failed++
+          results.push({
+            recipient: `${recipient.first_name} ${recipient.last_name}`,
+            status: 'failed',
+            error: 'Concurrency wait timed out'
+          })
+          continue
+        }
+
+        // Re-check minute usage before EACH call (not just at campaign start)
+        const { data: currentOrg } = await supabaseAdmin
+          .from('organizations')
+          .select('minutes_used, minutes_included, overage_approved')
+          .eq('id', organizationId)
+          .single()
+
+        if (currentOrg) {
+          const currentUsed = parseFloat(String(currentOrg.minutes_used)) || 0
+          const currentIncluded = currentOrg.minutes_included || 0
+          if (currentUsed >= currentIncluded && !currentOrg.overage_approved) {
+            console.log(`Minute limit reached mid-campaign (${currentUsed}/${currentIncluded}). Stopping remaining calls.`)
+            // Mark remaining recipients as skipped
+            for (const remaining of recipients.slice(recipients.indexOf(recipient))) {
+              results.push({
+                recipient: `${remaining.first_name} ${remaining.last_name}`,
+                status: 'skipped',
+                error: 'Minute limit reached'
+              })
+              failed++
+            }
+            break
+          }
+        }
+
         // Create call attempt record
         const { data: attempt } = await supabaseAdmin
           .from('call_attempts')
@@ -287,9 +353,14 @@ serve(async (req) => {
 
         // Make Vapi call with retry for rate limits (429)
         const maxRetries = 3
-        // Build a natural first greeting (NOT the full script)
+        // Build a direct first greeting that states purpose immediately
         const firstName = recipient.first_name || 'there'
-        const firstGreeting = `Hi ${firstName}! This is a friendly call from ${orgName}. How are you doing today?`
+        // Extract the core purpose from the processed script (first sentence or line)
+        const scriptPurpose = finalPrompt.split(/[.!\n]/)[0]?.trim() || ''
+        const purposeSnippet = scriptPurpose.length > 10 && scriptPurpose.length < 200
+          ? ` ${scriptPurpose}`
+          : ''
+        const firstGreeting = `Hi ${firstName}, this is a call from ${orgName}.${purposeSnippet}`
 
         // Build comprehensive system prompt with the script as guidance
         // Build church knowledge section from org data
@@ -306,21 +377,21 @@ ${orgPhone ? `- Church Phone: ${orgPhone}` : ''}
 ${aiContextNotes ? `- Additional Notes: ${aiContextNotes}` : ''}`
         }
 
-        const systemPrompt = `You are a warm, friendly church assistant making a caring outreach call on behalf of ${orgName}.
+        const systemPrompt = `You are a church assistant calling on behalf of ${orgName}.
 
-IMPORTANT GUIDELINES:
-- Be CONCISE and clear. Do not waste time with excessive pleasantries.
-- Use the person's name (${firstName}) naturally.
-- State the purpose of the call immediately after the greeting.
-- Listen actively but keep the conversation focused.
-- If asking for information, ask one question at a time.
-- If they mention crisis/needs, note it, then wrap up politely.
-- If they ask about church events, use the knowledge below briefly.${churchKnowledge}
+CRITICAL RULES:
+1. Get to the point IMMEDIATELY. Do NOT ask "how are you" or make small talk before stating the purpose.
+2. State the purpose of the call in your FIRST response after the greeting.
+3. Keep responses SHORT (1-2 sentences max). Do not ramble.
+4. If they respond positively, wrap up quickly. Do not keep asking follow-up questions.
+5. If they mention crisis/needs, acknowledge it briefly and note it.
+6. The entire call should ideally last under 2 minutes.
+7. Use ${firstName}'s name once, not repeatedly.${churchKnowledge}
 
-YOUR CONVERSATION GUIDE:
+YOUR SCRIPT/PURPOSE:
 ${finalPrompt}
 
-Remember: Be efficient but kind. Adapt based on their responses.`
+Follow the script purpose directly. Do NOT add extra questions or topics beyond what the script says.`
 
         let vapiResponse: Response | null = null
         const payload = JSON.stringify({
@@ -500,8 +571,8 @@ Remember: Be efficient but kind. Adapt based on their responses.`
               call_id: vapiResult.id
             })
 
-            // 5 second delay to respect VAPI concurrency limits
-            await new Promise(resolve => setTimeout(resolve, 5000))
+            // Delay between calls to respect VAPI concurrency limits
+            await new Promise(resolve => setTimeout(resolve, INTER_CALL_DELAY_MS))
           }
         } else {
           const errorText = await vapiResponse.text()

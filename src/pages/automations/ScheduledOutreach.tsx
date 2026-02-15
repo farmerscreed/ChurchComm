@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -36,6 +35,7 @@ import {
     Users,
     MessageSquare,
     Calendar,
+    CalendarClock,
     Send,
     MoreVertical,
     Trash2,
@@ -339,25 +339,28 @@ export default function ScheduledOutreach() {
     }
 
     return (
-        <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-8">
-            {/* Standard Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <Button variant="ghost" size="sm" asChild className="-ml-3 text-muted-foreground hover:text-foreground">
-                            <Link to="/automations">
-                                <ArrowLeft className="h-4 w-4 mr-2" />
-                                Back to Automations
-                            </Link>
-                        </Button>
-                    </div>
-                    <h1 className="text-3xl font-bold tracking-tight">Scheduled Outreach</h1>
-                    <p className="text-muted-foreground mt-1">
+                    <Link to="/automations" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white mb-3 transition-colors">
+                        <ArrowLeft className="h-4 w-4" />
+                        Back to Automations
+                    </Link>
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-3">
+                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                            <CalendarClock className="h-5 w-5 md:h-6 md:w-6 text-white" />
+                        </div>
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400">
+                            Scheduled Outreach
+                        </span>
+                    </h1>
+                    <p className="text-slate-400 mt-1">
                         Plan and schedule SMS messages and AI calls for the future.
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <Button onClick={() => setShowCreateDialog(true)}>
+                    <Button onClick={() => setShowCreateDialog(true)} className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white border-0">
                         <Plus className="h-4 w-4 mr-2" />
                         New Campaign
                     </Button>
@@ -419,22 +422,22 @@ export default function ScheduledOutreach() {
             {/* Main Content Area */}
             <div className="grid grid-cols-1 gap-8">
                 {/* Scheduled Outreaches */}
-                <Card>
-                    <CardHeader className="px-6 py-4 border-b">
+                <div className="rounded-xl bg-white/5 border border-white/10">
+                    <div className="px-6 py-4 border-b border-white/10">
                         <div className="flex items-center justify-between">
                             <div>
-                                <CardTitle>Upcoming Queue</CardTitle>
-                                <CardDescription>Campaigns waiting to be sent</CardDescription>
+                                <h3 className="text-lg font-semibold text-white">Upcoming Queue</h3>
+                                <p className="text-sm text-slate-400">Campaigns waiting to be sent</p>
                             </div>
-                            <Badge variant="secondary">{scheduledOutreaches.length} scheduled</Badge>
+                            <Badge variant="outline" className="border-white/10 text-slate-400 bg-white/5">{scheduledOutreaches.length} scheduled</Badge>
                         </div>
-                    </CardHeader>
-                    <CardContent className="p-0">
+                    </div>
+                    <div>
                         {scheduledOutreaches.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
-                                <Clock className="h-10 w-10 mb-3 opacity-20" />
-                                <p className="text-sm font-medium">No scheduled campaigns</p>
-                                <Button variant="link" onClick={() => setShowCreateDialog(true)} className="text-primary mt-1">
+                            <div className="flex flex-col items-center justify-center py-12 text-center">
+                                <Clock className="h-10 w-10 mb-3 text-slate-600" />
+                                <p className="text-sm font-medium text-slate-400">No scheduled campaigns</p>
+                                <Button variant="link" onClick={() => setShowCreateDialog(true)} className="text-blue-400 mt-1">
                                     Schedule one now
                                 </Button>
                             </div>
@@ -495,16 +498,16 @@ export default function ScheduledOutreach() {
                                 ))}
                             </div>
                         )}
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
 
                 {/* History */}
                 {completedOutreaches.length > 0 && (
-                    <Card>
-                        <CardHeader className="px-6 py-4 border-b bg-muted/20">
-                            <CardTitle className="text-lg">History</CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-0">
+                    <div className="rounded-xl bg-white/5 border border-white/10">
+                        <div className="px-6 py-4 border-b border-white/10">
+                            <h3 className="text-lg font-semibold text-white">History</h3>
+                        </div>
+                        <div>
                             <div className="divide-y">
                                 {completedOutreaches.slice(0, 10).map((outreach) => (
                                     <div key={outreach.id} className="p-4 flex items-center justify-between hover:bg-muted/50 transition-colors opacity-80 hover:opacity-100">
@@ -526,8 +529,8 @@ export default function ScheduledOutreach() {
                                     </div>
                                 ))}
                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
                 )}
             </div>
 

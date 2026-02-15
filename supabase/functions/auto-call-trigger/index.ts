@@ -346,6 +346,21 @@ function substituteVariables(template: string, context: Record<string, string>):
 }
 
 async function executeScheduledCalls(supabase: any, org: Organization): Promise<number> {
+  const MAX_CONCURRENT_CALLS = 1
+  const INTER_CALL_DELAY_MS = 10000
+
+  // Check current concurrency before proceeding
+  const { count: activeCalls } = await supabase
+    .from('call_attempts')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'in_progress')
+    .eq('organization_id', org.id)
+
+  if ((activeCalls || 0) >= MAX_CONCURRENT_CALLS) {
+    console.log('Org ' + org.id + ': Skipping execution - ' + activeCalls + ' call(s) already in progress')
+    return 0
+  }
+
   // Get scheduled calls with their person and script details
   const { data: scheduledCalls, error } = await supabase
     .from('call_attempts')
@@ -353,7 +368,7 @@ async function executeScheduledCalls(supabase: any, org: Organization): Promise<
     .eq('organization_id', org.id)
     .eq('status', 'scheduled')
     .lte('scheduled_at', new Date().toISOString())
-    .limit(5) // Reduced batch size for better rate limiting control
+    .limit(3) // Reduced batch size for strict concurrency control
 
   if (error || !scheduledCalls?.length) return 0
 
@@ -397,6 +412,22 @@ async function executeScheduledCalls(supabase: any, org: Organization): Promise<
       continue
     }
 
+    // Re-check minute usage before EACH call
+    const { data: currentOrg } = await supabase
+      .from('organizations')
+      .select('minutes_used, minutes_included, overage_approved')
+      .eq('id', org.id)
+      .single()
+
+    if (currentOrg) {
+      const currentUsed = parseFloat(String(currentOrg.minutes_used)) || 0
+      const currentIncluded = currentOrg.minutes_included || 0
+      if (currentUsed >= currentIncluded && !currentOrg.overage_approved) {
+        console.log('Org ' + org.id + ': Minute limit reached mid-execution (' + currentUsed + '/' + currentIncluded + '). Stopping.')
+        break
+      }
+    }
+
     // Fetch the person's details for variable substitution
     const { data: person } = await supabase
       .from('people')
@@ -438,21 +469,28 @@ async function executeScheduledCalls(supabase: any, org: Organization): Promise<
     // Build natural greeting and comprehensive system prompt
     const firstName = person?.first_name || 'there'
     const churchName = org.name || 'your church'
-    const firstGreeting = `Hi ${firstName}! This is a friendly call from ${churchName}. How are you doing today?`
+    // Extract purpose from script for a direct opening
+    const scriptPurpose = conversationGuide.split(/[.!\n]/)[0]?.trim() || ''
+    const purposeSnippet = scriptPurpose.length > 10 && scriptPurpose.length < 200
+      ? ` ${scriptPurpose}`
+      : ''
+    const firstGreeting = `Hi ${firstName}, this is a call from ${churchName}.${purposeSnippet}`
 
-    const systemPrompt = `You are a warm, friendly church assistant making a caring outreach call on behalf of ${churchName}.
+    const systemPrompt = `You are a church assistant calling on behalf of ${churchName}.
 
-IMPORTANT GUIDELINES:
-- Be CONCISE and clear. Do not waste time with excessive pleasantries.
-- Use the person's name (${firstName}) naturally.
-- State the purpose of the call immediately after the greeting.
-- Listen actively but keep the conversation focused.
-- If they mention any crisis or needs, note it, then wrap up politely.
+CRITICAL RULES:
+1. Get to the point IMMEDIATELY. Do NOT ask "how are you" or make small talk before stating the purpose.
+2. State the purpose of the call in your FIRST response after the greeting.
+3. Keep responses SHORT (1-2 sentences max). Do not ramble.
+4. If they respond positively, wrap up quickly. Do not keep asking follow-up questions.
+5. If they mention crisis/needs, acknowledge it briefly and note it.
+6. The entire call should ideally last under 2 minutes.
+7. Use ${firstName}'s name once, not repeatedly.
 
-YOUR CONVERSATION GUIDE:
+YOUR SCRIPT/PURPOSE:
 ${conversationGuide}
 
-Remember: Be efficient but kind. Don't read the guide word-for-word.`
+Follow the script purpose directly. Do NOT add extra questions or topics beyond what the script says.`
 
     try {
       const vapiResponse = await fetch('https://api.vapi.ai/call/phone', {
@@ -480,8 +518,8 @@ Remember: Be efficient but kind. Don't read the guide word-for-word.`
         }),
       })
 
-      // Add a 5-second delay to respect VAPI concurrency limits
-      await new Promise(resolve => setTimeout(resolve, 5000))
+      // Delay between calls to respect VAPI concurrency limits
+      await new Promise(resolve => setTimeout(resolve, INTER_CALL_DELAY_MS))
 
       if (vapiResponse.ok) {
         const vapiData = await vapiResponse.json()
