@@ -289,8 +289,25 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  // Note: VAPI webhooks are secured by the webhook URL being private
-  // No additional authentication is required
+  // Validate VAPI webhook secret (sent via x-vapi-secret header)
+  const vapiWebhookSecret = Deno.env.get('VAPI_WEBHOOK_SECRET')
+  if (vapiWebhookSecret) {
+    const incomingSecret = req.headers.get('x-vapi-secret') || ''
+    if (incomingSecret !== vapiWebhookSecret) {
+      console.error('Invalid or missing x-vapi-secret header')
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      })
+    }
+  } else {
+    // Fail closed: reject if no secret is configured
+    console.error('VAPI_WEBHOOK_SECRET not configured — rejecting webhook')
+    return new Response(JSON.stringify({ error: 'Webhook secret not configured' }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
+    })
+  }
 
   const body = await req.text()
   console.log('Received webhook payload:', body.substring(0, 1000))

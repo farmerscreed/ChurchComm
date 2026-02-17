@@ -17,6 +17,31 @@ serve(async (req) => {
   }
 
   try {
+    // Use the Service Role Key for admin-level access
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    // Authenticate the caller
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      })
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
+
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      })
+    }
+
     const body = await req.json()
     const {
       groupId,
@@ -53,24 +78,31 @@ serve(async (req) => {
       }
     }
 
-    // Use the Service Role Key for admin-level access
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    // Check minute usage before allowing calls
-    const { data: usage } = await supabaseAdmin
-      .from('minute_usage')
-      .select('minutes_used, minutes_included, overage_approved')
+    // Verify user belongs to the organization
+    const { data: membership, error: memberError } = await supabaseAdmin
+      .from('organization_members')
+      .select('role')
       .eq('organization_id', organizationId)
-      .order('billing_period_start', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+      .eq('user_id', user.id)
+      .single()
 
-    if (usage) {
-      const minutesUsed = parseFloat(String(usage.minutes_used)) || 0
-      if (minutesUsed >= (usage.minutes_included || 0) && !usage.overage_approved) {
+    if (memberError || !membership) {
+      return new Response(JSON.stringify({ error: 'Forbidden: not a member of this organization' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403,
+      })
+    }
+
+    // Check minute usage from organizations table (source of truth)
+    const { data: orgBilling } = await supabaseAdmin
+      .from('organizations')
+      .select('minutes_used, minutes_included')
+      .eq('id', organizationId)
+      .single()
+
+    if (orgBilling) {
+      const minutesUsed = parseFloat(String(orgBilling.minutes_used)) || 0
+      if (minutesUsed >= (orgBilling.minutes_included || 0)) {
         return new Response(JSON.stringify({
           error: 'Monthly minute limit reached. Upgrade plan or approve overage in Settings.',
           code: 'MINUTE_LIMIT_REACHED'
@@ -446,7 +478,7 @@ Follow the script purpose directly. Do NOT add extra questions or topics beyond 
               }
             }
           },
-          maxDurationSeconds: usage?.overage_approved ? 3600 : Math.max(60, ((usage?.minutes_included || 0) - (parseFloat(String(usage?.minutes_used)) || 0)) * 60)
+          maxDurationSeconds: Math.max(60, ((orgBilling?.minutes_included || 0) - (parseFloat(String(orgBilling?.minutes_used)) || 0)) * 60)
         })
 
         console.log('Making VAPI call to:', formattedPhone)

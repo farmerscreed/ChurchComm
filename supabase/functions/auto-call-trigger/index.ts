@@ -372,17 +372,15 @@ async function executeScheduledCalls(supabase: any, org: Organization): Promise<
 
   if (error || !scheduledCalls?.length) return 0
 
-  // Fetch minute usage for max duration calculation
-  const { data: usage } = await supabase
-    .from('minute_usage')
-    .select('minutes_used, minutes_included, overage_approved')
-    .eq('organization_id', org.id)
-    .order('billing_period_start', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  // Fetch minute usage from organizations table (source of truth for billing)
+  const { data: orgBilling } = await supabase
+    .from('organizations')
+    .select('minutes_used, minutes_included')
+    .eq('id', org.id)
+    .single()
 
-  const minutesUsed = usage ? parseFloat(String(usage.minutes_used)) || 0 : 0
-  const minutesIncluded = usage ? usage.minutes_included || 0 : 0
+  const minutesUsed = orgBilling ? parseFloat(String(orgBilling.minutes_used)) || 0 : 0
+  const minutesIncluded = orgBilling ? orgBilling.minutes_included || 0 : 0
   const remainingMinutes = Math.max(1, minutesIncluded - minutesUsed)
   const maxDurationSeconds = Math.floor(remainingMinutes * 60)
 
@@ -514,7 +512,7 @@ Follow the script purpose directly. Do NOT add extra questions or topics beyond 
               voiceId: resolveVoiceId(script.voice_id),
             },
           },
-          maxDurationSeconds: usage?.overage_approved ? 3600 : maxDurationSeconds,
+          maxDurationSeconds: maxDurationSeconds,
         }),
       })
 
@@ -647,19 +645,17 @@ Deno.serve(async (req) => {
         continue
       }
 
-      // Check minute usage
-      const { data: usage } = await supabaseAdmin
-        .from('minute_usage')
-        .select('minutes_used, minutes_included, overage_approved')
-        .eq('organization_id', org.id)
-        .order('billing_period_start', { ascending: false })
-        .limit(1)
-        .maybeSingle()
+      // Check minute usage from organizations table (source of truth)
+      const { data: orgUsage } = await supabaseAdmin
+        .from('organizations')
+        .select('minutes_used, minutes_included')
+        .eq('id', org.id)
+        .single()
 
-      if (usage) {
-        const minutesUsed = parseFloat(String(usage.minutes_used)) || 0
-        const minutesIncluded = usage.minutes_included || 0
-        if (minutesUsed >= minutesIncluded && !usage.overage_approved) {
+      if (orgUsage) {
+        const minutesUsed = parseFloat(String(orgUsage.minutes_used)) || 0
+        const minutesIncluded = orgUsage.minutes_included || 0
+        if (minutesUsed >= minutesIncluded) {
           console.log('Org ' + org.id + ': Minute limit reached, skipping')
           results.push({ orgId: org.id, triggered: 0, executed: 0, skipped: 'minute_limit_reached' })
           continue
