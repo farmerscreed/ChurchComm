@@ -312,14 +312,28 @@ export default function PricingPage() {
                 },
             });
 
-            if (error) throw error;
+            if (error) {
+                // Extract actual error from edge function response
+                let msg = "Checkout request failed";
+                try {
+                    if (error.context && typeof error.context.json === "function") {
+                        const errBody = await error.context.json();
+                        console.error("Edge function error body:", errBody);
+                        msg = errBody.error || msg;
+                    }
+                } catch {
+                    msg = error.message || msg;
+                }
+                throw new Error(msg);
+            }
 
             if (data?.url) {
                 window.location.href = data.url;
             } else {
-                throw new Error("No checkout URL returned");
+                throw new Error(data?.error || "No checkout URL returned");
             }
         } catch (error: unknown) {
+            console.error("Checkout error:", error);
             toast({
                 title: "Error",
                 description: (error as Error).message || "Failed to start checkout",

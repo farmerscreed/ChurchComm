@@ -135,6 +135,7 @@ serve(async (req) => {
 
         // Get price ID for selected tier/cycle
         const priceId = PRICE_IDS[tier]?.[billing_cycle];
+        console.log(`Tier: ${tier}, Cycle: ${billing_cycle}, PriceID: ${priceId || "EMPTY"}`);
         if (!priceId) {
             return new Response(JSON.stringify({ error: `Invalid tier "${tier}" or billing cycle "${billing_cycle}"` }), {
                 status: 400,
@@ -170,8 +171,8 @@ serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
     } catch (error: any) {
-        console.error("Stripe checkout error:", error);
-        return new Response(JSON.stringify({ error: error.message }), {
+        console.error("Stripe checkout error:", error.message, error.type, error.code);
+        return new Response(JSON.stringify({ error: error.message, type: error.type, code: error.code }), {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
