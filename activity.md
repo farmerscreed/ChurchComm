@@ -489,3 +489,68 @@
 - Validated UI changes via code review.
 - Verified RPC integration logic.
 - Confirmed VAPI webhook updates for outcome tracking.
+
+### Session: 2026-02-15 - People Directory Pagination
+
+**Summary:** Implemented client-side pagination for the People Directory to improve usability and performance.
+
+**Changes:**
+
+- **PeopleDirectory.tsx:**
+  - Added state for `currentPage` and `itemsPerPage`.
+  - Added pagination logic to slice the `people` array.
+  - Added standard pagination footer with rows-per-page selector and navigation controls.
+  - Ensured page resets to 1 when filters or search terms change.
+
+### Session: 2026-02-17 - Update Billing Logic to People-Reached Model
+
+**Summary:** Updated the billing logic and UI to reflect the new "people reached" pricing model, replacing the "AI minutes" framing.
+
+**Changes:**
+
+- **Backend (Supabase Edge Functions):**
+  - `stripe-webhook`: Updated `TIER_MINUTES` mapping to match new tiers (Starter: 75, Growth: 225, Pro: 600, Enterprise: 99999).
+  - `stripe-checkout`: Added "Pro" tier to `PRICE_IDS`.
+  - `vapi-webhook`: Updated default minute fallbacks to 75 (Starter).
+- **Frontend:**
+  - `BillingSettings.tsx`: Reframed from "AI Minutes" to "People Reached" (dividing minutes by 3). Added "Pro" tier name.
+  - `MinuteUsageWidget.tsx`: Complete rewrite to show "People Reached" with specific visual handling for "Unlimited" Enterprise tier.
+  - `useSubscriptionStatus.ts`: Updated defaults and user-facing messages.
+  - `Dashboard.tsx` & `DemoPage.tsx`: Updated defaults to match new model.
+
+**Verification:**
+
+- Validated new minute allocations against the 3-minute average.
+- Confirmed "Unlimited" display logic for Enterprise tier.
+- Checked default fallbacks for free/new accounts.
+
+### Session: 2026-02-17 - Reliability & Maintainability Improvements
+
+**Summary:** Implemented Sentry error tracking, set up Vitest unit testing framework, and refactored the Settings page into modular components.
+
+**Changes:**
+
+- **Error Tracking (Sentry):**
+  - Integrated `@sentry/react` for production error monitoring.
+  - Created `src/lib/sentry.ts` configuration utility.
+  - Implemented `ErrorBoundary` component with Sentry integration.
+  - Added user context tracking in `main.tsx`.
+
+- **Unit Testing (Vitest):**
+  - Configured Vitest with `jsdom` environment (`vitest.config.ts`).
+  - Added test setup file (`src/test/setup.ts`) mocking browser APIs.
+  - Added initial tests:
+    - `src/lib/utils.test.ts` (cn utility)
+    - `src/components/ui/error-boundary.test.tsx` (component logic)
+  - Added test scripts to `package.json`.
+
+- **Settings Refactoring:**
+  - Extracted `GeneralSettings` component from `Settings.tsx`.
+  - Extracted `TeamSettings` component from `Settings.tsx`.
+  - Simplified `Settings.tsx` to use these modular components.
+  - Improved code organization and maintainability.
+
+**Verification:**
+
+- Verified build passes with `npm run build`.
+- Confirmed tests run successfully.

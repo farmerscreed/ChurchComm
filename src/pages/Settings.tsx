@@ -64,6 +64,8 @@ import { ChurchContextManager } from '@/components/settings/ChurchContextManager
 import { AIKnowledgeSettings } from '@/components/settings/AIKnowledgeSettings';
 import { BillingSettings } from '@/components/settings/BillingSettings';
 import { AutoTriggerManager } from '@/components/settings/AutoTriggerManager';
+import { GeneralSettings } from '@/components/settings/GeneralSettings';
+import { TeamSettings } from '@/components/settings/TeamSettings';
 import { cn } from '@/lib/utils';
 
 interface OrganizationMember {
@@ -1296,11 +1298,18 @@ export default function Settings() {
 
   const renderContent = () => {
     switch (activeSection) {
-      case 'general': return renderGeneralSection();
-      case 'team': return renderTeamSection();
+      case 'general': return <GeneralSettings orgSettings={orgSettings} setOrgSettings={setOrgSettings} />;
+      case 'team': return (
+        <TeamSettings
+          members={members}
+          invitations={invitations}
+          onMembersChange={setMembers}
+          onInvitationsChange={setInvitations}
+        />
+      );
       case 'billing': return renderBillingSection();
       case 'ai': return renderAISection();
-      default: return renderGeneralSection();
+      default: return <GeneralSettings orgSettings={orgSettings} setOrgSettings={setOrgSettings} />;
     }
   };
 

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { LoginPage } from '@/components/auth/LoginPage';
 import { AppLayout } from '@/components/layout/AppLayout';
 import Dashboard from '@/pages/Dashboard';
@@ -45,60 +46,62 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Public routes */}
-        <Route
-          path="/login"
-          element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />}
-        />
-        <Route
-          path="/invite/:token"
-          element={user ? <Navigate to="/dashboard" replace /> : <AcceptInvite />}
-        />
-        <Route path="/pricing" element={<PricingPage />} />
-        <Route path="/demo" element={<DemoPage />} />
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Routes>
+          {/* Public routes */}
+          <Route
+            path="/login"
+            element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />}
+          />
+          <Route
+            path="/invite/:token"
+            element={user ? <Navigate to="/dashboard" replace /> : <AcceptInvite />}
+          />
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/demo" element={<DemoPage />} />
 
-        {/* Onboarding route (authenticated but outside AppLayout) */}
-        <Route
-          path="/onboarding"
-          element={user ? <OnboardingPage /> : <Navigate to="/login" replace />}
-        />
+          {/* Onboarding route (authenticated but outside AppLayout) */}
+          <Route
+            path="/onboarding"
+            element={user ? <OnboardingPage /> : <Navigate to="/login" replace />}
+          />
 
-        {/* Landing page - public */}
-        <Route
-          path="/"
-          element={user ? <Navigate to="/dashboard" replace /> : <LandingPage />}
-        />
+          {/* Landing page - public */}
+          <Route
+            path="/"
+            element={user ? <Navigate to="/dashboard" replace /> : <LandingPage />}
+          />
 
-        {/* Protected routes */}
-        <Route element={user ? <AppLayout /> : <Navigate to="/login" replace />}>
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="people" element={<People />} />
-          <Route path="people/docs" element={<PeopleDocs />} />
-          <Route path="groups" element={<Groups />} />
-          <Route path="communications" element={<Communications />} />
-          <Route path="communications/docs" element={<CommunicationsDocs />} />
-          <Route path="call-history" element={<CallHistory />} />
-          <Route path="follow-ups" element={<FollowUpsPage />} />
-          {/* Automations routes */}
-          <Route path="automations" element={<AutomationsOverview />} />
-          <Route path="automations/birthdays" element={<BirthdayAutomations />} />
-          <Route path="automations/scheduled" element={<ScheduledOutreach />} />
-          <Route path="automations/triggers" element={<EventTriggers />} />
-          <Route path="automations/docs" element={<AutomationDocs />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="system-test" element={<SystemTest />} />
-        </Route>
+          {/* Protected routes */}
+          <Route element={user ? <AppLayout /> : <Navigate to="/login" replace />}>
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="people" element={<People />} />
+            <Route path="people/docs" element={<PeopleDocs />} />
+            <Route path="groups" element={<Groups />} />
+            <Route path="communications" element={<Communications />} />
+            <Route path="communications/docs" element={<CommunicationsDocs />} />
+            <Route path="call-history" element={<CallHistory />} />
+            <Route path="follow-ups" element={<FollowUpsPage />} />
+            {/* Automations routes */}
+            <Route path="automations" element={<AutomationsOverview />} />
+            <Route path="automations/birthdays" element={<BirthdayAutomations />} />
+            <Route path="automations/scheduled" element={<ScheduledOutreach />} />
+            <Route path="automations/triggers" element={<EventTriggers />} />
+            <Route path="automations/docs" element={<AutomationDocs />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="system-test" element={<SystemTest />} />
+          </Route>
 
-        {/* Catch all - redirect to dashboard or login */}
-        <Route
-          path="*"
-          element={<Navigate to={user ? "/dashboard" : "/login"} replace />}
-        />
-      </Routes>
-      <Toaster />
-    </BrowserRouter>
+          {/* Catch all - redirect to dashboard or login */}
+          <Route
+            path="*"
+            element={<Navigate to={user ? "/dashboard" : "/login"} replace />}
+          />
+        </Routes>
+        <Toaster />
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 
