@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { CreditCard, Phone, Calendar, AlertTriangle, ExternalLink, Loader2 } from "lucide-react";
+import { CreditCard, Users, Calendar, AlertTriangle, ExternalLink, Loader2, Phone } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -19,12 +19,17 @@ export function BillingSettings() {
     const subscriptionPlan = currentOrganization?.subscription_plan || "free";
     const subscriptionStatus = currentOrganization?.subscription_status || "active";
     const minutesUsed = currentOrganization?.minutes_used || 0;
-    const minutesIncluded = currentOrganization?.minutes_included || 15;
+    const minutesIncluded = currentOrganization?.minutes_included || 0;
     const trialEndsAt = currentOrganization?.trial_ends_at;
     const currentPeriodEnd = currentOrganization?.current_period_end;
     const billingCycle = currentOrganization?.billing_cycle;
 
-    const minutesPercentage = Math.min((minutesUsed / minutesIncluded) * 100, 100);
+    // Convert minutes to "people reached" (avg ~3 min per call)
+    const peopleReached = minutesIncluded > 0 ? Math.floor(minutesUsed / 3) : 0;
+    const peoplePossible = minutesIncluded > 0 ? Math.floor(minutesIncluded / 3) : 0;
+    const isUnlimited = minutesIncluded >= 99999;
+
+    const usagePercentage = minutesIncluded > 0 ? Math.min((minutesUsed / minutesIncluded) * 100, 100) : 0;
     const isTrialing = subscriptionStatus === "trialing";
     const isPastDue = subscriptionStatus === "past_due";
     const isCanceled = subscriptionStatus === "canceled";
@@ -91,6 +96,7 @@ export function BillingSettings() {
             free: "Free Trial",
             starter: "Starter",
             growth: "Growth",
+            pro: "Pro",
             enterprise: "Enterprise",
         };
         return plans[subscriptionPlan] || subscriptionPlan;
@@ -166,21 +172,28 @@ export function BillingSettings() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <Phone className="h-5 w-5" />
-                        AI Calling Minutes
+                        <Users className="h-5 w-5" />
+                        People Reached This Month
                     </CardTitle>
-                    <CardDescription>Your monthly AI calling usage</CardDescription>
+                    <CardDescription>Your monthly AI outreach capacity</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
                         <div className="flex justify-between text-sm">
-                            <span>{minutesUsed} minutes used</span>
-                            <span>{minutesIncluded} minutes included</span>
+                            <span className="flex items-center gap-1">
+                                <Phone className="h-3 w-3" />
+                                {isUnlimited ? `${peopleReached} people reached` : `${peopleReached} of ${peoplePossible} people reached`}
+                            </span>
+                            <span className="text-muted-foreground">
+                                {isUnlimited ? "Unlimited capacity" : `${minutesIncluded - minutesUsed} min remaining`}
+                            </span>
                         </div>
-                        <Progress value={minutesPercentage} className={minutesPercentage > 90 ? "bg-red-200" : ""} />
-                        {minutesPercentage > 80 && (
+                        {!isUnlimited && (
+                            <Progress value={usagePercentage} className={usagePercentage > 90 ? "bg-red-200" : ""} />
+                        )}
+                        {usagePercentage > 80 && !isUnlimited && (
                             <p className="text-sm text-amber-600">
-                                You're running low on minutes. Consider upgrading your plan.
+                                You're approaching your outreach limit. Consider upgrading your plan to reach more people.
                             </p>
                         )}
                     </div>
@@ -189,9 +202,9 @@ export function BillingSettings() {
 
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="font-medium">Need more minutes?</p>
+                            <p className="font-medium">Reach more people?</p>
                             <p className="text-sm text-muted-foreground">
-                                Upgrade your plan for more AI calling capacity
+                                Upgrade your plan to expand your AI outreach capacity
                             </p>
                         </div>
                         <Button variant="outline" onClick={() => navigate("/pricing")}>

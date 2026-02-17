@@ -46,7 +46,7 @@ const DEMO_STATS = {
     callsThisMonth: 127,
     smsThisMonth: 456,
     minutesUsed: 89,
-    minutesIncluded: 200,
+    minutesIncluded: 225,
 };
 
 const DEMO_RECENT_CALLS = [

@@ -76,7 +76,7 @@ async function recordMinuteUsage(supabase: any, orgId: string, minutes: number):
     await supabase.from('minute_usage').insert({
       organization_id: orgId,
       minutes_used: minutes,
-      minutes_included: org?.minutes_included || 60, // Default to starter plan if unknown
+      minutes_included: org?.minutes_included || 75, // Default to starter plan if unknown
       billing_period_start: billingPeriodStart,
     })
   }
@@ -234,7 +234,7 @@ async function checkUsageWarning(supabase: any, orgId: string): Promise<void> {
   if (!usage) return
 
   const minutesUsed = parseFloat(String(usage.minutes_used)) || 0
-  const minutesIncluded = usage.minutes_included || 100
+  const minutesIncluded = usage.minutes_included || 75
   const usagePercent = (minutesUsed / minutesIncluded) * 100
 
   if (usagePercent >= 80 && !usage.warning_sent_at) {

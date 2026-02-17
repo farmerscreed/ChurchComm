@@ -22,6 +22,10 @@ const PRICE_IDS: Record<string, Record<string, string>> = {
         monthly: Deno.env.get("STRIPE_PRICE_GROWTH_MONTHLY") ?? "",
         annual: Deno.env.get("STRIPE_PRICE_GROWTH_ANNUAL") ?? "",
     },
+    pro: {
+        monthly: Deno.env.get("STRIPE_PRICE_PRO_MONTHLY") ?? "",
+        annual: Deno.env.get("STRIPE_PRICE_PRO_ANNUAL") ?? "",
+    },
     enterprise: {
         monthly: Deno.env.get("STRIPE_PRICE_ENTERPRISE_MONTHLY") ?? "",
         annual: Deno.env.get("STRIPE_PRICE_ENTERPRISE_ANNUAL") ?? "",

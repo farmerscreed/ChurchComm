@@ -9,10 +9,16 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
 const endpointSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET") ?? "";
 
 // Map tiers to minutes included
+// Based on "people reached" model: avg 3 min per AI call
+// Starter: 25 people × 3 min = 75 min
+// Growth: 75 people × 3 min = 225 min
+// Pro: 200 people × 3 min = 600 min
+// Enterprise: Unlimited
 const TIER_MINUTES: Record<string, number> = {
-    starter: 60,
-    growth: 200,
-    enterprise: 600,
+    starter: 75,
+    growth: 225,
+    pro: 600,
+    enterprise: 99999,
 };
 
 serve(async (req) => {
@@ -113,7 +119,7 @@ serve(async (req) => {
                         .update({
                             subscription_status: "canceled",
                             subscription_plan: "free",
-                            minutes_included: 15,
+                            minutes_included: 0,
                         })
                         .eq("id", organizationId);
 

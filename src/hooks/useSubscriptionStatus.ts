@@ -25,7 +25,7 @@ export function useSubscriptionStatus(): SubscriptionState {
     const subscriptionStatus = currentOrganization?.subscription_status || "active";
     const subscriptionPlan = currentOrganization?.subscription_plan || "free";
     const minutesUsed = currentOrganization?.minutes_used || 0;
-    const minutesIncluded = currentOrganization?.minutes_included || 15;
+    const minutesIncluded = currentOrganization?.minutes_included || 0;
     const trialEndsAt = currentOrganization?.trial_ends_at;
 
     const isPastDue = subscriptionStatus === "past_due";
@@ -63,9 +63,9 @@ export function useSubscriptionStatus(): SubscriptionState {
     } else if (isCanceled) {
         message = "Your subscription has been canceled. Subscribe to a plan to continue using KeepFlock.";
     } else if (isMinutesExhausted) {
-        message = "You've used all your AI calling minutes this period. Upgrade your plan for more minutes.";
+        message = "You've reached your AI outreach limit this period. Upgrade your plan to reach more people.";
     } else if (isMinutesLow) {
-        message = `You've used ${minutesUsed} of ${minutesIncluded} AI calling minutes (${Math.round(minutePercentage)}%). Consider upgrading your plan.`;
+        message = `You're approaching your outreach limit (${Math.round(minutePercentage)}% used). Consider upgrading your plan.`;
     } else if (isTrialing && trialDaysRemaining !== null && trialDaysRemaining <= 3) {
         message = trialDaysRemaining === 0
             ? "Your free trial ends today! Subscribe to a plan to keep using KeepFlock."

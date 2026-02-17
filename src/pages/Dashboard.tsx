@@ -225,7 +225,7 @@ export default function Dashboard() {
   const activeCampaigns = campaigns.filter(c => c.status === "in_progress" || c.status === "scheduled");
   const successRate = callStats.total > 0 ? Math.round((callStats.completed / callStats.total) * 100) : 0;
   const orgMinutesUsed = currentOrganization?.minutes_used || 0;
-  const orgMinutesIncluded = currentOrganization?.minutes_included || 15;
+  const orgMinutesIncluded = currentOrganization?.minutes_included || 0;
   const minutePercentage = orgMinutesIncluded > 0
     ? Math.min((orgMinutesUsed / orgMinutesIncluded) * 100, 100)
     : 0;
