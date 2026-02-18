@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
-import { Mail, Phone, Search, UserPlus, Users, UserCheck, UserX, Baby, Sparkles, Calendar, Brain, LayoutGrid, LayoutList, MessageSquare, Crown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Mail, Phone, Search, UserPlus, Users, UserCheck, Sparkles, Calendar, Brain, LayoutGrid, LayoutList, MessageSquare, Crown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Loader2 } from 'lucide-react';
 import { PersonDialog } from './PersonDialog';
 import { MemberProfilePanel } from './MemberProfilePanel';
 
@@ -33,14 +33,7 @@ interface PeopleDirectoryProps {
   onRefresh?: () => void;
 }
 
-const STATUS_CONFIG: Record<string, { color: string; bgColor: string; icon: typeof Users }> = {
-  member: { color: 'text-green-700 dark:text-green-400', bgColor: 'bg-green-100 dark:bg-green-900/40', icon: UserCheck },
-  visitor: { color: 'text-blue-700 dark:text-blue-400', bgColor: 'bg-blue-100 dark:bg-blue-900/40', icon: Users },
-  prospect: { color: 'text-purple-700 dark:text-purple-400', bgColor: 'bg-purple-100 dark:bg-purple-900/40', icon: Sparkles },
-  inactive: { color: 'text-gray-600 dark:text-gray-400', bgColor: 'bg-gray-100 dark:bg-gray-800', icon: UserX },
-  child: { color: 'text-amber-700 dark:text-amber-400', bgColor: 'bg-amber-100 dark:bg-amber-900/40', icon: Baby },
-  first_time_visitor: { color: 'text-pink-700 dark:text-pink-400', bgColor: 'bg-pink-100 dark:bg-pink-900/40', icon: Sparkles },
-};
+
 
 function getInitials(firstName: string, lastName: string): string {
   return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
@@ -66,9 +59,14 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
+  // Pagination State - Moved up to be accessible in useEffect
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number | 'all'>(10);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
+      setCurrentPage(1);
     }, 500);
 
     return () => clearTimeout(timer);
@@ -79,16 +77,12 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
 
-  // Pagination State
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState<number | 'all'>(10);
+
 
   // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [debouncedSearch, statusFilter, itemsPerPage]);
+  // Reset page logic moved to event handlers to avoid cascading renders
 
-  const { data: people, isLoading, error, refetch } = useQuery({
+  const { data: people, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ['people', currentOrganization?.id, debouncedSearch, statusFilter],
     queryFn: async (): Promise<Person[]> => {
       if (!currentOrganization?.id) return [];
@@ -112,6 +106,7 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
       return data as Person[];
     },
     enabled: !!currentOrganization?.id,
+    placeholderData: keepPreviousData,
   });
 
   // Pagination Logic
@@ -170,7 +165,10 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
           <span>Rows per page:</span>
           <Select
             value={typeof itemsPerPage === 'number' ? itemsPerPage.toString() : 'all'}
-            onValueChange={(value) => setItemsPerPage(value === 'all' ? 'all' : Number(value))}
+            onValueChange={(value) => {
+              setItemsPerPage(value === 'all' ? 'all' : Number(value));
+              setCurrentPage(1);
+            }}
           >
             <SelectTrigger className="h-8 w-[70px] bg-white/5 border-white/10 text-white">
               <SelectValue />
@@ -316,7 +314,13 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
       {/* Search and Filter Bar - Modern Design */}
       <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
         <div className="relative w-full lg:w-96">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-500" />
+          <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+            {isFetching ? (
+              <Loader2 className="h-4 w-4 text-purple-400 animate-spin" />
+            ) : (
+              <Search className="h-4 w-4 text-slate-500" />
+            )}
+          </div>
           <Input
             placeholder="Search by name or email..."
             value={search}
@@ -331,7 +335,7 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setStatusFilter('all')}
+              onClick={() => { setStatusFilter('all'); setCurrentPage(1); }}
               className={`rounded-full ${statusFilter === 'all' ? 'bg-purple-500/20 text-purple-300 hover:bg-purple-500/30' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
             >
               All
@@ -339,7 +343,7 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setStatusFilter('member')}
+              onClick={() => { setStatusFilter('member'); setCurrentPage(1); }}
               className={`rounded-full ${statusFilter === 'member' ? 'bg-green-500/20 text-green-300 hover:bg-green-500/30' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
             >
               Members
@@ -347,7 +351,7 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setStatusFilter('visitor')}
+              onClick={() => { setStatusFilter('visitor'); setCurrentPage(1); }}
               className={`rounded-full ${statusFilter === 'visitor' ? 'bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
             >
               Visitors
@@ -423,7 +427,6 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
               </thead>
               <tbody className="divide-y divide-white/5">
                 {currentPeople.map((person) => {
-                  const config = STATUS_CONFIG[person.member_status] || STATUS_CONFIG.visitor;
                   const initials = getInitials(person.first_name, person.last_name);
                   const avatarColor = getAvatarColor(`${person.first_name}${person.last_name}`);
 
@@ -533,7 +536,6 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ onRefresh }) =
         /* Card Grid View */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {currentPeople.map((person) => {
-            const config = STATUS_CONFIG[person.member_status] || STATUS_CONFIG.visitor;
             const initials = getInitials(person.first_name, person.last_name);
             const avatarColor = getAvatarColor(`${person.first_name}${person.last_name}`);
 
