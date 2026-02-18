@@ -63,7 +63,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ChurchContextManager } from '@/components/settings/ChurchContextManager';
 import { AIKnowledgeSettings } from '@/components/settings/AIKnowledgeSettings';
 import { BillingSettings } from '@/components/settings/BillingSettings';
-import { AutoTriggerManager } from '@/components/settings/AutoTriggerManager';
+
 import { GeneralSettings } from '@/components/settings/GeneralSettings';
 import { TeamSettings } from '@/components/settings/TeamSettings';
 import { cn } from '@/lib/utils';
@@ -200,7 +200,7 @@ export default function Settings() {
   const [orgSettings, setOrgSettings] = useState<OrganizationSettings>(defaultSettings);
 
   // AI Settings sub-navigation
-  const [aiSubSection, setAiSubSection] = useState<'scripts' | 'voice' | 'context' | 'automations'>('scripts');
+  const [aiSubSection, setAiSubSection] = useState<'scripts' | 'voice' | 'context'>('scripts');
 
   // Load data on mount
   useEffect(() => {
@@ -1105,7 +1105,6 @@ export default function Settings() {
       <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
         {[
           { id: 'scripts', label: 'Scripts', icon: FileText },
-          { id: 'automations', label: 'Automations', icon: Zap },
           { id: 'voice', label: 'Voice', icon: Volume2 },
           { id: 'context', label: 'AI Context', icon: Brain },
         ].map((item) => (
@@ -1195,25 +1194,6 @@ export default function Settings() {
             </CardContent>
           </Card>
         </div>
-      )}
-
-      {aiSubSection === 'automations' && (
-        <Card className="bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-500/20">
-                <Zap className="h-5 w-5 text-amber-400" />
-              </div>
-              <div>
-                <CardTitle className="text-lg text-slate-50">Call Automations</CardTitle>
-                <CardDescription className="text-slate-400">Automatic calls for key church moments</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <AutoTriggerManager />
-          </CardContent>
-        </Card>
       )}
 
       {aiSubSection === 'voice' && (

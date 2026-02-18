@@ -19,7 +19,8 @@ import {
     LayoutList,
     LayoutGrid,
     MoreHorizontal,
-    Plus
+    Plus,
+    MessageSquare
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -53,14 +54,35 @@ export function AutomationsList() {
         queryKey: ['automations', currentOrganization?.id],
         queryFn: async () => {
             if (!currentOrganization?.id) return [];
-            const { data, error } = await supabase
+
+            // Fetch automations
+            const { data: autoData, error: autoError } = await supabase
                 .from('automations')
                 .select('*')
                 .eq('organization_id', currentOrganization.id)
                 .order('created_at', { ascending: false });
 
-            if (error) throw error;
-            return data as Automation[];
+            if (autoError) throw autoError;
+
+            // Fetch scheduled messages (outreach)
+            const { data: smsData } = await supabase
+                .from('scheduled_messages')
+                .select('id, content, message_type, status, scheduled_for, created_at')
+                .eq('organization_id', currentOrganization.id)
+                .order('created_at', { ascending: false });
+
+            // Map scheduled_messages into the Automation shape
+            const smsMapped: Automation[] = (smsData || []).map((msg: any) => ({
+                id: msg.id,
+                name: msg.content ? msg.content.substring(0, 50) + (msg.content.length > 50 ? '...' : '') : (msg.message_type || 'Scheduled Message'),
+                trigger_type: 'scheduled',
+                status: msg.status === 'scheduled' ? 'active' : (msg.status === 'sent' ? 'paused' : msg.status),
+                total_executions: msg.status === 'sent' ? 1 : 0,
+                last_executed_at: msg.status === 'sent' ? msg.scheduled_for : null,
+                created_at: msg.created_at,
+            }));
+
+            return [...(autoData as Automation[]), ...smsMapped];
         },
         enabled: !!currentOrganization?.id,
     });

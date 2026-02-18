@@ -191,7 +191,7 @@ export default function Dashboard() {
       const combinedUpcoming = [
         ...(upcomingSMS || []).map((c: any) => ({
           id: c.id,
-          person_name: 'SMS Campaign',
+          person_name: c.content ? c.content.substring(0, 40) + (c.content.length > 40 ? '...' : '') : (c.message_type || 'SMS Campaign'),
           trigger_type: 'sms',
           scheduled_at: c.scheduled_for,
         })),

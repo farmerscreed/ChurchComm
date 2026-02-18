@@ -39,7 +39,10 @@ import {
   Phone,
   Loader2,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  UserPlus,
+  CalendarHeart,
+  HelpCircle
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -344,8 +347,8 @@ export default function EventTriggers() {
             const triggerColors = automation.trigger_type === 'group_join'
               ? { bg: 'bg-blue-500/20', text: 'text-blue-400', gradient: 'from-blue-500/10 to-blue-500/5', border: 'border-blue-500/20 hover:border-blue-500/30' }
               : automation.trigger_type === 'first_visit'
-              ? { bg: 'bg-emerald-500/20', text: 'text-emerald-400', gradient: 'from-emerald-500/10 to-emerald-500/5', border: 'border-emerald-500/20 hover:border-emerald-500/30' }
-              : { bg: 'bg-amber-500/20', text: 'text-amber-400', gradient: 'from-amber-500/10 to-amber-500/5', border: 'border-amber-500/20 hover:border-amber-500/30' };
+                ? { bg: 'bg-emerald-500/20', text: 'text-emerald-400', gradient: 'from-emerald-500/10 to-emerald-500/5', border: 'border-emerald-500/20 hover:border-emerald-500/30' }
+                : { bg: 'bg-amber-500/20', text: 'text-amber-400', gradient: 'from-amber-500/10 to-amber-500/5', border: 'border-amber-500/20 hover:border-amber-500/30' };
 
             return (
               <div key={automation.id} className={cn("group rounded-xl bg-gradient-to-br border transition-all hover:scale-[1.02] flex flex-col", triggerColors.gradient, triggerColors.border)}>
@@ -440,7 +443,7 @@ export default function EventTriggers() {
 
             <div className="space-y-4">
               <Label className="text-base font-medium">When should this happen?</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {[
                   {
                     id: 'group_join', label: 'Joins Group', icon: Users,
@@ -451,6 +454,16 @@ export default function EventTriggers() {
                     id: 'first_visit', label: 'First Visit', icon: CheckCircle2,
                     activeBorder: 'border-emerald-500', activeBg: 'bg-emerald-50 dark:bg-emerald-900/10',
                     activeIcon: 'bg-emerald-500 text-white', activeText: 'text-emerald-600 dark:text-emerald-400',
+                  },
+                  {
+                    id: 'first_timer', label: 'First-Timer', icon: UserPlus,
+                    activeBorder: 'border-green-500', activeBg: 'bg-green-50 dark:bg-green-900/10',
+                    activeIcon: 'bg-green-500 text-white', activeText: 'text-green-600 dark:text-green-400',
+                  },
+                  {
+                    id: 'anniversary', label: 'Anniversary', icon: CalendarHeart,
+                    activeBorder: 'border-purple-500', activeBg: 'bg-purple-50 dark:bg-purple-900/10',
+                    activeIcon: 'bg-purple-500 text-white', activeText: 'text-purple-600 dark:text-purple-400',
                   },
                   {
                     id: 'group_leave', label: 'Leaves Group', icon: XCircle,
@@ -556,6 +569,17 @@ export default function EventTriggers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Help Link */}
+      <div className="flex justify-center pt-2">
+        <div className="border-dashed border-2 border-white/10 rounded-xl px-6 py-4 text-center text-slate-400">
+          <HelpCircle className="h-5 w-5 mx-auto mb-1 opacity-50" />
+          <p className="text-sm">Need help getting started?</p>
+          <Link to="/automations/docs" className="text-sm text-amber-400 font-medium hover:underline">
+            View Automations Guide
+          </Link>
+        </div>
+      </div>
     </div >
   );
 }

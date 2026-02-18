@@ -11,7 +11,8 @@ import {
   Sparkles,
   ChevronRight,
   TrendingUp,
-  Clock
+  Clock,
+  HelpCircle
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/integrations/supabase/client';
@@ -225,6 +226,17 @@ export default function AutomationsOverview() {
       {activeTab === 'workflows' && (
         <AutomationsList />
       )}
+
+      {/* Help Link */}
+      <div className="flex justify-center pt-2">
+        <div className="border-dashed border-2 border-white/10 rounded-xl px-6 py-4 text-center text-slate-400">
+          <HelpCircle className="h-5 w-5 mx-auto mb-1 opacity-50" />
+          <p className="text-sm">Need help getting started?</p>
+          <Link to="/automations/docs" className="text-sm text-amber-400 font-medium hover:underline">
+            View Automations Guide
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

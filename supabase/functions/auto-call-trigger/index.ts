@@ -525,10 +525,25 @@ Follow the script purpose directly. Do NOT add extra questions or topics beyond 
           .from('call_attempts')
           .update({
             status: 'in_progress',
-            vapi_call_id: vapiData.id,
+            call_sid: vapiData.id,
             started_at: new Date().toISOString(),
           })
           .eq('id', call.id)
+
+        // Create vapi_call_logs entry so webhook can find and update it
+        const cleanPhone = call.phone_number.replace(/\D/g, '')
+        const formattedPhone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`
+        await supabase
+          .from('vapi_call_logs')
+          .insert({
+            organization_id: org.id,
+            member_id: call.person_id,
+            vapi_call_id: vapiData.id,
+            phone_number_used: formattedPhone,
+            call_status: vapiData.status || 'initiated',
+            assistant_id: call.script_id,
+            raw_vapi_data: vapiData,
+          })
 
         console.log('Org ' + org.id + ': Started call for person ' + call.person_id + ', VAPI ID: ' + vapiData.id)
         executed++
