@@ -268,8 +268,16 @@ serve(async (req) => {
     const MAX_CONCURRENT_CALLS = 1 // Safe default; increase if your VAPI plan allows more
     const INTER_CALL_DELAY_MS = 10000 // 10s between call initiations
 
+    // Auto-expire stale in_progress records (calls that never got a webhook callback)
+    await supabaseAdmin
+      .from('call_attempts')
+      .update({ status: 'failed', error_message: 'Auto-expired: stale in_progress record' })
+      .eq('status', 'in_progress')
+      .eq('organization_id', organizationId)
+      .lt('attempted_at', new Date(Date.now() - 15 * 60 * 1000).toISOString())
+
     const waitForConcurrencySlot = async () => {
-      const maxWaitMs = 300000 // 5 minutes max wait
+      const maxWaitMs = 60000 // 1 minute max wait (within edge function timeout)
       const pollIntervalMs = 5000
       let waited = 0
 
@@ -287,7 +295,7 @@ serve(async (req) => {
         waited += pollIntervalMs
       }
 
-      console.warn('Concurrency wait timed out after 5 minutes')
+      console.warn('Concurrency wait timed out after 1 minute')
       return false
     }
 
@@ -343,7 +351,8 @@ serve(async (req) => {
             person_id: recipient.id,
             phone_number: recipient.phone_number,
             provider: 'vapi',
-            status: 'in_progress'
+            status: 'in_progress',
+            organization_id: organizationId
           })
           .select()
           .single()
@@ -382,17 +391,12 @@ serve(async (req) => {
         // Get webhook URL for callbacks
         const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
         const webhookUrl = `${SUPABASE_URL}/functions/v1/vapi-webhook`
+        const webhookSecret = Deno.env.get('VAPI_WEBHOOK_SECRET') || ''
 
         // Make Vapi call with retry for rate limits (429)
         const maxRetries = 3
-        // Build a direct first greeting that states purpose immediately
         const firstName = recipient.first_name || 'there'
-        // Extract the core purpose from the processed script (first sentence or line)
-        const scriptPurpose = finalPrompt.split(/[.!\n]/)[0]?.trim() || ''
-        const purposeSnippet = scriptPurpose.length > 10 && scriptPurpose.length < 200
-          ? ` ${scriptPurpose}`
-          : ''
-        const firstGreeting = `Hi ${firstName}, this is a call from ${orgName}.${purposeSnippet}`
+        const firstGreeting = `Hi ${firstName}, this is a call from ${orgName}. How are you doing today?`
 
         // Build comprehensive system prompt with the script as guidance
         // Build church knowledge section from org data
@@ -409,21 +413,23 @@ ${orgPhone ? `- Church Phone: ${orgPhone}` : ''}
 ${aiContextNotes ? `- Additional Notes: ${aiContextNotes}` : ''}`
         }
 
-        const systemPrompt = `You are a church assistant calling on behalf of ${orgName}.
+        const systemPrompt = `You are a warm, caring church assistant calling on behalf of ${orgName}. You should sound like a real person from the church, not a robot reading a script.
 
-CRITICAL RULES:
-1. Get to the point IMMEDIATELY. Do NOT ask "how are you" or make small talk before stating the purpose.
-2. State the purpose of the call in your FIRST response after the greeting.
-3. Keep responses SHORT (1-2 sentences max). Do not ramble.
-4. If they respond positively, wrap up quickly. Do not keep asking follow-up questions.
-5. If they mention crisis/needs, acknowledge it briefly and note it.
-6. The entire call should ideally last under 2 minutes.
-7. Use ${firstName}'s name once, not repeatedly.${churchKnowledge}
+CONVERSATION STYLE:
+1. Be warm, natural, and conversational — like a friendly church member checking in.
+2. NEVER read or recite the script below word-for-word. Use it only to understand the PURPOSE and TOPICS of this call.
+3. Put things in your own words. Speak naturally as if you're having a casual phone conversation.
+4. Keep responses SHORT (1-2 sentences max). Be concise but genuine.
+5. Listen and respond to what the person actually says. Have a real conversation.
+6. If they respond positively, wrap up warmly. Don't drag the call out.
+7. If they mention a crisis or need, acknowledge it with empathy and note it.
+8. The entire call should ideally last under 2 minutes.
+9. Use ${firstName}'s name sparingly — once or twice at most.${churchKnowledge}
 
-YOUR SCRIPT/PURPOSE:
+CALL PURPOSE & TALKING POINTS (use as a guide, NOT a script to read):
 ${finalPrompt}
 
-Follow the script purpose directly. Do NOT add extra questions or topics beyond what the script says.`
+Remember: understand the intent above and convey it naturally in your own words. Do NOT quote or recite it.`
 
         let vapiResponse: Response | null = null
         const payload = JSON.stringify({
@@ -437,7 +443,8 @@ Follow the script purpose directly. Do NOT add extra questions or topics beyond 
               organization_id: organizationId,
               person_id: recipient.id
             },
-            serverUrl: webhookUrl // Webhook for call events - in assistantOverrides
+            serverUrl: webhookUrl,
+            serverUrlSecret: webhookSecret
           },
           assistant: {
             name: 'Church Connect Assistant',
@@ -457,7 +464,8 @@ Follow the script purpose directly. Do NOT add extra questions or topics beyond 
               provider: '11labs',
               voiceId: scriptVoiceId
             },
-            serverUrl: webhookUrl, // Also include in assistant for compatibility
+            serverUrl: webhookUrl,
+            serverUrlSecret: webhookSecret,
             endCallMessage: 'Thank you so much for talking with me today. God bless you!',
             endCallPhrases: ['goodbye', 'bye', 'have a good day', 'take care'],
             analysisPlan: {

@@ -183,7 +183,7 @@ async function sendEmailNotification(
     '<p><strong>Type:</strong> ' + alertType + '</p>' +
     '<h3>Details</h3>' +
     '<p style="background:#f3f4f6;padding:16px;border-radius:8px">' + (summary || 'No additional details.') + '</p>' +
-    '<a href="' + appUrl + '/follow-ups" style="display:inline-block;background:' + priorityColor + ';color:white;padding:12px 24px;text-decoration:none;border-radius:6px;margin-top:16px">Review in KeepFlock</a>' +
+    '<a href="' + appUrl + '/call-history" style="display:inline-block;background:' + priorityColor + ';color:white;padding:12px 24px;text-decoration:none;border-radius:6px;margin-top:16px">Review in KeepFlock</a>' +
     '</div>'
 
   const response = await fetch('https://api.resend.com/emails', {

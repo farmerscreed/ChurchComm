@@ -16,7 +16,6 @@ import {
   UsersRound,
   PhoneCall,
   X,
-  PhoneForwarded,
   Zap,
   Cake,
   CalendarClock,
@@ -106,14 +105,6 @@ export function Sidebar({
         { name: 'Event Triggers', href: '/automations/triggers', icon: Bell },
       ],
     },
-    // Follow-ups hidden - feature not yet active
-    // ...(canHandleEscalations
-    //   ? [{
-    //     name: 'Follow-ups',
-    //     href: '/follow-ups',
-    //     icon: PhoneForwarded,
-    //   }]
-    //   : []),
   ];
 
   const toggleExpanded = (itemName: string) => {

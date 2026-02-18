@@ -38,7 +38,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   // Widget Data States
-  // Minutes read directly from currentOrganization (set by Stripe webhook via organizations table)
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [recentCalls, setRecentCalls] = useState<any[]>([]);
   const [escalations, setEscalations] = useState({ urgent: 0, high: 0, medium: 0, total: 0 });
@@ -46,6 +45,7 @@ export default function Dashboard() {
   const [upcomingCalls, setUpcomingCalls] = useState<any[]>([]);
   const [hasDemoData, setHasDemoData] = useState(false);
   const [memberCount, setMemberCount] = useState(0);
+  const [totalMinutes, setTotalMinutes] = useState(0);
 
   // Re-fetch on every navigation to the dashboard (location.key changes each navigation)
   useEffect(() => {
@@ -93,7 +93,8 @@ export default function Dashboard() {
         open_escalations: 0
       };
 
-      setCampaigns(new Array(Number(rpcStats.active_campaigns || 0)).fill({ status: 'in_progress' })); // Mock for length count compatibility
+      setCampaigns(new Array(Number(rpcStats.active_campaigns || 0)).fill({ status: 'in_progress' }));
+      setTotalMinutes(Math.ceil(Number(rpcStats.total_minutes || 0)));
 
       // 2. Recent Calls (from vapi_call_logs)
       const { data: callData } = await supabase
@@ -119,6 +120,8 @@ export default function Dashboard() {
           .from("vapi_call_logs")
           .select("escalation_priority")
           .eq("organization_id", currentOrganization?.id)
+          .not("escalation_priority", "is", null)
+          .eq("needs_pastoral_care", true)
           .eq("escalation_status", "open");
 
         escCounts.urgent = escData?.filter(e => e.escalation_priority === 'urgent').length || 0;
@@ -224,7 +227,7 @@ export default function Dashboard() {
   // Calculate stats
   const activeCampaigns = campaigns.filter(c => c.status === "in_progress" || c.status === "scheduled");
   const successRate = callStats.total > 0 ? Math.round((callStats.completed / callStats.total) * 100) : 0;
-  const orgMinutesUsed = currentOrganization?.minutes_used || 0;
+  const orgMinutesUsed = totalMinutes;
   const orgMinutesIncluded = currentOrganization?.minutes_included || 0;
   const minutePercentage = orgMinutesIncluded > 0
     ? Math.min((orgMinutesUsed / orgMinutesIncluded) * 100, 100)

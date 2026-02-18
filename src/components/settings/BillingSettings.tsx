@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,10 +15,21 @@ export function BillingSettings() {
     const { currentOrganization } = useAuthStore();
     const { toast } = useToast();
     const navigate = useNavigate();
+    const [actualMinutesUsed, setActualMinutesUsed] = useState(0);
+
+    // Fetch real minutes from the database (computed from actual call durations)
+    useEffect(() => {
+        if (!currentOrganization?.id) return;
+        supabase.rpc('get_dashboard_stats', { p_organization_id: currentOrganization.id })
+            .then(({ data }) => {
+                const totalMinutes = Math.ceil(Number(data?.[0]?.total_minutes || 0));
+                setActualMinutesUsed(totalMinutes);
+            });
+    }, [currentOrganization?.id]);
 
     const subscriptionPlan = currentOrganization?.subscription_plan || "free";
     const subscriptionStatus = currentOrganization?.subscription_status || "active";
-    const minutesUsed = currentOrganization?.minutes_used || 0;
+    const minutesUsed = actualMinutesUsed;
     const minutesIncluded = currentOrganization?.minutes_included || 0;
     const trialEndsAt = currentOrganization?.trial_ends_at;
     const currentPeriodEnd = currentOrganization?.current_period_end;

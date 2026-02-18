@@ -9,7 +9,6 @@ import People from '@/pages/People';
 import Groups from '@/pages/Groups';
 import Communications from '@/pages/Communications';
 import CallHistory from '@/pages/CallHistory';
-import FollowUpsPage from '@/pages/FollowUps';
 import Settings from '@/pages/Settings';
 import SystemTest from '@/pages/SystemTest';
 import AcceptInvite from '@/pages/AcceptInvite';
@@ -82,7 +81,6 @@ function App() {
             <Route path="communications" element={<Communications />} />
             <Route path="communications/docs" element={<CommunicationsDocs />} />
             <Route path="call-history" element={<CallHistory />} />
-            <Route path="follow-ups" element={<FollowUpsPage />} />
             {/* Automations routes */}
             <Route path="automations" element={<AutomationsOverview />} />
             <Route path="automations/birthdays" element={<BirthdayAutomations />} />
