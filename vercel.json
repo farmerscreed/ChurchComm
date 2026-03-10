@@ -2,6 +2,8 @@
   "installCommand": "npm install --legacy-peer-deps",
   "buildCommand": "npm run build",
   "rewrites": [
+    { "source": "/privacy-policy.html", "destination": "/privacy-policy.html" },
+    { "source": "/terms.html", "destination": "/terms.html" },
     { "source": "/(.*)", "destination": "/" }
   ]
 }
