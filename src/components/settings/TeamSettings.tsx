@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { PlanGate } from '@/components/PlanGate';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -564,6 +565,7 @@ export function TeamSettings({ members, invitations, onMembersChange, onInvitati
             )}
 
             {/* Escalation Contacts */}
+            <PlanGate feature="hasEscalationAlerts" mode="page">
             <Card className="bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm">
                 <CardHeader>
                     <div className="flex items-center gap-3">
@@ -637,6 +639,7 @@ export function TeamSettings({ members, invitations, onMembersChange, onInvitati
                     )}
                 </CardContent>
             </Card>
+            </PlanGate>
         </div>
     );
 }

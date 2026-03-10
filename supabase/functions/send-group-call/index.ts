@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
 import { substituteVariables, calculateMembershipDuration } from '../_shared/substitute-variables.ts'
 import { buildEnhancedPrompt } from '../_shared/context-injection.ts'
+import { getPlanFeatures, planGateError } from '../_shared/planFeatures.ts'
 
 // Helper to format address object into readable string
 function formatAddress(address: { street?: string; city?: string; state?: string; zip?: string; country?: string } | null): string {
@@ -126,9 +127,18 @@ serve(async (req) => {
     // If they do, caller ID will show their church name instead of "KeepFlock"
     const { data: orgData } = await supabaseAdmin
       .from('organizations')
-      .select('name, vapi_phone_number_id, subscription_tier, pastor_name, service_times, ministry_list, ai_context_notes, website, address, email, phone')
+      .select('name, vapi_phone_number_id, subscription_plan, subscription_tier, pastor_name, service_times, ministry_list, ai_context_notes, website, address, email, phone')
       .eq('id', organizationId)
       .single()
+
+    // Plan gate: group calls (manual campaigns) require Growth+ plan
+    const orgPlanFeatures = getPlanFeatures(orgData?.subscription_plan)
+    if (!isIndividualCall && !orgPlanFeatures.hasGroupCalling) {
+      return new Response(planGateError('Growth', 'group_calling'), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403,
+      })
+    }
 
     // Use org's dedicated number if available, otherwise use shared KeepFlock number
     const VAPI_PHONE_NUMBER_ID = orgData?.vapi_phone_number_id || DEFAULT_PHONE_NUMBER_ID
@@ -371,17 +381,19 @@ serve(async (req) => {
             : '',
         })
 
-        // Enhanced prompt with memory injection (Epic 6)
+        // Enhanced prompt with memory injection (Pro+ only)
         let finalPrompt = processedScript
-        try {
-          finalPrompt = await buildEnhancedPrompt(
-            processedScript,
-            supabaseAdmin,
-            recipient.id,
-            organizationId
-          )
-        } catch (err) {
-          console.error('Failed to build enhanced prompt:', err)
+        if (orgPlanFeatures.hasAIMemory) {
+          try {
+            finalPrompt = await buildEnhancedPrompt(
+              processedScript,
+              supabaseAdmin,
+              recipient.id,
+              organizationId
+            )
+          } catch (err) {
+            console.error('Failed to build enhanced prompt:', err)
+          }
         }
 
         // Clean phone number

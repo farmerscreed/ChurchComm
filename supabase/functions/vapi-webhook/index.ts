@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { getPlanFeatures } from '../_shared/planFeatures.ts'
 
 // --- INLINED SHARED UTILITIES ---
 const corsHeaders = {
@@ -637,19 +638,29 @@ serve(async (req) => {
       }
     }
 
-    // 4. Create member memories from call transcript (Epic 6)
+    // 4. Create member memories from call transcript (Pro+ only)
     if (effectiveOrgId && effectivePersonId && (formattedTranscript || summary)) {
-      try {
-        await createMemberMemories(supabaseAdmin, {
-          personId: effectivePersonId,
-          organizationId: effectiveOrgId,
-          sourceCallId: callLog?.id || call_id,
-          transcript: formattedTranscript || '',
-          summary: summary || '',
-        });
-        console.log('Member memories created for call:', call_id);
-      } catch (memoryError) {
-        console.error('Error creating member memories:', memoryError);
+      const { data: memOrgRow } = await supabaseAdmin
+        .from('organizations')
+        .select('subscription_plan')
+        .eq('id', effectiveOrgId)
+        .single();
+      const memFeatures = getPlanFeatures(memOrgRow?.subscription_plan);
+      if (memFeatures.hasAIMemory) {
+        try {
+          await createMemberMemories(supabaseAdmin, {
+            personId: effectivePersonId,
+            organizationId: effectiveOrgId,
+            sourceCallId: callLog?.id || call_id,
+            transcript: formattedTranscript || '',
+            summary: summary || '',
+          });
+          console.log('Member memories created for call:', call_id);
+        } catch (memoryError) {
+          console.error('Error creating member memories:', memoryError);
+        }
+      } else {
+        console.log(`Skipping memory storage for org ${effectiveOrgId}: plan '${memOrgRow?.subscription_plan}' does not include AI Memory`);
       }
     }
 

@@ -18,6 +18,8 @@ import { MessageSquare, Phone, Send, Loader2, Plus, PhoneCall, Rocket, Sparkles,
 import { CampaignBuilder } from '@/components/communications/CampaignBuilder';
 import { DemoDataNotice } from '@/components/demo/DemoDataNotice';
 import { PhonePreview } from '@/components/communications/PhonePreview';
+import { PlanGate } from '@/components/PlanGate';
+import { usePlanFeatures } from '@/hooks/usePlanFeatures';
 
 interface Group {
   id: string;
@@ -44,6 +46,7 @@ interface Campaign {
 export default function Communications() {
   const navigate = useNavigate();
   const { currentOrganization } = useAuthStore();
+  const planFeatures = usePlanFeatures();
   const { toast } = useToast();
   const [showBuilder, setShowBuilder] = useState(false);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -413,14 +416,18 @@ export default function Communications() {
             Send SMS messages and AI calls to your congregation
           </p>
         </div>
-        <Button
-          onClick={() => setShowBuilder(true)}
-          size="lg"
-          className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white border-0 shadow-lg"
-        >
-          <Rocket className="h-5 w-5 mr-2" />
-          New Campaign
-        </Button>
+        {planFeatures.hasMassVoiceCampaigns ? (
+          <Button
+            onClick={() => setShowBuilder(true)}
+            size="lg"
+            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white border-0 shadow-lg"
+          >
+            <Rocket className="h-5 w-5 mr-2" />
+            New Campaign
+          </Button>
+        ) : (
+          <PlanGate feature="hasMassVoiceCampaigns">{null}</PlanGate>
+        )}
       </div>
 
       {/* Modern Tab Navigation */}
@@ -614,6 +621,7 @@ export default function Communications() {
 
         {/* AI Calling Tab - Premium Redesign */}
         <TabsContent value="calling" className="space-y-0">
+          <PlanGate feature="hasGroupCalling" mode="page">
           <div className="grid lg:grid-cols-2 gap-8">
             {/* Left: Script Editor & Controls */}
             <div className="space-y-6">
@@ -941,6 +949,7 @@ export default function Communications() {
               </div>
             </div>
           </div>
+          </PlanGate>
         </TabsContent>
       </Tabs>
 

@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect } from 'react';
 
 import { Link } from 'react-router-dom';
+import { PlanGate } from '@/components/PlanGate';
 // Card components removed - using gradient divs
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -243,6 +244,7 @@ export default function EventTriggers() {
   const callCount = automations.filter(a => a.action_type === 'make_call').length;
 
   return (
+    <PlanGate feature="hasEventTriggers" mode="page">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -581,5 +583,6 @@ export default function EventTriggers() {
         </div>
       </div>
     </div >
+    </PlanGate>
   );
 }

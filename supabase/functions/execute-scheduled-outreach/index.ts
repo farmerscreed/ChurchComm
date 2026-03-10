@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildEnhancedPrompt } from "../_shared/context-injection.ts";
+import { getPlanFeatures } from "../_shared/planFeatures.ts";
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -64,6 +65,18 @@ serve(async (req) => {
 
         for (const outreach of dueOutreaches || []) {
             console.log(`Processing outreach ${outreach.id} (type: ${outreach.message_type})`);
+
+            // Plan gate: scheduled outreach requires Growth+ plan
+            const { data: orgPlanRow } = await supabase
+                .from("organizations")
+                .select("subscription_plan")
+                .eq("id", outreach.organization_id)
+                .single();
+            const outreachFeatures = getPlanFeatures(orgPlanRow?.subscription_plan);
+            if (!outreachFeatures.hasScheduledOutreach) {
+                console.log(`Skipping outreach ${outreach.id}: org ${outreach.organization_id} plan '${orgPlanRow?.subscription_plan}' does not include scheduled outreach`);
+                continue;
+            }
 
             try {
                 // Mark as processing

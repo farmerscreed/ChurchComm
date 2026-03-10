@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getPlanFeatures } from "../_shared/planFeatures.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -47,6 +48,21 @@ serve(async (req) => {
     }
 
     console.log(`Processing event: ${event_type} for person ${person_id} in org ${organization_id}`);
+
+    // Plan gate: event triggers require Growth+ plan
+    const { data: orgPlanRow } = await supabase
+      .from("organizations")
+      .select("subscription_plan")
+      .eq("id", organization_id)
+      .single();
+    const eventFeatures = getPlanFeatures(orgPlanRow?.subscription_plan);
+    if (!eventFeatures.hasEventTriggers) {
+      console.log(`Skipping event trigger for org ${organization_id}: plan '${orgPlanRow?.subscription_plan}' does not include event triggers`);
+      return new Response(
+        JSON.stringify({ skipped: true, reason: "plan_limit", plan: orgPlanRow?.subscription_plan }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Find active automations matching this event type and organization
     const { data: automations, error: autoError } = await supabase

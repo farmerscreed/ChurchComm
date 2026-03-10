@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { zonedTimeToUtc } from 'https://esm.sh/date-fns-tz@2.0.0?deps=date-fns@2.30.0'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { buildEnhancedPrompt } from '../_shared/context-injection.ts'
+import { getPlanFeatures } from '../_shared/planFeatures.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,7 +39,7 @@ interface Organization {
   phone_number_type: string | null
   dedicated_phone_number: string | null
   vapi_phone_number_id: string | null
-  subscription_tier: string | null
+  subscription_plan: string | null
 }
 
 interface AutoTrigger {
@@ -455,13 +456,15 @@ async function executeScheduledCalls(supabase: any, org: Organization): Promise<
       day_of_week: new Date().toLocaleDateString('en-US', { weekday: 'long' }),
     })
 
-    // Enhanced prompt with memory injection (Heroic implementation)
+    // Enhanced prompt with memory injection (Pro+ only)
     let conversationGuide = basePrompt
-    try {
-      conversationGuide = await buildEnhancedPrompt(basePrompt, supabase, call.person_id, org.id)
-      console.log('Org ' + org.id + ': Enhanced prompt generated for person ' + call.person_id)
-    } catch (err) {
-      console.error('Org ' + org.id + ': Failed to build enhanced prompt, falling back to base:', err)
+    if (getPlanFeatures(org.subscription_plan).hasAIMemory) {
+      try {
+        conversationGuide = await buildEnhancedPrompt(basePrompt, supabase, call.person_id, org.id)
+        console.log('Org ' + org.id + ': Enhanced prompt generated for person ' + call.person_id)
+      } catch (err) {
+        console.error('Org ' + org.id + ': Failed to build enhanced prompt, falling back to base:', err)
+      }
     }
 
     // Build natural greeting and comprehensive system prompt
@@ -618,7 +621,7 @@ Deno.serve(async (req) => {
 
     const { data: organizations, error: orgError } = await supabaseAdmin
       .from('organizations')
-      .select('id, name, calling_window_start, calling_window_end, timezone, phone_number_type, dedicated_phone_number, vapi_phone_number_id, subscription_tier')
+      .select('id, name, calling_window_start, calling_window_end, timezone, phone_number_type, dedicated_phone_number, vapi_phone_number_id, subscription_plan')
 
     if (orgError) {
       console.error('Error fetching organizations:', orgError)

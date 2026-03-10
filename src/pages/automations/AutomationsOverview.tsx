@@ -12,12 +12,14 @@ import {
   ChevronRight,
   TrendingUp,
   Clock,
-  HelpCircle
+  HelpCircle,
+  Lock,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { AutomationsList } from '@/components/automations/AutomationsList';
+import { usePlanFeatures } from '@/hooks/usePlanFeatures';
 
 interface AutomationStats {
   totalAutomations: number;
@@ -29,6 +31,7 @@ interface AutomationStats {
 
 export default function AutomationsOverview() {
   const { currentOrganization } = useAuthStore();
+  const planFeatures = usePlanFeatures();
   const [activeTab, setActiveTab] = useState<'overview' | 'workflows'>('overview');
   const [stats, setStats] = useState<AutomationStats>({
     totalAutomations: 0,
@@ -93,6 +96,7 @@ export default function AutomationsOverview() {
       borderColor: 'border-pink-500/20 hover:border-pink-500/30',
       gradientBg: 'from-pink-500/10 to-pink-500/5',
       stat: `${stats.upcomingBirthdays} upcoming`,
+      locked: false,
     },
     {
       id: 'scheduled',
@@ -105,6 +109,7 @@ export default function AutomationsOverview() {
       borderColor: 'border-blue-500/20 hover:border-blue-500/30',
       gradientBg: 'from-blue-500/10 to-blue-500/5',
       stat: `${stats.scheduledMessages} scheduled`,
+      locked: !planFeatures.hasScheduledOutreach,
     },
     {
       id: 'triggers',
@@ -117,6 +122,7 @@ export default function AutomationsOverview() {
       borderColor: 'border-amber-500/20 hover:border-amber-500/30',
       gradientBg: 'from-amber-500/10 to-amber-500/5',
       stat: `${stats.activeAutomations} active`,
+      locked: !planFeatures.hasEventTriggers,
     },
   ];
 
@@ -195,12 +201,30 @@ export default function AutomationsOverview() {
           {/* Feature Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {categories.map((category) => (
-              <Link key={category.id} to={category.href} className="group block">
+              <Link
+                key={category.id}
+                to={category.href}
+                className={cn("group block", category.locked && "pointer-events-none")}
+              >
                 <div className={cn(
-                  "p-6 rounded-xl bg-gradient-to-br border transition-all cursor-pointer hover:scale-[1.02]",
+                  "p-6 rounded-xl bg-gradient-to-br border transition-all relative overflow-hidden",
+                  category.locked ? "cursor-default opacity-60" : "cursor-pointer hover:scale-[1.02]",
                   category.gradientBg,
                   category.borderColor
                 )}>
+                  {category.locked && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/60 backdrop-blur-[2px] rounded-xl z-10">
+                      <Lock className="h-7 w-7 text-purple-400 mb-2" />
+                      <span className="text-xs font-semibold text-purple-300 uppercase tracking-wider">Growth Plan</span>
+                      <Link
+                        to="/pricing"
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-3 px-4 py-1.5 rounded-full bg-purple-600/80 text-white text-xs font-medium hover:bg-purple-500 transition-colors pointer-events-auto"
+                      >
+                        Upgrade
+                      </Link>
+                    </div>
+                  )}
                   <div className="flex items-start justify-between mb-4">
                     <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", category.bgColor)}>
                       <category.icon className={cn("h-6 w-6", category.color)} />

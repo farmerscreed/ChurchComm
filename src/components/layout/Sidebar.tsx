@@ -20,11 +20,13 @@ import {
   Cake,
   CalendarClock,
   Bell,
-  Sparkles
+  Sparkles,
+  Lock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 import { usePermissions } from '@/hooks/usePermissions';
+import { usePlanFeatures } from '@/hooks/usePlanFeatures';
 import { LogoIcon } from '@/components/ui/Logo';
 
 interface SidebarProps {
@@ -45,6 +47,7 @@ interface NavigationItem {
     href: string;
     icon: React.ComponentType<{ className?: string }>;
     badge?: string;
+    locked?: boolean;
   }[];
 }
 
@@ -57,6 +60,7 @@ export function Sidebar({
   const location = useLocation();
   const { signOut, currentOrganization } = useAuthStore();
   const { canHandleEscalations, canManageOrgSettings } = usePermissions();
+  const planFeatures = usePlanFeatures();
   const [expandedItems, setExpandedItems] = useState<string[]>([
     'people',
     'communications',
@@ -101,8 +105,8 @@ export function Sidebar({
       children: [
         { name: 'Overview', href: '/automations', icon: Sparkles },
         { name: 'Birthday Messages', href: '/automations/birthdays', icon: Cake },
-        { name: 'Scheduled', href: '/automations/scheduled', icon: CalendarClock },
-        { name: 'Event Triggers', href: '/automations/triggers', icon: Bell },
+        { name: 'Scheduled', href: '/automations/scheduled', icon: CalendarClock, locked: !planFeatures.hasScheduledOutreach },
+        { name: 'Event Triggers', href: '/automations/triggers', icon: Bell, locked: !planFeatures.hasEventTriggers },
       ],
     },
   ];
@@ -254,14 +258,19 @@ export function Sidebar({
                             to={child.href}
                             className={cn(
                               'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all',
-                              'hover:text-white hover:bg-white/5',
-                              active
+                              child.locked
+                                ? 'text-slate-600 cursor-pointer hover:text-slate-500'
+                                : 'hover:text-white hover:bg-white/5',
+                              !child.locked && active
                                 ? 'bg-indigo-500/10 text-indigo-400 font-medium'
-                                : 'text-slate-400',
+                                : !child.locked ? 'text-slate-400' : '',
                             )}
                           >
-                            <child.icon className={cn("h-4 w-4 shrink-0 transition-colors", active ? "text-indigo-400" : "text-slate-500")} />
-                            <span>{child.name}</span>
+                            <child.icon className={cn("h-4 w-4 shrink-0 transition-colors", active && !child.locked ? "text-indigo-400" : "text-slate-500")} />
+                            <span className="flex-1">{child.name}</span>
+                            {child.locked && (
+                              <Lock className="h-3 w-3 text-slate-600 shrink-0" />
+                            )}
                           </Link>
                         )
                       })}

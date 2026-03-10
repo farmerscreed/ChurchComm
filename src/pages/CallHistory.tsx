@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -91,7 +92,7 @@ interface CallStats {
 }
 
 export default function CallHistory() {
-  const { currentOrganization } = useAuthStore();
+  const { currentOrganization, user } = useAuthStore();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
@@ -111,6 +112,10 @@ export default function CallHistory() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sentimentFilter, setSentimentFilter] = useState<string>('all');
   const [activeTab, setActiveTab] = useState('all');
+  // Escalation resolution state
+  const [showResolved, setShowResolved] = useState(false);
+  const [isResolvingMode, setIsResolvingMode] = useState(false);
+  const [resolutionNotes, setResolutionNotes] = useState('');
 
   useEffect(() => {
     if (currentOrganization?.id) {
@@ -197,8 +202,9 @@ export default function CallHistory() {
       call.member_response_type === sentimentFilter ||
       (sentimentFilter === 'neutral' && !call.member_response_type);
 
+    const isEscalated = call.crisis_indicators === true || call.needs_pastoral_care === true;
     const matchesTab = activeTab === 'all' ||
-      (activeTab === 'escalations' && (call.crisis_indicators === true || call.needs_pastoral_care === true)) ||
+      (activeTab === 'escalations' && isEscalated && (showResolved || call.escalation_status !== 'resolved')) ||
       (activeTab === 'follow-ups' && call.follow_up_needed === true) ||
       (activeTab === 'completed' && (call.call_status === 'completed' || call.call_status === 'ended'));
 
@@ -289,30 +295,52 @@ export default function CallHistory() {
     return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase() || '?';
   };
 
-  const resolveEscalation = async (callId: string) => {
+  const resolveEscalation = async (callId: string, notes: string) => {
     try {
-      const { error } = await supabase
+      const now = new Date().toISOString();
+
+      // 1. Update the call log status
+      const { error: logError } = await supabase
         .from('vapi_call_logs')
         .update({ escalation_status: 'resolved' })
         .eq('id', callId);
 
-      if (error) throw error;
+      if (logError) throw logError;
 
-      // Update local state
+      // 2. Update the corresponding escalation_alerts record(s) with audit fields
+      const { error: alertError } = await supabase
+        .from('escalation_alerts')
+        .update({
+          status: 'resolved',
+          resolved_at: now,
+          resolution_notes: notes.trim() || null,
+          assigned_to: user?.id ?? null,
+        })
+        .eq('vapi_call_log_id', callId);
+
+      if (alertError) {
+        // Non-fatal: log warning but don't fail the whole operation since
+        // the call log was already updated and the alert row may not exist.
+        console.warn('Could not update escalation_alerts:', alertError);
+      }
+
+      // 3. Update local state
       setCallLogs(prev => prev.map(c =>
         c.id === callId ? { ...c, escalation_status: 'resolved' } : c
       ));
 
-      // Update stats (decrement escalations count)
       setStats(prev => ({
         ...prev,
         escalations: Math.max(0, prev.escalations - 1)
       }));
 
-      // Update selected call if open
       if (selectedCall?.id === callId) {
         setSelectedCall(prev => prev ? { ...prev, escalation_status: 'resolved' } : null);
       }
+
+      // 4. Reset resolving UI
+      setIsResolvingMode(false);
+      setResolutionNotes('');
 
       toast({
         title: 'Escalation Resolved',
@@ -440,28 +468,49 @@ export default function CallHistory() {
             <div className="px-6 py-4 border-b border-white/10">
               <div className="flex flex-col gap-4">
                 {/* Scrollable tabs on mobile */}
-                <div className="overflow-x-auto scrollbar-hide -mx-6 px-6">
-                  <div className="inline-flex bg-white/5 border border-white/10 rounded-full p-1 min-w-max">
-                    {[
-                      { id: "all", label: "All" },
-                      { id: "completed", label: "Completed" },
-                      { id: "escalations", label: "Urgent" },
-                      { id: "follow-ups", label: "Follow-ups" },
-                    ].map((tab) => (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={cn(
-                          "px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-medium transition-all whitespace-nowrap",
-                          activeTab === tab.id
-                            ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg"
-                            : "text-slate-400 hover:text-white"
-                        )}
-                      >
-                        {tab.label}
-                      </button>
-                    ))}
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="overflow-x-auto scrollbar-hide">
+                    <div className="inline-flex bg-white/5 border border-white/10 rounded-full p-1 min-w-max">
+                      {[
+                        { id: "all", label: "All" },
+                        { id: "completed", label: "Completed" },
+                        { id: "escalations", label: "Urgent" },
+                        { id: "follow-ups", label: "Follow-ups" },
+                      ].map((tab) => (
+                        <button
+                          key={tab.id}
+                          onClick={() => setActiveTab(tab.id)}
+                          className={cn(
+                            "px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-medium transition-all whitespace-nowrap",
+                            activeTab === tab.id
+                              ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg"
+                              : "text-slate-400 hover:text-white"
+                          )}
+                        >
+                          {tab.label}
+                          {tab.id === "escalations" && (
+                            <span className="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500/30 px-1 text-[10px] font-bold text-amber-300">
+                              {callLogs.filter(c => (c.crisis_indicators || c.needs_pastoral_care) && c.escalation_status !== 'resolved').length}
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
                   </div>
+                  {activeTab === 'escalations' && (
+                    <button
+                      onClick={() => setShowResolved(v => !v)}
+                      className={cn(
+                        "flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all whitespace-nowrap",
+                        showResolved
+                          ? "border-green-500/40 bg-green-500/10 text-green-400"
+                          : "border-white/10 bg-white/5 text-slate-400 hover:text-white"
+                      )}
+                    >
+                      <CheckCircle2 className="h-3 w-3" />
+                      {showResolved ? "Hiding resolved" : "Show resolved"}
+                    </button>
+                  )}
                 </div>
 
                 {/* Search */}
@@ -565,6 +614,16 @@ export default function CallHistory() {
 
                           {/* Tags Row */}
                           <div className="flex flex-wrap gap-2 pt-2">
+                            {(call.crisis_indicators || call.needs_pastoral_care) && call.escalation_status !== 'resolved' && (
+                              <Badge className="h-5 px-2 text-[10px] gap-1 bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse">
+                                <AlertCircle className="h-3 w-3" /> Action Required
+                              </Badge>
+                            )}
+                            {(call.crisis_indicators || call.needs_pastoral_care) && call.escalation_status === 'resolved' && (
+                              <Badge className="h-5 px-2 text-[10px] gap-1 bg-green-500/20 text-green-400 border-0">
+                                <Check className="h-3 w-3" /> Resolved
+                              </Badge>
+                            )}
                             {call.crisis_indicators && (
                               <Badge className="h-5 px-2 text-[10px] gap-1 bg-red-500/20 text-red-400 border-0">
                                 <AlertTriangle className="h-3 w-3" /> Crisis
@@ -635,11 +694,11 @@ export default function CallHistory() {
                   <AlertCircle className="h-4 w-4 text-rose-400" />
                   Urgent Needs
                 </h4>
-                {callLogs.filter(c => c.crisis_indicators || c.needs_pastoral_care).length === 0 ? (
-                  <div className="text-xs text-slate-500 italic">No urgent needs detected.</div>
+                {callLogs.filter(c => (c.crisis_indicators || c.needs_pastoral_care) && c.escalation_status !== 'resolved').length === 0 ? (
+                  <div className="text-xs text-slate-500 italic">No open urgent needs.</div>
                 ) : (
                   <div className="space-y-2">
-                    {callLogs.filter(c => c.crisis_indicators || c.needs_pastoral_care).slice(0, 3).map(call => (
+                    {callLogs.filter(c => (c.crisis_indicators || c.needs_pastoral_care) && c.escalation_status !== 'resolved').slice(0, 3).map(call => (
                       <div key={call.id} className="text-xs flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10">
                         <span className="font-medium text-white truncate max-w-[100px]">
                           {call.people?.first_name || 'Unknown'}
@@ -648,9 +707,6 @@ export default function CallHistory() {
                           <Badge className="h-5 text-[9px] px-2 bg-red-500/20 text-red-400 border-0">CRISIS</Badge>
                         ) : (
                           <Badge className="h-5 text-[9px] px-2 bg-pink-500/20 text-pink-400 border-0">CARE</Badge>
-                        )}
-                        {call.escalation_status === 'resolved' && (
-                          <Badge className="h-5 text-[9px] px-2 bg-green-500/20 text-green-400 border-0 ml-1">RESOLVED</Badge>
                         )}
                       </div>
                     ))}
@@ -663,7 +719,10 @@ export default function CallHistory() {
       </div>
 
       {/* Call Detail Dialog - Overhauled Modern Design */}
-      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+      <Dialog open={isDetailOpen} onOpenChange={(open) => {
+        setIsDetailOpen(open);
+        if (!open) { setIsResolvingMode(false); setResolutionNotes(''); }
+      }}>
         <DialogContent className="max-w-3xl max-h-[95vh] w-[95vw] sm:w-full overflow-hidden flex flex-col bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 border-white/10 p-0">
           {/* Header with gradient background */}
           <div className="relative px-6 pt-6 pb-4 bg-gradient-to-r from-purple-900/30 via-blue-900/20 to-slate-900/30 border-b border-white/10">
@@ -711,10 +770,10 @@ export default function CallHistory() {
                       {selectedCall?.call_status?.replace('_', ' ') || 'Unknown'}
                     </span>
                     {/* Resolution Button */}
-                    {(selectedCall?.crisis_indicators || selectedCall?.needs_pastoral_care) && selectedCall?.escalation_status === 'open' && (
+                    {(selectedCall?.crisis_indicators || selectedCall?.needs_pastoral_care) && selectedCall?.escalation_status !== 'resolved' && !isResolvingMode && (
                       <Button
                         size="sm"
-                        onClick={() => selectedCall && resolveEscalation(selectedCall.id)}
+                        onClick={() => setIsResolvingMode(true)}
                         className="ml-auto sm:ml-2 h-7 bg-green-600 hover:bg-green-700 text-white border-0 text-xs font-semibold shadow-lg shadow-green-900/20"
                       >
                         <Check className="h-3 w-3 mr-1.5" />
@@ -810,8 +869,18 @@ export default function CallHistory() {
             <div className="space-y-6 pb-10">
               {/* Alert Badges */}
               {(selectedCall?.crisis_indicators || selectedCall?.needs_pastoral_care || selectedCall?.follow_up_needed) && (
-                <div className="flex flex-wrap gap-2 p-3 bg-red-500/10 rounded-xl border border-red-500/20">
-                  <span className="w-full text-xs uppercase tracking-wider text-red-400/70 mb-1 font-medium">⚠️ Attention Required</span>
+                <div className={cn(
+                  "flex flex-wrap gap-2 p-3 rounded-xl border",
+                  selectedCall?.escalation_status === 'resolved'
+                    ? "bg-green-500/10 border-green-500/20"
+                    : "bg-red-500/10 border-red-500/20"
+                )}>
+                  <span className={cn(
+                    "w-full text-xs uppercase tracking-wider mb-1 font-medium",
+                    selectedCall?.escalation_status === 'resolved' ? "text-green-400/70" : "text-red-400/70"
+                  )}>
+                    {selectedCall?.escalation_status === 'resolved' ? '✓ Issue Resolved' : '⚠️ Attention Required'}
+                  </span>
                   {selectedCall?.crisis_indicators && (
                     <Badge className="gap-1.5 bg-red-500/30 text-red-300 border border-red-500/40 px-3 py-1">
                       <AlertTriangle className="h-3.5 w-3.5" />
@@ -830,6 +899,41 @@ export default function CallHistory() {
                       Follow-up Required
                     </Badge>
                   )}
+                </div>
+              )}
+
+              {/* Resolution Notes Form — shown after clicking "Resolve Issue" */}
+              {isResolvingMode && selectedCall?.escalation_status !== 'resolved' && (
+                <div className="rounded-xl border border-green-500/30 bg-green-500/10 p-4 space-y-3">
+                  <h4 className="text-sm font-semibold text-green-300 flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Mark as Resolved
+                  </h4>
+                  <p className="text-xs text-slate-400">Optionally describe how this was handled (e.g. "Called John, connected with Pastor Mark").</p>
+                  <Textarea
+                    value={resolutionNotes}
+                    onChange={(e) => setResolutionNotes(e.target.value)}
+                    placeholder="Resolution notes (optional)..."
+                    className="bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus-visible:ring-green-500 min-h-[80px] resize-none text-sm"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => selectedCall && resolveEscalation(selectedCall.id, resolutionNotes)}
+                      className="h-8 bg-green-600 hover:bg-green-700 text-white border-0 text-xs font-semibold flex-1"
+                    >
+                      <Check className="h-3.5 w-3.5 mr-1.5" />
+                      Confirm Resolved
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => { setIsResolvingMode(false); setResolutionNotes(''); }}
+                      className="h-8 text-slate-400 hover:text-white text-xs"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
               )}
 
