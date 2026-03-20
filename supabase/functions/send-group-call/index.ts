@@ -181,6 +181,7 @@ serve(async (req) => {
         .from('call_scripts')
         .select('*')
         .eq('id', scriptId)
+        .eq('organization_id', organizationId)
         .single()
 
       if (scriptError) throw scriptError
@@ -217,6 +218,7 @@ serve(async (req) => {
           )
         `)
         .eq('group_id', groupId)
+        .eq('organization_id', organizationId)
 
       if (membersError) throw membersError
 

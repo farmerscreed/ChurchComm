@@ -136,6 +136,7 @@ serve(async (req) => {
           )
         `)
         .eq('group_id', recipientId)
+        .eq('organization_id', organizationId)
 
       if (membersError) throw membersError
 

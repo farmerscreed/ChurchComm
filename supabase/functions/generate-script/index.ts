@@ -17,12 +17,46 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    // Authenticate the caller
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      })
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      })
+    }
+
     const { organization_id, purpose, tone, key_points, denomination_style, desired_duration } = await req.json()
 
     if (!organization_id || !purpose) {
       return new Response(JSON.stringify({ error: 'organization_id and purpose are required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Verify user belongs to the organization
+    const { data: membership, error: memberError } = await supabase
+      .from('organization_members')
+      .select('role')
+      .eq('organization_id', organization_id)
+      .eq('user_id', user.id)
+      .single()
+
+    if (memberError || !membership) {
+      return new Response(JSON.stringify({ error: 'Forbidden: not a member of this organization' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403,
       })
     }
 
