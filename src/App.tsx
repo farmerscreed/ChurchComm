@@ -85,7 +85,10 @@ function App() {
             <Route path="automations" element={<AutomationsOverview />} />
             <Route path="automations/birthdays" element={<BirthdayAutomations />} />
             <Route path="automations/scheduled" element={<ScheduledOutreach />} />
-            <Route path="automations/triggers" element={<EventTriggers />} />
+            {false && (
+              // ghost feature — EventTriggers (group_join) has no backend processor in auto-call-trigger
+              <Route path="automations/triggers" element={<EventTriggers />} />
+            )}
             <Route path="automations/docs" element={<AutomationDocs />} />
             <Route path="settings" element={<Settings />} />
             <Route path="system-test" element={<SystemTest />} />

@@ -102,7 +102,8 @@ export function Sidebar({
         { name: 'Overview', href: '/automations', icon: Sparkles },
         { name: 'Birthday Messages', href: '/automations/birthdays', icon: Cake },
         { name: 'Scheduled', href: '/automations/scheduled', icon: CalendarClock },
-        { name: 'Event Triggers', href: '/automations/triggers', icon: Bell },
+        // ghost feature — not yet implemented (no backend for group_join trigger type)
+        // { name: 'Event Triggers', href: '/automations/triggers', icon: Bell },
       ],
     },
   ];

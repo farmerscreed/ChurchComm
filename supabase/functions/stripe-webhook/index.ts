@@ -96,12 +96,22 @@ serve(async (req) => {
                     else if (status === "past_due") subscriptionStatus = "past_due";
                     else if (status === "canceled" || status === "unpaid") subscriptionStatus = "canceled";
 
+                    const updatePayload: Record<string, unknown> = {
+                        subscription_status: subscriptionStatus,
+                        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+                    };
+
+                    // Sync minutes_included when plan tier changes (fixes billing throttle bug)
+                    const tier = subscription.metadata?.tier;
+                    if (tier && TIER_MINUTES[tier] !== undefined) {
+                        updatePayload.subscription_plan = tier;
+                        updatePayload.minutes_included = TIER_MINUTES[tier];
+                        console.log(`Subscription plan change for org ${organizationId}: ${tier} → ${TIER_MINUTES[tier]} minutes`);
+                    }
+
                     await supabase
                         .from("organizations")
-                        .update({
-                            subscription_status: subscriptionStatus,
-                            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-                        })
+                        .update(updatePayload)
                         .eq("id", organizationId);
 
                     console.log(`Subscription updated for org ${organizationId}: ${subscriptionStatus}`);
