@@ -116,7 +116,7 @@ export function ConnectGrantAccount({ onConnected }: ConnectGrantAccountProps) {
         {
           org_id: currentOrganization.id,
           google_ads_account_id: adsId,
-          grant_status: 'Active',
+          grant_status: 'grants_activated',
         },
         { onConflict: 'org_id' },
       );

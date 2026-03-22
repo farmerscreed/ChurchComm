@@ -115,7 +115,7 @@ export function EligibilityChecker({ onQualified }: EligibilityCheckerProps) {
 
   async function handleNext() {
     // Early exit on disqualifying answers
-    if (step === 1 && answers.q1_501c3 !== 'us_yes') {
+    if (step === 1 && answers.q1_501c3 !== '501c3_yes') {
       if (answers.q1_501c3 === '501c3_no' || answers.q1_501c3 === '501c3_pending') {
         finalizeResult();
         return;

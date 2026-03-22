@@ -13,8 +13,8 @@ export function SubscriptionBanner() {
         isPastDue,
         isCanceled,
         isTrialing,
-        isMinutesLow,
-        isMinutesExhausted,
+        isCallsLow,
+        isCallsExhausted,
         trialDaysRemaining,
         message,
     } = useSubscriptionStatus();
@@ -22,13 +22,13 @@ export function SubscriptionBanner() {
 
     // Determine banner type and styling
     const showBanner =
-        isReadOnly || isMinutesExhausted || isMinutesLow ||
+        isReadOnly || isCallsExhausted || isCallsLow ||
         (isTrialing && trialDaysRemaining !== null && trialDaysRemaining <= 3);
 
     if (!showBanner) return null;
 
     // Red banner for critical issues, amber for warnings
-    const isCritical = isReadOnly || isMinutesExhausted;
+    const isCritical = isReadOnly || isCallsExhausted;
     const bgClass = isCritical
         ? "bg-gradient-to-r from-red-500/20 to-red-500/10 border-red-500/30"
         : "bg-gradient-to-r from-amber-500/20 to-amber-500/10 border-amber-500/30";
@@ -37,7 +37,7 @@ export function SubscriptionBanner() {
 
     // Pick the icon based on the issue type
     let Icon = AlertTriangle;
-    if (isMinutesLow || isMinutesExhausted) Icon = Phone;
+    if (isCallsLow || isCallsExhausted) Icon = Phone;
     else if (isTrialing && trialDaysRemaining !== null && trialDaysRemaining <= 3) Icon = Clock;
 
     return (
@@ -68,7 +68,7 @@ export function SubscriptionBanner() {
                         View Plans
                     </Button>
                 )}
-                {(isMinutesLow || isMinutesExhausted) && (
+                {(isCallsLow || isCallsExhausted) && (
                     <Button
                         size="sm"
                         variant="outline"

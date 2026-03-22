@@ -379,7 +379,7 @@ serve(async (req) => {
       const { data: membership, error: memberError } = await supabaseAdmin
         .from('organization_members')
         .select('role')
-        .eq('org_id', org_id)
+        .eq('organization_id', org_id)
         .eq('user_id', user.id)
         .single()
 
@@ -444,7 +444,40 @@ serve(async (req) => {
 
     console.log('Preflight scan complete:', url, `Score: ${score}/${totalChecks}`, isReady ? 'READY' : 'NOT READY')
 
-    return new Response(JSON.stringify(report), {
+    // Map check names to keys expected by the frontend PreflightChecker component
+    const nameToKey: Record<string, string> = {
+      'HTTPS Enabled': 'https',
+      'Privacy Policy Page': 'privacy_policy',
+      'About/Mission Page': 'about_page',
+      'Contact Information': 'contact_info',
+      'Multi-Page Site': 'multi_page',
+      'Mission Statement': 'mission_statement',
+      'Donation/Giving Page': 'donation_page',
+      'Valid Sitemap': 'sitemap',
+      'Mobile-Friendly': 'mobile_friendly',
+      'Page Load Time': 'load_time',
+    }
+
+    // Transform to camelCase shape expected by frontend
+    const frontendResponse = {
+      url,
+      score,
+      total: totalChecks,
+      isReady,
+      checks: checks.map(c => ({
+        key: nameToKey[c.name] || c.name.toLowerCase().replace(/[\s/]+/g, '_'),
+        label: c.name,
+        description: c.message,
+        status: c.passed ? 'pass' as const : c.severity === 'advisory' ? 'warn' as const : 'fail' as const,
+        fixInstructions: c.fix_hint,
+      })),
+      criticalFailures: criticalFailures.map(c => c.name),
+      highFailures: highFailures.map(c => c.name),
+      advisories: advisories.map(c => c.name),
+      passingChecks: passingChecks.map(c => c.name),
+    }
+
+    return new Response(JSON.stringify(frontendResponse), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
