@@ -379,7 +379,7 @@ serve(async (req) => {
       const { data: membership, error: memberError } = await supabaseAdmin
         .from('organization_members')
         .select('role')
-        .eq('organization_id', org_id)
+        .eq('org_id', org_id)
         .eq('user_id', user.id)
         .single()
 
@@ -424,16 +424,14 @@ serve(async (req) => {
       const { error: storeError } = await supabaseAdmin
         .from('preflight_results')
         .insert({
-          organization_id: org_id,
-          url,
+          org_id: org_id,
+          url_scanned: url,
           score,
-          total_checks: totalChecks,
           is_ready: isReady,
           critical_failures: criticalFailures,
           high_failures: highFailures,
           advisories,
           passing_checks: passingChecks,
-          scanned_by: user.id,
         })
 
       if (storeError) {

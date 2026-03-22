@@ -117,8 +117,8 @@ serve(async (req) => {
     // Look up the org's grant_accounts record to get per-org webhook_secret
     const { data: grantAccount, error: grantError } = await supabaseAdmin
       .from('grant_accounts')
-      .select('id, organization_id, guardian_customer_id, webhook_secret')
-      .eq('organization_id', keepflock_org_id)
+      .select('id, org_id, guardian_customer_id')
+      .eq('org_id', keepflock_org_id)
       .maybeSingle()
 
     if (grantError) {
@@ -133,10 +133,8 @@ serve(async (req) => {
       })
     }
 
-    // Use per-org secret if available, fall back to global secret
-    const webhookSecret = grantAccount.webhook_secret
-      || Deno.env.get('GUARDIAN_WEBHOOK_SECRET')
-      || ''
+    // Use global GUARDIAN_WEBHOOK_SECRET
+    const webhookSecret = Deno.env.get('GUARDIAN_WEBHOOK_SECRET') || ''
 
     // Verify HMAC signature
     const signatureHeader = req.headers.get('X-Guardian-Signature') || ''
@@ -159,17 +157,15 @@ serve(async (req) => {
     const { error: insertError } = await supabaseAdmin
       .from('grant_compliance_events')
       .insert({
-        organization_id: grantAccount.organization_id,
-        grant_account_id: grantAccount.id,
+        org_id: grantAccount.org_id,
         event_type: payload.event_type,
         severity: payload.severity || 'info',
-        account_id: payload.account_id || null,
         metric_name: payload.metric_name || null,
         metric_value: payload.metric_value ?? null,
-        threshold_value: payload.threshold_value ?? null,
+        threshold: payload.threshold ?? null,
         action_taken: payload.action_taken || null,
         message: payload.message || null,
-        raw_data: payload.raw_data || payload,
+        raw_payload: payload.raw_data || payload,
       })
 
     if (insertError) {

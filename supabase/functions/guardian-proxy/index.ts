@@ -117,8 +117,8 @@ serve(async (req) => {
     // --- 5. Get grant_accounts record ---
     const { data: grantAccount, error: grantError } = await supabaseAdmin
       .from('grant_accounts')
-      .select('id, guardian_customer_id, google_ads_account_id, webhook_secret')
-      .eq('organization_id', orgId)
+      .select('id, guardian_customer_id, google_ads_account_id')
+      .eq('org_id', orgId)
       .maybeSingle()
 
     // Common headers for GUARDIAN API requests
@@ -189,7 +189,6 @@ serve(async (req) => {
           .update({
             guardian_customer_id: guardianCustomerId,
             google_ads_account_id: googleAdsAccountId,
-            webhook_secret: webhookSecret,
             updated_at: new Date().toISOString(),
           })
           .eq('id', grantAccount.id)
@@ -197,10 +196,9 @@ serve(async (req) => {
         await supabaseAdmin
           .from('grant_accounts')
           .insert({
-            organization_id: orgId,
+            org_id: orgId,
             guardian_customer_id: guardianCustomerId,
             google_ads_account_id: googleAdsAccountId,
-            webhook_secret: webhookSecret,
           })
       }
 
@@ -303,12 +301,11 @@ serve(async (req) => {
         })
       }
 
-      // Clear guardian_customer_id and webhook_secret from grant_accounts
+      // Clear guardian_customer_id from grant_accounts
       await supabaseAdmin
         .from('grant_accounts')
         .update({
           guardian_customer_id: null,
-          webhook_secret: null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', grantAccount.id)
