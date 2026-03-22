@@ -15,8 +15,20 @@ type Organization = {
   settings?: any;
   subscription_plan?: string;
   subscription_status?: string;
-  stripe_customer_id?: string;
+  subscription_tier?: string;
+  billing_cycle?: string;
+  trial_ends_at?: string;
+  credit_card_on_file?: boolean;
+  current_period_end?: string;
+  minutes_included?: number;
+  minutes_used?: number;
   member_count?: number;
+  timezone?: string;
+  // LemonSqueezy billing
+  active_modules?: string[];
+  ls_customer_id?: string;
+  ls_subscription_ids?: Record<string, string>;
+  ls_customer_portal_url?: string;
   created_at: string;
   updated_at: string;
 };
@@ -44,6 +56,7 @@ interface AuthState {
   signUp: (email: string, password: string, firstName: string, lastName: string, organizationName?: string) => Promise<void>;
   fetchSession: () => Promise<void>;
   fetchOrganizations: () => Promise<void>;
+  refreshOrganization: () => Promise<void>;
   setCurrentOrganization: (organizationId: string) => Promise<void>;
   hasPermission: (action: string, subject: string) => boolean;
   clearError: () => void;
@@ -106,7 +119,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   fetchSession: async () => {
-    console.log('fetchSession: Starting');
+
     set({ loading: true, error: null });
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
@@ -115,13 +128,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         throw error;
       }
 
-      console.log('fetchSession: Session data:', session);
+
       if (session?.user) {
-        console.log('fetchSession: User found in session, setting user and loading organization.');
+
         set({ user: session.user, session: session });
         await get().fetchOrganizations();
       } else {
-        console.log('fetchSession: No user in session, setting loading to false.');
+
         set({ user: null, session: null, loading: false });
       }
     } catch (error: any) {
@@ -131,12 +144,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   fetchOrganizations: async () => {
-    console.log('--- loadUserOrganization START ---');
+
     const { user, currentOrganization } = get();
 
     // Prevent re-fetching if organization is already loaded
     if (currentOrganization && currentOrganization.id) {
-      console.log('Organization already in store. Skipping fetch.');
+
       set({ loading: false }); // Ensure loading is false if we skip
       return;
     }
@@ -148,13 +161,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     set({ loading: true, error: null });
-    console.log('Set loading to true. User ID:', user.id);
+
 
     try {
-      console.log("Step 1: Fetching membership from 'organization_members'");
+
       const { data: membership, error: membershipError } = await supabase
         .from('organization_members')
-        .select('organization_id')
+        .select('*')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -190,7 +203,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.log('Step 2 SUCCESS. Organization found:', org.name);
 
       console.log('Step 3: Setting organization in store.');
-      set({ organization: org, currentOrganization: org, loading: false, error: null });
+      set({
+        organization: org,
+        currentOrganization: org,
+        currentMember: membership as OrganizationMember,
+        loading: false,
+        error: null
+      });
       console.log('--- loadUserOrganization END ---');
 
     } catch (error: any) {
@@ -207,6 +226,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ currentOrganization: organization });
       // You might want to fetch organization-specific data here
     }
+  },
+
+  refreshOrganization: async () => {
+    // Clear current organization to force a refetch
+    set({ currentOrganization: null, organization: null });
+    await get().fetchOrganizations();
   },
 
   hasPermission: (action: string, subject: string) => {

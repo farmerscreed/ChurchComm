@@ -1,201 +1,534 @@
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { useAuthStore } from '@/stores/authStore';
-import { supabase } from '@/integrations/supabase/client';
-import { Users, UsersRound, MessageSquare, TrendingUp, UserPlus, Mail } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuthStore } from "@/stores/authStore";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { DemoDataNotice } from "@/components/demo/DemoDataNotice";
+import {
+  Rocket,
+  UserPlus,
+  Loader2,
+  Phone,
+  Zap,
+  TrendingUp,
+  PhoneCall,
+  Bell,
+  Calendar,
+  Clock,
+  AlertTriangle,
+  MessageSquare,
+  ChevronRight,
+  Users,
+  Sparkles
+} from "lucide-react";
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
 
 export default function Dashboard() {
-  const { currentOrganization } = useAuthStore();
-  const [stats, setStats] = useState({
-    totalPeople: 0,
-    totalGroups: 0,
-    totalCampaigns: 0,
-    loading: true
-  });
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { currentOrganization, user } = useAuthStore();
+  const [loading, setLoading] = useState(true);
 
-  const loadStats = async () => {
-    if (!currentOrganization) return;
+  // Widget Data States
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [recentCalls, setRecentCalls] = useState<any[]>([]);
+  const [escalations, setEscalations] = useState({ urgent: 0, high: 0, medium: 0, total: 0 });
+  const [callStats, setCallStats] = useState({ completed: 0, total: 0 });
+  const [upcomingCalls, setUpcomingCalls] = useState<any[]>([]);
+  const [hasDemoData, setHasDemoData] = useState(false);
+  const [memberCount, setMemberCount] = useState(0);
+  const [totalMinutes, setTotalMinutes] = useState(0);
 
+  // Re-fetch on every navigation to the dashboard (location.key changes each navigation)
+  useEffect(() => {
+    if (currentOrganization?.id) {
+      fetchDashboardData();
+    }
+  }, [currentOrganization, location.key]);
+
+  // Re-fetch when the user navigates back to the dashboard (tab becomes visible again)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && currentOrganization?.id) {
+        fetchDashboardData();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Also re-fetch on window focus (covers SPA navigation back)
+    const handleFocus = () => {
+      if (currentOrganization?.id) {
+        fetchDashboardData();
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [currentOrganization?.id]);
+
+  const fetchDashboardData = async () => {
+    setLoading(true);
     try {
-      // Get total people
-      const { count: peopleCount } = await supabase
-        .from('people')
-        .select('*', { count: 'exact', head: true })
-        .eq('organization_id', currentOrganization.id);
-
-      // Get total groups
-      const { count: groupsCount } = await supabase
-        .from('groups')
-        .select('*', { count: 'exact', head: true })
-        .eq('organization_id', currentOrganization.id);
-
-      // Get total campaigns
-      const { count: campaignsCount } = await supabase
-        .from('communication_campaigns')
-        .select('*', { count: 'exact', head: true })
-        .eq('organization_id', currentOrganization.id);
-
-      setStats({
-        totalPeople: peopleCount || 0,
-        totalGroups: groupsCount || 0,
-        totalCampaigns: campaignsCount || 0,
-        loading: false
+      // 1. Get High-Level Stats via RPC
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_dashboard_stats', {
+        p_organization_id: currentOrganization?.id
       });
+
+      if (rpcError) console.error('Error fetching dashboard stats:', rpcError);
+      const rpcStats = rpcData?.[0] || {
+        total_calls: 0,
+        total_minutes: 0,
+        active_campaigns: 0,
+        open_escalations: 0
+      };
+
+      setCampaigns(new Array(Number(rpcStats.active_campaigns || 0)).fill({ status: 'in_progress' }));
+      setTotalMinutes(Math.ceil(Number(rpcStats.total_minutes || 0)));
+
+      // 2. Recent Calls (from vapi_call_logs)
+      const { data: callData } = await supabase
+        .from("vapi_call_logs")
+        .select("id, call_status, created_at, people(first_name, last_name)")
+        .eq("organization_id", currentOrganization?.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      setRecentCalls((callData || []).map((c: any) => ({
+        id: c.id,
+        status: c.call_status,
+        attempted_at: c.created_at,
+        person_name: c.people ? `${c.people.first_name || ''} ${c.people.last_name || ''}`.trim() : 'Unknown',
+        trigger_type: 'AI Call',
+      })));
+
+      // 3. Escalations Breakdown
+      let escCounts = { urgent: 0, high: 0, medium: 0, total: Number(rpcStats.open_escalations || 0) };
+
+      if (escCounts.total > 0) {
+        const { data: escData } = await supabase
+          .from("vapi_call_logs")
+          .select("escalation_priority")
+          .eq("organization_id", currentOrganization?.id)
+          .not("escalation_priority", "is", null)
+          .eq("needs_pastoral_care", true)
+          .eq("escalation_status", "open");
+
+        escCounts.urgent = escData?.filter(e => e.escalation_priority === 'urgent').length || 0;
+        escCounts.high = escData?.filter(e => e.escalation_priority === 'high').length || 0;
+        escCounts.medium = escData?.filter(e => e.escalation_priority === 'medium').length || 0;
+      }
+      setEscalations(escCounts);
+
+      // 4. Call Success Rate (Last 30 Days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const { data: successData } = await supabase
+        .from("vapi_call_logs")
+        .select("call_status")
+        .eq("organization_id", currentOrganization?.id)
+        .gte("created_at", thirtyDaysAgo.toISOString());
+
+      setCallStats({
+        completed: successData?.filter(c => c.call_status === 'completed' || c.call_status === 'ended').length || 0,
+        total: successData?.length || 0,
+      });
+
+      // 5. Check for demo data
+      const { count: demoCount } = await supabase
+        .from("people")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", currentOrganization?.id)
+        .eq("is_demo", true);
+
+      setHasDemoData((demoCount || 0) > 0);
+
+      // 6. Member count
+      const { count: peopleCount } = await supabase
+        .from("people")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", currentOrganization?.id);
+
+      setMemberCount(peopleCount || 0);
+
+      // 7. Upcoming Calls (Next 24h)
+      // Keeping original logic for now, utilizing call_attempts for scheduled items if vapi_call_logs doesn't handle scheduling
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      // 7a. Scheduled SMS
+      const { data: upcomingSMS } = await supabase
+        .from("scheduled_messages")
+        .select("id, message_type, scheduled_for, content")
+        .eq("organization_id", currentOrganization?.id)
+        .eq("status", "scheduled")
+        .lte("scheduled_for", tomorrow.toISOString())
+        .order("scheduled_for", { ascending: true })
+        .limit(5);
+
+      // 7b. Scheduled Individual Calls
+      const { data: upcomingCallsData } = await supabase
+        .from("call_attempts")
+        .select("id, trigger_type, scheduled_at, people(first_name, last_name)")
+        .eq("organization_id", currentOrganization?.id)
+        .eq("status", "scheduled")
+        .gte("scheduled_at", new Date().toISOString())
+        .lte("scheduled_at", tomorrow.toISOString())
+        .order("scheduled_at", { ascending: true })
+        .limit(5);
+
+      const combinedUpcoming = [
+        ...(upcomingSMS || []).map((c: any) => ({
+          id: c.id,
+          person_name: c.content ? c.content.substring(0, 40) + (c.content.length > 40 ? '...' : '') : (c.message_type || 'SMS Campaign'),
+          trigger_type: 'sms',
+          scheduled_at: c.scheduled_for,
+        })),
+        ...(upcomingCallsData || []).map((c: any) => ({
+          id: c.id,
+          person_name: c.people ? `${c.people.first_name || ''} ${c.people.last_name || ''}`.trim() : 'Unknown',
+          trigger_type: c.trigger_type || 'call',
+          scheduled_at: c.scheduled_at,
+        }))
+      ].sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())
+        .slice(0, 5);
+
+      setUpcomingCalls(combinedUpcoming);
+
     } catch (error) {
-      console.error('Error loading stats:', error);
-      setStats(prev => ({ ...prev, loading: false }));
+      console.error("Error fetching dashboard data:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadStats();
-  }, [currentOrganization]);
-
-  if (stats.loading) {
+  if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="flex flex-col items-center justify-center h-64 gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Loading dashboard...</p>
       </div>
     );
   }
 
+  const displayName = user?.user_metadata?.full_name?.split(" ")[0] || "there";
+
+  // Calculate stats
+  const activeCampaigns = campaigns.filter(c => c.status === "in_progress" || c.status === "scheduled");
+  const successRate = callStats.total > 0 ? Math.round((callStats.completed / callStats.total) * 100) : 0;
+  const orgMinutesUsed = totalMinutes;
+  const orgMinutesIncluded = currentOrganization?.minutes_included || 0;
+  const minutePercentage = orgMinutesIncluded > 0
+    ? Math.min((orgMinutesUsed / orgMinutesIncluded) * 100, 100)
+    : 0;
+  const isMinuteCritical = minutePercentage > 80;
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">
-          Welcome back to {currentOrganization?.name || 'ChurchConnect'}
-        </p>
-      </div>
+    <div className="p-4 md:p-6 space-y-6">
+      {hasDemoData && <DemoDataNotice />}
 
-      {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* Total People Card */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total People</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalPeople}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Members in your directory
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Total Groups Card */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Groups</CardTitle>
-            <UsersRound className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalGroups}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Active ministry groups
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Total Campaigns Card */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Campaigns Sent</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalCampaigns}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              SMS & calling campaigns
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
-          <Link to="/people">
-            <Button variant="outline" className="w-full h-auto flex-col gap-2 py-4">
-              <UserPlus className="h-6 w-6 text-primary" />
-              <span className="font-medium">Add Person</span>
-              <span className="text-xs text-muted-foreground">Add a new member to your directory</span>
-            </Button>
-          </Link>
-
-          <Link to="/groups">
-            <Button variant="outline" className="w-full h-auto flex-col gap-2 py-4">
-              <UsersRound className="h-6 w-6 text-primary" />
-              <span className="font-medium">Manage Groups</span>
-              <span className="text-xs text-muted-foreground">Create or edit ministry groups</span>
-            </Button>
-          </Link>
-
-          <Link to="/communications">
-            <Button variant="outline" className="w-full h-auto flex-col gap-2 py-4">
-              <Mail className="h-6 w-6 text-primary" />
-              <span className="font-medium">Send Message</span>
-              <span className="text-xs text-muted-foreground">Send SMS to your congregation</span>
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
-
-      {/* Getting Started Guide */}
-      {stats.totalPeople === 0 && (
-        <Card className="border-primary/50 bg-primary/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              Getting Started
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Welcome to ChurchConnect! Here's how to get started:
-            </p>
-            <ol className="space-y-2 text-sm">
-              <li className="flex items-start gap-2">
-                <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">
-                  1
-                </span>
-                <span>
-                  <strong>Add your first members:</strong> Go to People → Add Person or upload a CSV file with your member list
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">
-                  2
-                </span>
-                <span>
-                  <strong>Create groups:</strong> Organize members into groups like "First Timers", "Youth Ministry", etc.
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">
-                  3
-                </span>
-                <span>
-                  <strong>Start communicating:</strong> Send SMS messages or make AI calls to connect with your congregation
-                </span>
-              </li>
-            </ol>
-            <Link to="/people">
-              <Button className="mt-4">
-                <UserPlus className="h-4 w-4 mr-2" />
-                Add Your First Member
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+      {/* URGENT ALERTS BANNER - Shows only when there are escalations */}
+      {escalations.total > 0 && (
+        <div
+          className="relative overflow-hidden rounded-xl bg-gradient-to-r from-red-500/20 via-orange-500/20 to-amber-500/20 border border-red-500/30 p-4 cursor-pointer hover:border-red-500/50 transition-all"
+          onClick={() => navigate("/call-history")}
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-transparent animate-pulse" />
+          <div className="relative flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center animate-pulse">
+                <AlertTriangle className="w-6 h-6 text-red-400" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-white flex items-center gap-2">
+                  {escalations.urgent > 0 && (
+                    <Badge className="bg-red-500 text-white border-0">{escalations.urgent} Urgent</Badge>
+                  )}
+                  {escalations.high > 0 && (
+                    <Badge className="bg-orange-500 text-white border-0">{escalations.high} High</Badge>
+                  )}
+                  {escalations.medium > 0 && (
+                    <Badge className="bg-amber-500 text-white border-0">{escalations.medium} Medium</Badge>
+                  )}
+                  Escalation{escalations.total > 1 ? 's' : ''} Need Attention
+                </h3>
+                <p className="text-sm text-slate-400 mt-1">
+                  Review and respond to member concerns from recent calls
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-slate-400" />
+          </div>
+        </div>
       )}
+
+      {/* Greeting + Quick Actions */}
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight" data-tour="dashboard">
+            {getGreeting()}, {displayName}
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Here's what's happening at {currentOrganization?.name}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/people")}
+            className="border-white/10 text-slate-300 hover:bg-white/5"
+          >
+            <UserPlus className="h-4 w-4 mr-1.5" />
+            Add Person
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/call-history")}
+            className="border-white/10 text-slate-300 hover:bg-white/5"
+          >
+            <PhoneCall className="h-4 w-4 mr-1.5" />
+            Call History
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => navigate("/communications")}
+            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500"
+          >
+            <Zap className="h-4 w-4 mr-1.5" />
+            New Campaign
+          </Button>
+        </div>
+      </div>
+
+      {/* Hero KPI Row - Always visible */}
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        {/* AI Minutes Usage */}
+        <div
+          className={`p-5 rounded-xl bg-gradient-to-br ${isMinuteCritical
+            ? 'from-red-500/10 to-red-500/5 border-red-500/20 hover:border-red-500/30'
+            : 'from-purple-500/10 to-purple-500/5 border-purple-500/20 hover:border-purple-500/30'
+            } border transition-colors cursor-pointer`}
+          onClick={() => navigate("/settings")}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className={`w-10 h-10 rounded-lg ${isMinuteCritical ? 'bg-red-500/20' : 'bg-purple-500/20'} flex items-center justify-center`}>
+              <Phone className={`w-5 h-5 ${isMinuteCritical ? 'text-red-400' : 'text-purple-400'}`} />
+            </div>
+            {isMinuteCritical && <Badge className="bg-red-500/20 text-red-300 border-0 text-xs">Low</Badge>}
+          </div>
+          <p className="text-2xl md:text-3xl font-bold text-white">
+            {orgMinutesUsed}<span className="text-lg text-slate-500">/{orgMinutesIncluded}</span>
+          </p>
+          <Progress
+            value={minutePercentage}
+            className={`h-1.5 mt-2 ${isMinuteCritical ? 'bg-red-500/20' : 'bg-purple-500/20'}`}
+          />
+          <p className="text-xs text-slate-500 mt-2">AI Minutes</p>
+        </div>
+
+        {/* Members */}
+        <div
+          className="p-5 rounded-xl bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border border-cyan-500/20 hover:border-cyan-500/30 transition-colors cursor-pointer"
+          onClick={() => navigate("/people")}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+              <Users className="w-5 h-5 text-cyan-400" />
+            </div>
+          </div>
+          <p className="text-2xl md:text-3xl font-bold text-white">{memberCount}</p>
+          <p className="text-xs text-slate-500 mt-2">Total Members</p>
+        </div>
+
+        {/* Active Campaigns */}
+        <div
+          className="p-5 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/20 hover:border-blue-500/30 transition-colors cursor-pointer"
+          onClick={() => navigate("/communications")}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+              <Zap className="w-5 h-5 text-blue-400" />
+            </div>
+            {activeCampaigns.length > 0 && (
+              <Badge className="bg-blue-500/20 text-blue-300 border-0 text-xs">Active</Badge>
+            )}
+          </div>
+          <p className="text-2xl md:text-3xl font-bold text-white">{campaigns.length}</p>
+          <p className="text-xs text-slate-500 mt-2">Campaigns</p>
+        </div>
+
+        {/* Success Rate */}
+        <div
+          className="p-5 rounded-xl bg-gradient-to-br from-green-500/10 to-green-500/5 border border-green-500/20 hover:border-green-500/30 transition-colors cursor-pointer"
+          onClick={() => navigate("/call-history")}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-green-400" />
+            </div>
+          </div>
+          <p className="text-2xl md:text-3xl font-bold text-white">{successRate}%</p>
+          <p className="text-xs text-slate-500 mt-2">Success Rate (30d)</p>
+        </div>
+      </div>
+
+      {/* Detail Widgets Row */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {/* Recent Calls */}
+        <div className="p-5 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-white flex items-center gap-2">
+              <PhoneCall className="w-4 h-4 text-purple-400" />
+              Recent Calls
+            </h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-purple-400 hover:text-purple-300 h-7 px-2"
+              onClick={() => navigate("/call-history")}
+            >
+              View All
+            </Button>
+          </div>
+          <div className="space-y-3">
+            {recentCalls.length > 0 ? (
+              recentCalls.slice(0, 4).map((call) => (
+                <div key={call.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500/30 to-blue-500/30 flex items-center justify-center text-xs font-medium">
+                      {call.person_name.split(" ").map((n: string) => n[0]).join("").substring(0, 2)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-white">{call.person_name}</p>
+                      <p className="text-xs text-slate-500">
+                        {call.attempted_at ? new Date(call.attempted_at).toLocaleDateString() : "Recently"}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className={`text-xs ${call.status === "completed"
+                      ? "border-green-500/30 text-green-400"
+                      : call.status === "voicemail"
+                        ? "border-amber-500/30 text-amber-400"
+                        : "border-slate-500/30 text-slate-400"
+                      }`}
+                  >
+                    {call.status}
+                  </Badge>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-6 text-sm text-slate-500">
+                No recent calls
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Upcoming/Scheduled Calls */}
+        <div className="p-5 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-white flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-cyan-400" />
+              Scheduled Calls
+            </h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-cyan-400 hover:text-cyan-300 h-7 px-2"
+              onClick={() => navigate("/automations/scheduled")}
+            >
+              View All
+            </Button>
+          </div>
+          <div className="space-y-3">
+            {upcomingCalls.length > 0 ? (
+              upcomingCalls.slice(0, 4).map((call) => (
+                <div key={call.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                      {call.trigger_type === 'sms' ? <MessageSquare className="w-4 h-4 text-cyan-400" /> : <Phone className="w-4 h-4 text-cyan-400" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-white">{call.person_name}</p>
+                      <p className="text-xs text-slate-500 capitalize">
+                        {call.trigger_type === 'call' ? 'AI Call' : 'SMS Message'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-slate-400">
+                    <Clock className="w-3 h-3" />
+                    {call.scheduled_at ? new Date(call.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Soon"}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-6 text-sm text-slate-500">
+                No scheduled calls
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Insights */}
+        <div className="p-5 rounded-xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 hover:border-indigo-500/30 transition-colors">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-white flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-indigo-400" />
+              Quick Actions
+            </h3>
+          </div>
+          <div className="space-y-3">
+            <Button
+              variant="outline"
+              className="w-full justify-start border-white/10 text-slate-300 hover:bg-white/5 h-12"
+              onClick={() => navigate("/people")}
+            >
+              <UserPlus className="w-4 h-4 mr-3 text-purple-400" />
+              <div className="text-left">
+                <p className="text-sm">Add New Member</p>
+                <p className="text-xs text-slate-500">Register a visitor or member</p>
+              </div>
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start border-white/10 text-slate-300 hover:bg-white/5 h-12"
+              onClick={() => navigate("/communications")}
+            >
+              <MessageSquare className="w-4 h-4 mr-3 text-blue-400" />
+              <div className="text-left">
+                <p className="text-sm">Send Message</p>
+                <p className="text-xs text-slate-500">SMS to group or individual</p>
+              </div>
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start border-white/10 text-slate-300 hover:bg-white/5 h-12"
+              onClick={() => navigate("/settings")}
+            >
+              <Phone className="w-4 h-4 mr-3 text-green-400" />
+              <div className="text-left">
+                <p className="text-sm">Manage Scripts</p>
+                <p className="text-xs text-slate-500">Edit AI call scripts</p>
+              </div>
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,10 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { corsHeaders } from '../_shared/cors.ts'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -8,6 +12,33 @@ serve(async (req) => {
   }
 
   try {
+    console.log('send-sms function invoked');
+
+    // Use the Service Role Key for admin-level access
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    // Authenticate the caller
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      })
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
+
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      })
+    }
+
     const {
       recipientType,
       recipientId,
@@ -16,34 +47,66 @@ serve(async (req) => {
       createdBy
     } = await req.json()
 
+    console.log('Request data:', { recipientType, recipientId, organizationId, createdBy });
+
     if (!recipientType || !message || !organizationId) {
+      console.error('Missing required fields:', { recipientType, message: !!message, organizationId });
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       })
     }
 
+    // Verify user belongs to the organization
+    const { data: membership, error: memberError } = await supabaseAdmin
+      .from('organization_members')
+      .select('role')
+      .eq('organization_id', organizationId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (memberError || !membership) {
+      return new Response(JSON.stringify({ error: 'Forbidden: not a member of this organization' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403,
+      })
+    }
+
     // recipientId is required for group and individual, but not for 'all'
     if ((recipientType === 'group' || recipientType === 'individual') && !recipientId) {
+      console.error('recipientId required but not provided for type:', recipientType);
       return new Response(JSON.stringify({ error: 'recipientId is required for group or individual' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       })
     }
 
-    // Use the Service Role Key for admin-level access
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
     // Get Twilio configuration from environment variables
     const TWILIO_ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID')
     const TWILIO_AUTH_TOKEN = Deno.env.get('TWILIO_AUTH_TOKEN')
     const FROM_PHONE = Deno.env.get('TWILIO_PHONE_NUMBER')
 
+    console.log('Environment check:', {
+      hasTwilioSid: !!TWILIO_ACCOUNT_SID,
+      hasTwilioToken: !!TWILIO_AUTH_TOKEN,
+      hasTwilioPhone: !!FROM_PHONE
+    });
+
     if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !FROM_PHONE) {
-      throw new Error('Twilio configuration incomplete')
+      console.error('Twilio configuration missing');
+      const missing = [];
+      if (!TWILIO_ACCOUNT_SID) missing.push('TWILIO_ACCOUNT_SID');
+      if (!TWILIO_AUTH_TOKEN) missing.push('TWILIO_AUTH_TOKEN');
+      if (!FROM_PHONE) missing.push('TWILIO_PHONE_NUMBER');
+
+      return new Response(JSON.stringify({
+        error: 'Twilio configuration incomplete',
+        details: `Missing environment variables: ${missing.join(', ')}`,
+        hint: 'Please set these variables in your Supabase project settings'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      })
     }
 
     let recipients = []
@@ -107,7 +170,7 @@ serve(async (req) => {
 
     // Create SMS campaign record
     const { data: campaign, error: campaignError } = await supabaseAdmin
-      .from('communication_campaigns')
+      .from('messaging_campaigns')
       .insert({
         organization_id: organizationId,
         name: `SMS ${recipientType === 'group' ? 'Group' : 'Individual'} Message`,
@@ -204,7 +267,7 @@ serve(async (req) => {
 
     // Update campaign with results
     await supabaseAdmin
-      .from('communication_campaigns')
+      .from('messaging_campaigns')
       .update({
         sent_count: sent,
         failed_count: failed,

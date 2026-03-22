@@ -1,6 +1,15 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
+import { substituteVariables, calculateMembershipDuration } from '../_shared/substitute-variables.ts'
+import { buildEnhancedPrompt } from '../_shared/context-injection.ts'
+
+// Helper to format address object into readable string
+function formatAddress(address: { street?: string; city?: string; state?: string; zip?: string; country?: string } | null): string {
+  if (!address) return ''
+  const parts = [address.street, address.city, address.state, address.zip].filter(Boolean)
+  return parts.join(', ')
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -8,6 +17,31 @@ serve(async (req) => {
   }
 
   try {
+    // Use the Service Role Key for admin-level access
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    // Authenticate the caller
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      })
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
+
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      })
+    }
+
     const body = await req.json()
     const {
       groupId,
@@ -44,40 +78,114 @@ serve(async (req) => {
       }
     }
 
-    // Use the Service Role Key for admin-level access
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    // Verify user belongs to the organization
+    const { data: membership, error: memberError } = await supabaseAdmin
+      .from('organization_members')
+      .select('role')
+      .eq('organization_id', organizationId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (memberError || !membership) {
+      return new Response(JSON.stringify({ error: 'Forbidden: not a member of this organization' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403,
+      })
+    }
+
+    // Check minute usage from organizations table (source of truth)
+    const { data: orgBilling } = await supabaseAdmin
+      .from('organizations')
+      .select('minutes_used, minutes_included')
+      .eq('id', organizationId)
+      .single()
+
+    if (orgBilling) {
+      const minutesUsed = parseFloat(String(orgBilling.minutes_used)) || 0
+      if (minutesUsed >= (orgBilling.minutes_included || 0)) {
+        return new Response(JSON.stringify({
+          error: 'Monthly minute limit reached. Upgrade plan or approve overage in Settings.',
+          code: 'MINUTE_LIMIT_REACHED'
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 403,
+        })
+      }
+    }
 
     // Get Vapi configuration from environment variables
     const VAPI_API_KEY = Deno.env.get('VAPI_API_KEY')
-    const VAPI_PHONE_NUMBER_ID = Deno.env.get('VAPI_PHONE_NUMBER_ID')
+    const DEFAULT_PHONE_NUMBER_ID = Deno.env.get('VAPI_PHONE_NUMBER_ID') // KeepFlock shared number
 
-    console.log('VAPI Config - API Key present:', !!VAPI_API_KEY, 'Phone ID present:', !!VAPI_PHONE_NUMBER_ID)
-    console.log('VAPI Phone Number ID:', VAPI_PHONE_NUMBER_ID)
-
-    if (!VAPI_API_KEY || !VAPI_PHONE_NUMBER_ID) {
+    if (!VAPI_API_KEY || !DEFAULT_PHONE_NUMBER_ID) {
       console.error('Vapi configuration incomplete')
       throw new Error('Vapi configuration incomplete')
     }
 
+    // Check if organization has a dedicated phone number (premium feature)
+    // If they do, caller ID will show their church name instead of "KeepFlock"
+    const { data: orgData } = await supabaseAdmin
+      .from('organizations')
+      .select('name, vapi_phone_number_id, subscription_tier, pastor_name, service_times, ministry_list, ai_context_notes, website, address, email, phone')
+      .eq('id', organizationId)
+      .single()
+
+    // Use org's dedicated number if available, otherwise use shared KeepFlock number
+    const VAPI_PHONE_NUMBER_ID = orgData?.vapi_phone_number_id || DEFAULT_PHONE_NUMBER_ID
+    const orgName = orgData?.name || 'your church'
+    const pastorName = orgData?.pastor_name || 'the Pastor'
+    const serviceTimes = orgData?.service_times || ''
+    const ministryList = orgData?.ministry_list || ''
+    const aiContextNotes = orgData?.ai_context_notes || ''
+    // General org info for AI knowledge
+    const orgWebsite = orgData?.website || ''
+    const orgAddress = orgData?.address ? formatAddress(orgData.address) : ''
+    const orgEmail = orgData?.email || ''
+    const orgPhone = orgData?.phone || ''
+    const isPremium = orgData?.subscription_tier === 'premium' || orgData?.subscription_tier === 'enterprise'
+
+    console.log('VAPI Config - API Key present:', !!VAPI_API_KEY)
+    console.log('Using phone number ID:', VAPI_PHONE_NUMBER_ID, isPremium ? '(dedicated)' : '(shared KeepFlock)')
+
+    // Voice ID mapping: convert friendly names to ElevenLabs IDs
+    const VOICE_MAP: Record<string, string> = {
+      'rachel': '21m00Tcm4TlvDq8ikWAM',
+      'josh': 'TxGEqnHWrfWFTfGW9XjX',
+      'bella': 'EXAVITQu4vr4xnSDxMaL',
+      'adam': 'pNInz6obpgDQGcFmaJgB',
+      'domi': 'AZnzlk1XvdvUeBnXmlld',
+      'paula': '21m00Tcm4TlvDq8ikWAM', // Map old 'paula' to Rachel
+    }
+    const DEFAULT_VOICE_ID = '21m00Tcm4TlvDq8ikWAM' // Rachel
+
+    // Helper to resolve voice ID (handles both friendly names and actual ElevenLabs IDs)
+    const resolveVoiceId = (voiceId: string | null): string => {
+      if (!voiceId) return DEFAULT_VOICE_ID
+      // If it's a friendly name, map it
+      if (VOICE_MAP[voiceId.toLowerCase()]) return VOICE_MAP[voiceId.toLowerCase()]
+      // If it looks like an ElevenLabs ID (long alphanumeric), use it directly
+      if (voiceId.length > 10) return voiceId
+      return DEFAULT_VOICE_ID
+    }
+
     // Get script content - either from database or use raw script for individual calls
     let scriptContent: string
+    let scriptVoiceId = DEFAULT_VOICE_ID
 
     if (isIndividualCall) {
       // For individual calls, use the provided script or a default greeting
-      scriptContent = rawScript || 'Hello {Name}, this is a call from your church. How are you doing today?'
+      scriptContent = rawScript || 'Hello {first_name}, this is a call from your church. How are you doing today?'
     } else {
       // For group calls, get script from database
       const { data: script, error: scriptError } = await supabaseAdmin
-        .from('calling_scripts')
+        .from('call_scripts')
         .select('*')
         .eq('id', scriptId)
         .single()
 
       if (scriptError) throw scriptError
       scriptContent = script.content
+      scriptVoiceId = resolveVoiceId(script.voice_id)
     }
 
     // Get recipients based on call type
@@ -104,7 +212,8 @@ serve(async (req) => {
             id,
             first_name,
             last_name,
-            phone_number
+            phone_number,
+            created_at
           )
         `)
         .eq('group_id', groupId)
@@ -153,6 +262,43 @@ serve(async (req) => {
 
     if (campaignError) throw campaignError
 
+    // --- Concurrency control ---
+    // VAPI enforces concurrency limits per account. Before each call,
+    // check how many calls are currently in_progress and wait if needed.
+    const MAX_CONCURRENT_CALLS = 1 // Safe default; increase if your VAPI plan allows more
+    const INTER_CALL_DELAY_MS = 10000 // 10s between call initiations
+
+    // Auto-expire stale in_progress records (calls that never got a webhook callback)
+    await supabaseAdmin
+      .from('call_attempts')
+      .update({ status: 'failed', error_message: 'Auto-expired: stale in_progress record' })
+      .eq('status', 'in_progress')
+      .eq('organization_id', organizationId)
+      .lt('attempted_at', new Date(Date.now() - 15 * 60 * 1000).toISOString())
+
+    const waitForConcurrencySlot = async () => {
+      const maxWaitMs = 60000 // 1 minute max wait (within edge function timeout)
+      const pollIntervalMs = 5000
+      let waited = 0
+
+      while (waited < maxWaitMs) {
+        const { count } = await supabaseAdmin
+          .from('call_attempts')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'in_progress')
+          .eq('organization_id', organizationId)
+
+        if ((count || 0) < MAX_CONCURRENT_CALLS) return true
+
+        console.log(`Concurrency limit reached (${count} active), waiting ${pollIntervalMs}ms...`)
+        await new Promise(resolve => setTimeout(resolve, pollIntervalMs))
+        waited += pollIntervalMs
+      }
+
+      console.warn('Concurrency wait timed out after 1 minute')
+      return false
+    }
+
     // Process calls
     let scheduled = 0
     let failed = 0
@@ -160,6 +306,43 @@ serve(async (req) => {
 
     for (const recipient of recipients) {
       try {
+        // Wait for a concurrency slot before proceeding
+        const hasSlot = await waitForConcurrencySlot()
+        if (!hasSlot) {
+          failed++
+          results.push({
+            recipient: `${recipient.first_name} ${recipient.last_name}`,
+            status: 'failed',
+            error: 'Concurrency wait timed out'
+          })
+          continue
+        }
+
+        // Re-check minute usage before EACH call (not just at campaign start)
+        const { data: currentOrg } = await supabaseAdmin
+          .from('organizations')
+          .select('minutes_used, minutes_included, overage_approved')
+          .eq('id', organizationId)
+          .single()
+
+        if (currentOrg) {
+          const currentUsed = parseFloat(String(currentOrg.minutes_used)) || 0
+          const currentIncluded = currentOrg.minutes_included || 0
+          if (currentUsed >= currentIncluded && !currentOrg.overage_approved) {
+            console.log(`Minute limit reached mid-campaign (${currentUsed}/${currentIncluded}). Stopping remaining calls.`)
+            // Mark remaining recipients as skipped
+            for (const remaining of recipients.slice(recipients.indexOf(recipient))) {
+              results.push({
+                recipient: `${remaining.first_name} ${remaining.last_name}`,
+                status: 'skipped',
+                error: 'Minute limit reached'
+              })
+              failed++
+            }
+            break
+          }
+        }
+
         // Create call attempt record
         const { data: attempt } = await supabaseAdmin
           .from('call_attempts')
@@ -168,15 +351,38 @@ serve(async (req) => {
             person_id: recipient.id,
             phone_number: recipient.phone_number,
             provider: 'vapi',
-            status: 'in_progress'
+            status: 'in_progress',
+            organization_id: organizationId
           })
           .select()
           .single()
 
-        // Process script variables
-        const processedScript = scriptContent
-          .replace(/\[Name\]/g, recipient.first_name || 'Friend')
-          .replace(/\{Name\}/g, recipient.first_name || 'Friend')
+        // orgName already fetched above when checking for dedicated phone number
+
+        // Process script variables using shared substitution engine
+        const processedScript = substituteVariables(scriptContent, {
+          first_name: recipient.first_name || 'Friend',
+          last_name: recipient.last_name || '',
+          church_name: orgName,
+          pastor_name: pastorName,
+          day_of_week: new Date().toLocaleDateString('en-US', { weekday: 'long' }),
+          membership_duration: recipient.created_at
+            ? calculateMembershipDuration(new Date(recipient.created_at))
+            : '',
+        })
+
+        // Enhanced prompt with memory injection (Epic 6)
+        let finalPrompt = processedScript
+        try {
+          finalPrompt = await buildEnhancedPrompt(
+            processedScript,
+            supabaseAdmin,
+            recipient.id,
+            organizationId
+          )
+        } catch (err) {
+          console.error('Failed to build enhanced prompt:', err)
+        }
 
         // Clean phone number
         const cleanPhone = recipient.phone_number.replace(/\D/g, '')
@@ -185,41 +391,81 @@ serve(async (req) => {
         // Get webhook URL for callbacks
         const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
         const webhookUrl = `${SUPABASE_URL}/functions/v1/vapi-webhook`
+        const webhookSecret = Deno.env.get('VAPI_WEBHOOK_SECRET') || ''
 
         // Make Vapi call with retry for rate limits (429)
         const maxRetries = 3
+        const firstName = recipient.first_name || 'there'
+        const firstGreeting = `Hi ${firstName}, this is a call from ${orgName}. How are you doing today?`
+
+        // Build comprehensive system prompt with the script as guidance
+        // Build church knowledge section from org data
+        let churchKnowledge = ''
+        const hasAIFields = serviceTimes || ministryList || aiContextNotes
+        const hasOrgInfo = orgWebsite || orgAddress || orgPhone
+        if (hasAIFields || hasOrgInfo) {
+          churchKnowledge = `\n\nCHURCH KNOWLEDGE (use naturally in conversation if relevant):
+${serviceTimes ? `- Service Times: ${serviceTimes}` : ''}
+${ministryList ? `- Available Ministries: ${ministryList}` : ''}
+${orgWebsite ? `- Website: ${orgWebsite}` : ''}
+${orgAddress ? `- Address: ${orgAddress}` : ''}
+${orgPhone ? `- Church Phone: ${orgPhone}` : ''}
+${aiContextNotes ? `- Additional Notes: ${aiContextNotes}` : ''}`
+        }
+
+        const systemPrompt = `You are a warm, caring church assistant calling on behalf of ${orgName}. You should sound like a real person from the church, not a robot reading a script.
+
+CONVERSATION STYLE:
+1. Be warm, natural, and conversational — like a friendly church member checking in.
+2. NEVER read or recite the script below word-for-word. Use it only to understand the PURPOSE and TOPICS of this call.
+3. Put things in your own words. Speak naturally as if you're having a casual phone conversation.
+4. Keep responses SHORT (1-2 sentences max). Be concise but genuine.
+5. Listen and respond to what the person actually says. Have a real conversation.
+6. If they respond positively, wrap up warmly. Don't drag the call out.
+7. If they mention a crisis or need, acknowledge it with empathy and note it.
+8. The entire call should ideally last under 2 minutes.
+9. Use ${firstName}'s name sparingly — once or twice at most.${churchKnowledge}
+
+CALL PURPOSE & TALKING POINTS (use as a guide, NOT a script to read):
+${finalPrompt}
+
+Remember: understand the intent above and convey it naturally in your own words. Do NOT quote or recite it.`
+
         let vapiResponse: Response | null = null
         const payload = JSON.stringify({
           phoneNumberId: VAPI_PHONE_NUMBER_ID,
           customer: {
             number: formattedPhone,
-            name: recipient.first_name || 'Friend'
+            name: firstName
           },
           assistantOverrides: {
             metadata: {
               organization_id: organizationId,
               person_id: recipient.id
-            }
+            },
+            serverUrl: webhookUrl,
+            serverUrlSecret: webhookSecret
           },
           assistant: {
             name: 'Church Connect Assistant',
-            firstMessage: processedScript,
+            firstMessage: firstGreeting,
             model: {
               provider: 'openai',
-              model: 'gpt-3.5-turbo',
+              model: 'gpt-4o-mini',
               temperature: 0.7,
               messages: [
                 {
                   role: 'system',
-                  content: `You are a friendly church assistant making a caring outreach call. Be warm, empathetic, and conversational. Listen actively and respond appropriately. If the person mentions any crisis, distress, or need for pastoral care, note it carefully. Keep the conversation natural and supportive.`
+                  content: systemPrompt
                 }
               ]
             },
             voice: {
               provider: '11labs',
-              voiceId: 'paula'
+              voiceId: scriptVoiceId
             },
             serverUrl: webhookUrl,
+            serverUrlSecret: webhookSecret,
             endCallMessage: 'Thank you so much for talking with me today. God bless you!',
             endCallPhrases: ['goodbye', 'bye', 'have a good day', 'take care'],
             analysisPlan: {
@@ -239,10 +485,12 @@ serve(async (req) => {
                 }
               }
             }
-          }
+          },
+          maxDurationSeconds: Math.max(60, ((orgBilling?.minutes_included || 0) - (parseFloat(String(orgBilling?.minutes_used)) || 0)) * 60)
         })
 
         console.log('Making VAPI call to:', formattedPhone)
+        console.log('Webhook URL:', webhookUrl)
         console.log('Payload size:', payload.length, 'bytes')
 
         for (let attemptCount = 0; attemptCount <= maxRetries; attemptCount++) {
@@ -363,13 +611,13 @@ serve(async (req) => {
               call_id: vapiResult.id
             })
 
-            // Small delay to avoid rate limiting
-            await new Promise(resolve => setTimeout(resolve, 2000))
+            // Delay between calls to respect VAPI concurrency limits
+            await new Promise(resolve => setTimeout(resolve, INTER_CALL_DELAY_MS))
           }
         } else {
           const errorText = await vapiResponse.text()
           let parsedError: any = errorText
-          try { parsedError = JSON.parse(errorText) } catch (e) {}
+          try { parsedError = JSON.parse(errorText) } catch (e) { }
 
           // If HTTP 402 (payment required) or the provider reports a balance issue, pause the campaign
           try {
