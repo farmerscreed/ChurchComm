@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
@@ -20,11 +19,18 @@ import {
   Cake,
   CalendarClock,
   Bell,
-  Sparkles
+  Sparkles,
+  Target,
+  Eye,
+  FileCheck,
+  ClipboardList,
+  Shield,
+  Globe,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { LogoIcon } from '@/components/ui/Logo';
 
 interface SidebarProps {
@@ -56,7 +62,8 @@ export function Sidebar({
 }: SidebarProps) {
   const location = useLocation();
   const { signOut, currentOrganization } = useAuthStore();
-  const { canHandleEscalations, canManageOrgSettings } = usePermissions();
+  const { canManageOrgSettings } = usePermissions();
+  const { hasEngage, hasReach, hasAttract, isTrialing } = useSubscriptionStatus();
   const [expandedItems, setExpandedItems] = useState<string[]>([
     'people',
     'communications',
@@ -75,36 +82,67 @@ export function Sidebar({
       icon: LayoutDashboard,
       dataTour: 'dashboard-nav',
     },
-    {
-      name: 'People',
-      icon: Users,
-      dataTour: 'people-nav',
-      children: [
-        { name: 'Directory', href: '/people', icon: Users },
-        { name: 'Groups', href: '/groups', icon: UsersRound },
-      ],
-    },
-    {
-      name: 'Communications',
-      icon: MessageSquare,
-      dataTour: 'communications-nav',
-      children: [
-        { name: 'Outreach', href: '/communications', icon: MessageSquare },
-        { name: 'Call History', href: '/call-history', icon: PhoneCall },
-      ],
-    },
-    {
-      name: 'Automations',
-      icon: Zap,
-      badge: 'New',
-      dataTour: 'automations-nav',
-      children: [
-        { name: 'Overview', href: '/automations', icon: Sparkles },
-        { name: 'Birthday Messages', href: '/automations/birthdays', icon: Cake },
-        { name: 'Scheduled', href: '/automations/scheduled', icon: CalendarClock },
-        { name: 'Event Triggers', href: '/automations/triggers', icon: Bell },
-      ],
-    },
+    // ── ENGAGE module ──
+    ...(hasEngage || isTrialing ? [
+      {
+        name: 'People',
+        icon: Users,
+        dataTour: 'people-nav',
+        children: [
+          { name: 'Directory', href: '/people', icon: Users },
+          { name: 'Groups', href: '/groups', icon: UsersRound },
+        ],
+      } as NavigationItem,
+      {
+        name: 'Communications',
+        icon: MessageSquare,
+        dataTour: 'communications-nav',
+        children: [
+          { name: 'Outreach', href: '/communications', icon: MessageSquare },
+          { name: 'Call History', href: '/call-history', icon: PhoneCall },
+        ],
+      } as NavigationItem,
+      {
+        name: 'Automations',
+        icon: Zap,
+        dataTour: 'automations-nav',
+        children: [
+          { name: 'Overview', href: '/automations', icon: Sparkles },
+          { name: 'Birthday Messages', href: '/automations/birthdays', icon: Cake },
+          { name: 'Scheduled', href: '/automations/scheduled', icon: CalendarClock },
+          { name: 'Event Triggers', href: '/automations/triggers', icon: Bell },
+        ],
+      } as NavigationItem,
+    ] : []),
+    // ── REACH module ──
+    ...(hasReach || isTrialing ? [
+      {
+        name: 'REACH',
+        icon: Target,
+        badge: 'Grant',
+        dataTour: 'reach-nav',
+        children: [
+          { name: 'Overview', href: '/reach', icon: Globe },
+          { name: 'Eligibility Check', href: '/reach/eligibility', icon: FileCheck },
+          { name: 'Preflight Scan', href: '/reach/preflight', icon: ClipboardList },
+          { name: 'Apply for Grant', href: '/reach/apply', icon: Target },
+          { name: 'Grant Status', href: '/reach/status', icon: Shield },
+        ],
+      } as NavigationItem,
+    ] : []),
+    // ── ATTRACT module ──
+    ...(hasAttract || isTrialing ? [
+      {
+        name: 'ATTRACT',
+        icon: Eye,
+        badge: 'Compliance',
+        dataTour: 'attract-nav',
+        children: [
+          { name: 'Compliance', href: '/attract', icon: Shield },
+          { name: 'Connect Account', href: '/attract/connect', icon: Globe },
+        ],
+      } as NavigationItem,
+    ] : []),
   ];
 
   const toggleExpanded = (itemName: string) => {

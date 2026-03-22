@@ -9,29 +9,19 @@ import {
     Loader2,
     Sparkles,
     Phone,
-    MessageSquare,
-    Users,
-    Zap,
-    Shield,
-    Headphones,
     ArrowRight,
-    ChevronRight,
     HelpCircle,
     Menu,
-    Cake,
-    UserPlus,
     Brain,
-    BarChart3,
-    Clock,
-    Heart,
     Target,
     Bell,
-    Gift,
     TrendingUp,
-    Star,
     ChevronDown,
-    Wand2,
-    CalendarCheck
+    Eye,
+    Search,
+    Crown,
+    Cake,
+    UserPlus,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,229 +29,225 @@ import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/ui/Logo";
 
 // ═══════════════════════════════════════════
-// PRICING TIERS — framed around people reached
+// MODULE PRICING — KeepFlock Empire
 // ═══════════════════════════════════════════
-interface PricingTier {
+interface ModuleTier {
     id: string;
     name: string;
     tagline: string;
-    monthlyPrice: number | null;
-    annualPrice: number | null;
-    peopleReached: number | string;
-    smsIncluded: string;
-    memberLimit: string;
+    monthlyPrice: number;
+    annualPrice: number;
     popular?: boolean;
     gradient: string;
     borderGlow: string;
+    icon: React.ComponentType<{ className?: string }>;
+    iconColor: string;
+    highlight: string;
     features: { text: string; included: boolean; highlight?: boolean }[];
     ctaText: string;
 }
 
-const PRICING_TIERS: PricingTier[] = [
+const MODULE_TIERS: ModuleTier[] = [
     {
-        id: "starter",
-        name: "Starter",
-        tagline: "For small churches beginning their AI outreach journey",
-        monthlyPrice: 29,
-        annualPrice: 290,
-        peopleReached: 25,
-        smsIncluded: "500 texts",
-        memberLimit: "Up to 200 members",
-        gradient: "from-slate-600 to-slate-800",
-        borderGlow: "border-slate-500/30",
+        id: "engage",
+        name: "ENGAGE",
+        tagline: "AI communication for your church — calls, SMS, automations, pastoral alerts",
+        monthlyPrice: 59,
+        annualPrice: 590,
+        gradient: "from-purple-500 to-indigo-600",
+        borderGlow: "border-purple-500/30",
+        icon: Phone,
+        iconColor: "text-purple-400",
+        highlight: "~65 person calls/month",
         features: [
-            { text: "Auto birthday calls", included: true, highlight: true },
-            { text: "First-timer follow-up calls", included: true, highlight: true },
-            { text: "People CRM & directory", included: true },
-            { text: "SMS campaigns", included: true },
-            { text: "Basic call scripts", included: true },
-            { text: "Dashboard analytics", included: true },
-            { text: "Email support", included: true },
-            { text: "AI Script Builder", included: false },
-            { text: "Auto workflows & triggers", included: false },
-            { text: "Escalation alerts", included: false },
-        ],
-        ctaText: "Start Free Trial",
-    },
-    {
-        id: "growth",
-        name: "Growth",
-        tagline: "The perfect plan for active, growing congregations",
-        monthlyPrice: 79,
-        annualPrice: 790,
-        peopleReached: 75,
-        smsIncluded: "2,000 texts",
-        memberLimit: "Up to 1,000 members",
-        popular: true,
-        gradient: "from-purple-500 to-blue-600",
-        borderGlow: "border-purple-500/50",
-        features: [
-            { text: "Auto birthday calls", included: true, highlight: true },
-            { text: "First-timer follow-up calls", included: true, highlight: true },
-            { text: "Lead invitation calls", included: true, highlight: true },
-            { text: "People CRM & directory", included: true },
-            { text: "SMS campaigns", included: true },
-            { text: "AI Script Builder", included: true },
-            { text: "Auto workflows & triggers", included: true },
-            { text: "Escalation alerts", included: true },
-            { text: "Priority support", included: true },
-            { text: "Custom integrations", included: false },
-        ],
-        ctaText: "Start Free Trial",
-    },
-    {
-        id: "pro",
-        name: "Pro",
-        tagline: "For large ministries with high-volume outreach needs",
-        monthlyPrice: 149,
-        annualPrice: 1490,
-        peopleReached: 200,
-        smsIncluded: "5,000 texts",
-        memberLimit: "Unlimited members",
-        gradient: "from-cyan-500 to-blue-600",
-        borderGlow: "border-cyan-500/30",
-        features: [
-            { text: "Auto birthday calls", included: true, highlight: true },
-            { text: "First-timer follow-up calls", included: true, highlight: true },
-            { text: "Lead invitation calls", included: true, highlight: true },
-            { text: "Mass voice campaigns", included: true, highlight: true },
-            { text: "People CRM & directory", included: true },
-            { text: "AI Script Builder", included: true },
-            { text: "Auto workflows & triggers", included: true },
-            { text: "Escalation alerts", included: true },
+            { text: "~65 AI person calls per month", included: true, highlight: true },
+            { text: "Unlimited SMS campaigns", included: true, highlight: true },
+            { text: "Smart automations & triggers", included: true },
             { text: "AI Memory per member", included: true },
-            { text: "Custom integrations & API", included: true },
+            { text: "Pastoral care alerts", included: true },
+            { text: "People CRM & directory", included: true },
+            { text: "AI Script Builder", included: true },
+            { text: "Real-time analytics", included: true },
+            { text: "Birthday & follow-up calls", included: true },
+            { text: "Escalation detection", included: true },
         ],
         ctaText: "Start Free Trial",
     },
     {
-        id: "enterprise",
-        name: "Enterprise",
-        tagline: "White-glove service for multi-campus & large organizations",
-        monthlyPrice: null,
-        annualPrice: null,
-        peopleReached: "Unlimited",
-        smsIncluded: "Unlimited",
-        memberLimit: "Unlimited members",
-        gradient: "from-amber-500 to-orange-600",
-        borderGlow: "border-amber-500/30",
+        id: "reach",
+        name: "REACH",
+        tagline: "Get the $10,000/month Google Ad Grant for your church",
+        monthlyPrice: 49,
+        annualPrice: 490,
+        gradient: "from-blue-500 to-cyan-600",
+        borderGlow: "border-blue-500/30",
+        icon: Target,
+        iconColor: "text-blue-400",
+        highlight: "$10K/mo in free Google Ads",
         features: [
-            { text: "Everything in Pro", included: true, highlight: true },
-            { text: "Unlimited AI calls", included: true, highlight: true },
-            { text: "Dedicated account manager", included: true },
-            { text: "Custom AI voice training", included: true },
-            { text: "Multi-campus support", included: true },
-            { text: "SLA & uptime guarantee", included: true },
-            { text: "Onboarding & training", included: true },
-            { text: "Custom reporting", included: true },
-            { text: "Priority phone support", included: true },
-            { text: "SSO & advanced security", included: true },
+            { text: "Church eligibility checker", included: true, highlight: true },
+            { text: "Domain preflight scanner", included: true, highlight: true },
+            { text: "Google for Nonprofits wizard", included: true },
+            { text: "Campaign setup assistant", included: true },
+            { text: "Grant status tracker", included: true },
+            { text: "Ad Grant credential storage", included: true },
+            { text: "Step-by-step application guide", included: true },
+            { text: "Standalone — no ENGAGE required", included: true },
+            { text: "Compliance monitoring", included: false },
+            { text: "Auto-pause protection", included: false },
         ],
-        ctaText: "Contact Sales",
+        ctaText: "Start Free Trial",
+    },
+    {
+        id: "attract",
+        name: "ATTRACT",
+        tagline: "Keep your Google Ad Grant compliant and protected 24/7",
+        monthlyPrice: 199,
+        annualPrice: 1990,
+        gradient: "from-green-500 to-emerald-600",
+        borderGlow: "border-green-500/30",
+        icon: Eye,
+        iconColor: "text-green-400",
+        highlight: "GUARDIAN compliance engine",
+        features: [
+            { text: "GUARDIAN compliance dashboard", included: true, highlight: true },
+            { text: "Daily CTR monitoring", included: true, highlight: true },
+            { text: "Auto-pause protection", included: true, highlight: true },
+            { text: "Suspension alerts", included: true },
+            { text: "Keyword quality management", included: true },
+            { text: "Campaign performance reports", included: true },
+            { text: "AI ad copy generator", included: true },
+            { text: "Everything in REACH included", included: true },
+            { text: "Real-time Telegram alerts", included: true },
+            { text: "Manual sweep on demand", included: true },
+        ],
+        ctaText: "Start Free Trial",
+    },
+    {
+        id: "empire",
+        name: "EMPIRE",
+        tagline: "Complete church growth platform — ENGAGE + REACH + ATTRACT in one",
+        monthlyPrice: 249,
+        annualPrice: 2490,
+        popular: true,
+        gradient: "from-amber-500 to-orange-600",
+        borderGlow: "border-amber-500/50",
+        icon: Crown,
+        iconColor: "text-amber-400",
+        highlight: "Save $58/mo vs individual",
+        features: [
+            { text: "Everything in ENGAGE", included: true, highlight: true },
+            { text: "Everything in REACH", included: true, highlight: true },
+            { text: "Everything in ATTRACT", included: true, highlight: true },
+            { text: "~65 AI person calls per month", included: true },
+            { text: "Unlimited SMS campaigns", included: true },
+            { text: "GUARDIAN compliance engine", included: true },
+            { text: "Complete church growth platform", included: true },
+            { text: "Priority support", included: true },
+            { text: "One subscription, one login", included: true },
+            { text: "Best value — save $58/month", included: true },
+        ],
+        ctaText: "Start Free Trial",
     },
 ];
 
 // ═══════════════════════════════════════════
-// VALUE SHOWCASE — what the AI actually does
+// VALUE SHOWCASES
 // ═══════════════════════════════════════════
 const VALUE_SHOWCASES = [
     {
         icon: Cake,
         title: "Auto Birthday Calls",
-        description: "Your AI calls every member on their birthday with a warm, personalized message. No staff time needed — just set it and the AI handles the rest, year-round.",
-        impact: "Members feel remembered & valued",
+        description: "Your AI calls every member on their birthday with a warm, personalized message.",
+        impact: "Members feel remembered",
         color: "from-pink-500/20 to-pink-500/5",
         iconColor: "text-pink-400",
         borderColor: "border-pink-500/20",
+        module: "ENGAGE",
+    },
+    {
+        icon: Target,
+        title: "Google Ad Grant Acquisition",
+        description: "Step-by-step wizard to get your church $10,000/month in free Google advertising.",
+        impact: "$10K/mo in free ads",
+        color: "from-blue-500/20 to-blue-500/5",
+        iconColor: "text-blue-400",
+        borderColor: "border-blue-500/20",
+        module: "REACH",
+    },
+    {
+        icon: Eye,
+        title: "GUARDIAN Compliance",
+        description: "24/7 monitoring keeps your Ad Grant compliant. Auto-pauses bad campaigns before Google does.",
+        impact: "Never lose your grant",
+        color: "from-green-500/20 to-green-500/5",
+        iconColor: "text-green-400",
+        borderColor: "border-green-500/20",
+        module: "ATTRACT",
     },
     {
         icon: UserPlus,
         title: "First-Timer Follow-Up",
-        description: "When someone visits for the first time, the AI automatically calls them within your preferred window — welcoming them, answering questions, and inviting them back.",
-        impact: "Increase visitor retention by up to 40%",
-        color: "from-green-500/20 to-green-500/5",
-        iconColor: "text-green-400",
-        borderColor: "border-green-500/20",
-    },
-    {
-        icon: Target,
-        title: "Lead Invitation Calls",
-        description: "Prospects and leads get personalized AI calls inviting them to services, events, or small groups. Turn interest into attendance automatically.",
-        impact: "Convert more leads into members",
-        color: "from-blue-500/20 to-blue-500/5",
-        iconColor: "text-blue-400",
-        borderColor: "border-blue-500/20",
-    },
-    {
-        icon: Wand2,
-        title: "AI Script Builder",
-        description: "Tell the AI what you want to say, and it writes a complete, natural-sounding call script for you. Choose tone, duration, and voice — done in seconds.",
-        impact: "Save hours of script writing",
-        color: "from-purple-500/20 to-purple-500/5",
-        iconColor: "text-purple-400",
-        borderColor: "border-purple-500/20",
+        description: "AI automatically calls first-time visitors within your chosen window — welcoming them back.",
+        impact: "40% better retention",
+        color: "from-emerald-500/20 to-emerald-500/5",
+        iconColor: "text-emerald-400",
+        borderColor: "border-emerald-500/20",
+        module: "ENGAGE",
     },
     {
         icon: Bell,
         title: "Escalation Alerts",
-        description: "If the AI detects someone in crisis, grieving, or needing pastoral care during a call, it immediately flags it to your team via SMS and email.",
-        impact: "Never miss a care opportunity",
+        description: "AI detects crisis or pastoral care needs during calls and instantly flags your team.",
+        impact: "Never miss a care need",
         color: "from-red-500/20 to-red-500/5",
         iconColor: "text-red-400",
         borderColor: "border-red-500/20",
+        module: "ENGAGE",
     },
     {
-        icon: Zap,
-        title: "Auto Workflows",
-        description: "Set up triggers that fire automatically — when someone joins a group, reaches an anniversary, or meets any criteria you define. AI + SMS combined.",
-        impact: "Fully automated engagement",
-        color: "from-amber-500/20 to-amber-500/5",
-        iconColor: "text-amber-400",
-        borderColor: "border-amber-500/20",
+        icon: Search,
+        title: "Domain Preflight Scanner",
+        description: "Checks your website against all 10 Google requirements before you apply for the grant.",
+        impact: "Apply with confidence",
+        color: "from-cyan-500/20 to-cyan-500/5",
+        iconColor: "text-cyan-400",
+        borderColor: "border-cyan-500/20",
+        module: "REACH",
     },
 ];
 
 // ═══════════════════════════════════════════
-// COST COMPARISON
-// ═══════════════════════════════════════════
-const COST_COMPARISONS = [
-    { label: "Part-time outreach coordinator", cost: "$1,500+/mo", icon: Users },
-    { label: "Traditional call center service", cost: "$500+/mo", icon: Phone },
-    { label: "Hiring a follow-up volunteer team", cost: "$0 but unreliable", icon: Clock },
-    { label: "KeepFlock Growth Plan", cost: "$79/mo", icon: Sparkles, highlight: true },
-];
-
-// ═══════════════════════════════════════════
-// FAQ
+// FAQS
 // ═══════════════════════════════════════════
 const FAQS = [
     {
-        question: "What does \"people reached\" mean?",
-        answer: "\"People reached\" is the number of individual people your AI can call each month. For example, the Growth plan lets your AI personally call up to 75 different people — whether that's birthday calls, first-timer follow-ups, or campaign outreach. Each person counts once per month regardless of call duration."
+        question: "What does \"person calls\" mean?",
+        answer: "Person calls are the number of individual people your AI can call each month. ENGAGE includes approximately 65 person calls — whether that's birthday calls, first-timer follow-ups, or campaign outreach. Each person counts once per call."
     },
     {
-        question: "How does the AI calling actually work?",
-        answer: "Our AI uses advanced voice technology (VAPI) to make natural, conversational phone calls on behalf of your church. You create or generate scripts using our AI Script Builder, customize the voice, and the system handles everything — from greeting members by name to capturing their responses and flagging pastoral care needs."
+        question: "Can I buy just one module?",
+        answer: "Yes! Each module works independently. A church that only wants grant management can buy REACH without needing ENGAGE for communication. You can add or remove modules anytime."
     },
     {
-        question: "What happens with birthday and first-timer calls?",
-        answer: "Once configured, these run completely on autopilot. The AI checks for birthdays daily and calls members with a warm personalized greeting. For first-timers, it automatically follows up within your chosen timeframe (e.g., 24 hours after their first visit) to welcome them and invite them back."
+        question: "What is the Google Ad Grant?",
+        answer: "Google gives qualifying 501(c)(3) churches $10,000/month in free Google Search advertising — permanently. Most churches don't know it exists. REACH walks you through every step of qualifying and applying."
     },
     {
-        question: "What if I need to reach more people than my plan allows?",
-        answer: "You can add additional people at just $1 per person per month. No surprise charges — you're always in control. Or simply upgrade to the next plan for a better per-person rate."
-    },
-    {
-        question: "Is SMS included?",
-        answer: "Yes! Every plan includes SMS messaging. Send personalized text campaigns, automated reminders, and two-way conversations. SMS is separate from AI calls and has its own generous allowance per plan."
-    },
-    {
-        question: "Can I cancel or change plans anytime?",
-        answer: "Absolutely. You can upgrade, downgrade, or cancel at any time. Changes take effect at your next billing cycle. No long-term contracts or cancellation fees."
+        question: "What does GUARDIAN do?",
+        answer: "GUARDIAN is our compliance engine that monitors your Google Ad Grant account 24/7. It checks your click-through rate, keyword quality, and campaign performance. If anything risks your grant, it auto-pauses the campaign and alerts you."
     },
     {
         question: "Is there a free trial?",
         answer: "Yes! Every plan includes a 14-day free trial with full access to all features. No credit card required to start exploring."
+    },
+    {
+        question: "What happens if I need more person calls?",
+        answer: "The ENGAGE plan includes ~65 person calls. If you need more capacity, contact us for a custom arrangement."
+    },
+    {
+        question: "Can I upgrade or downgrade anytime?",
+        answer: "Absolutely. You can add modules, remove them, or switch to EMPIRE anytime. Changes are prorated automatically."
     },
     {
         question: "What about data security?",
@@ -273,7 +259,7 @@ const FAQS = [
 // COMPONENT
 // ═══════════════════════════════════════════
 export default function PricingPage() {
-    const [isAnnual, setIsAnnual] = useState(true);
+    const [isAnnual, setIsAnnual] = useState(false);
     const [loading, setLoading] = useState<string | null>(null);
     const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
     const { currentOrganization, user } = useAuthStore();
@@ -281,12 +267,7 @@ export default function PricingPage() {
     const { toast } = useToast();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    const handleSelectPlan = async (tier: PricingTier) => {
-        if (tier.id === "enterprise") {
-            window.location.href = "mailto:sales@keepflock.com?subject=Enterprise%20Plan%20Inquiry";
-            return;
-        }
-
+    const handleSelectPlan = async (tier: ModuleTier) => {
         if (!user) {
             navigate("/login");
             return;
@@ -304,21 +285,19 @@ export default function PricingPage() {
         setLoading(tier.id);
 
         try {
-            const { data, error } = await supabase.functions.invoke("stripe-checkout", {
+            const { data, error } = await supabase.functions.invoke("ls-checkout", {
                 body: {
-                    tier: tier.id,
+                    module: tier.id,
                     billing_cycle: isAnnual ? "annual" : "monthly",
                     organization_id: currentOrganization.id,
                 },
             });
 
             if (error) {
-                // Extract actual error from edge function response
                 let msg = "Checkout request failed";
                 try {
                     if (error.context && typeof error.context.json === "function") {
                         const errBody = await error.context.json();
-                        console.error("Edge function error body:", errBody);
                         msg = errBody.error || msg;
                     }
                 } catch {
@@ -333,7 +312,6 @@ export default function PricingPage() {
                 throw new Error(data?.error || "No checkout URL returned");
             }
         } catch (error: unknown) {
-            console.error("Checkout error:", error);
             toast({
                 title: "Error",
                 description: (error as Error).message || "Failed to start checkout",
@@ -346,19 +324,17 @@ export default function PricingPage() {
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-50 overflow-hidden relative selection:bg-purple-500/30">
-            {/* Background Gradients */}
+            {/* Background */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
                 <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-purple-500/15 rounded-full blur-[150px]" />
                 <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-500/10 rounded-full blur-[150px]" />
-                <div className="absolute top-[40%] right-[20%] w-[30%] h-[30%] bg-cyan-500/10 rounded-full blur-[100px]" />
+                <div className="absolute top-[40%] right-[20%] w-[30%] h-[30%] bg-amber-500/10 rounded-full blur-[100px]" />
             </div>
 
-            {/* ═══ Navbar ═══ */}
+            {/* Navbar */}
             <nav className="fixed top-0 w-full z-50 border-b border-white/10 bg-slate-950/80 backdrop-blur-md">
                 <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-                    <Link to="/">
-                        <Logo />
-                    </Link>
+                    <Link to="/"><Logo /></Link>
                     <div className="hidden md:flex items-center gap-8">
                         <Link to="/" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Home</Link>
                         <Link to="/demo" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Demo</Link>
@@ -366,12 +342,9 @@ export default function PricingPage() {
                     </div>
                     <div className="hidden md:flex items-center gap-4">
                         {user ? (
-                            <>
-                                <Link to="/dashboard">
-                                    <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-white/5">Dashboard</Button>
-                                </Link>
-                                <span className="text-sm text-slate-400 hidden md:inline">{user.email}</span>
-                            </>
+                            <Link to="/dashboard">
+                                <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-white/5">Dashboard</Button>
+                            </Link>
                         ) : (
                             <>
                                 <Link to="/login">
@@ -383,56 +356,40 @@ export default function PricingPage() {
                             </>
                         )}
                     </div>
-
-                    {/* Mobile Menu Toggle */}
-                    <Link to="#" onClick={(e) => { e.preventDefault(); setIsMobileMenuOpen(!isMobileMenuOpen); }} className="md:hidden p-2 text-slate-300 hover:text-white">
+                    <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="md:hidden p-2 text-slate-300 hover:text-white">
                         {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                    </Link>
+                    </button>
                 </div>
-
-                {/* Mobile Menu Dropdown */}
                 {isMobileMenuOpen && (
                     <div className="md:hidden bg-slate-950 border-b border-white/10 px-6 py-4 flex flex-col gap-4 animate-in slide-in-from-top-4 duration-200">
-                        <Link to="/" className="text-sm font-medium text-slate-300 hover:text-white transition-colors py-2" onClick={() => setIsMobileMenuOpen(false)}>Home</Link>
-                        <Link to="/demo" className="text-sm font-medium text-slate-300 hover:text-white transition-colors py-2" onClick={() => setIsMobileMenuOpen(false)}>Demo</Link>
-                        <span className="text-sm font-medium text-white py-2">Pricing</span>
+                        <Link to="/" className="text-sm font-medium text-slate-300 hover:text-white py-2" onClick={() => setIsMobileMenuOpen(false)}>Home</Link>
+                        <Link to="/demo" className="text-sm font-medium text-slate-300 hover:text-white py-2" onClick={() => setIsMobileMenuOpen(false)}>Demo</Link>
                         <div className="h-px bg-white/10 my-2" />
-                        {user ? (
-                            <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
-                                <Button className="w-full bg-slate-800 hover:bg-slate-700 text-white border-0">Go to Dashboard</Button>
-                            </Link>
-                        ) : (
-                            <>
-                                <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                                    <Button variant="ghost" className="w-full justify-start text-slate-300 hover:text-white hover:bg-white/5">Sign In</Button>
-                                </Link>
-                                <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                                    <Button className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white border-0">Get Started</Button>
-                                </Link>
-                            </>
-                        )}
+                        <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                            <Button className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0">Get Started</Button>
+                        </Link>
                     </div>
                 )}
             </nav>
 
-            {/* ═══ HERO SECTION ═══ */}
+            {/* Hero */}
             <section className="pt-32 pb-8 px-6">
                 <div className="container mx-auto text-center max-w-4xl">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm font-medium text-purple-300 mb-8">
-                        <Heart className="w-4 h-4" />
-                        <span>Trusted by churches nationwide</span>
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm font-medium text-amber-300 mb-8">
+                        <Crown className="w-4 h-4" />
+                        <span>Build your church growth stack</span>
                     </div>
 
                     <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
-                        Your AI pastor&apos;s assistant,{" "}
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-400 to-cyan-400">
-                            at a fraction of the cost
+                        One platform.{" "}
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-400 to-amber-400">
+                            Three powerful modules.
                         </span>
                     </h1>
 
                     <p className="text-xl text-slate-400 mb-6 max-w-2xl mx-auto">
-                        Automated birthday calls, first-timer follow-ups, lead outreach, and crisis detection —
-                        all handled by AI so your team can focus on what matters most: people.
+                        AI communication, Google Ad Grant acquisition, and grant compliance monitoring —
+                        buy what you need, add more when you're ready.
                     </p>
 
                     <p className="text-sm text-slate-500 mb-12">
@@ -454,96 +411,66 @@ export default function PricingPage() {
                         </span>
                         {isAnnual && (
                             <Badge className="bg-green-500/20 text-green-400 border-green-500/30 hover:bg-green-500/20">
-                                Save 17%
+                                Save ~17%
                             </Badge>
                         )}
                     </div>
                 </div>
             </section>
 
-            {/* ═══ PRICING CARDS ═══ */}
+            {/* Pricing Cards */}
             <section className="pb-24 px-6">
                 <div className="container mx-auto max-w-7xl">
                     <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {PRICING_TIERS.map((tier) => (
+                        {MODULE_TIERS.map((tier) => (
                             <div
                                 key={tier.id}
-                                className={`relative rounded-2xl transition-all duration-300 ${tier.popular
-                                    ? "scale-[1.03] z-10"
-                                    : "hover:scale-[1.02]"
-                                    }`}
+                                className={`relative rounded-2xl transition-all duration-300 ${tier.popular ? "scale-[1.03] z-10" : "hover:scale-[1.02]"}`}
                             >
-                                {/* Glow effect for popular */}
                                 {tier.popular && (
-                                    <div className="absolute -inset-[1px] bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500 rounded-2xl blur opacity-50" />
+                                    <div className="absolute -inset-[1px] bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 rounded-2xl blur opacity-50" />
                                 )}
 
-                                <div className={`relative h-full rounded-2xl border ${tier.popular
-                                    ? "border-purple-500/50 bg-slate-900/90"
-                                    : `${tier.borderGlow} bg-slate-900/50`
-                                    } backdrop-blur-xl p-6 flex flex-col`}>
-
+                                <div className={`relative h-full rounded-2xl border ${tier.popular ? "border-amber-500/50 bg-slate-900/90" : `${tier.borderGlow} bg-slate-900/50`} backdrop-blur-xl p-6 flex flex-col`}>
                                     {tier.popular && (
                                         <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                                            <Badge className="bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0 px-4 py-1">
-                                                <Sparkles className="w-3 h-3 mr-1.5" />
-                                                Most Popular
+                                            <Badge className="bg-gradient-to-r from-amber-600 to-orange-600 text-white border-0 px-4 py-1">
+                                                <Crown className="w-3 h-3 mr-1.5" />
+                                                Best Value
                                             </Badge>
                                         </div>
                                     )}
 
                                     <div className="mb-5">
-                                        <h3 className="text-xl font-bold text-white mb-1">{tier.name}</h3>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <div className={`w-8 h-8 rounded-lg bg-gradient-to-r ${tier.gradient} flex items-center justify-center`}>
+                                                <tier.icon className="w-4 h-4 text-white" />
+                                            </div>
+                                            <h3 className="text-xl font-bold text-white">{tier.name}</h3>
+                                        </div>
                                         <p className="text-slate-400 text-xs leading-relaxed">{tier.tagline}</p>
                                     </div>
 
                                     {/* Price */}
                                     <div className="mb-5">
-                                        {tier.monthlyPrice !== null ? (
-                                            <>
-                                                <div className="flex items-baseline gap-1">
-                                                    <span className="text-4xl font-bold text-white">
-                                                        ${isAnnual ? Math.round(tier.annualPrice! / 12) : tier.monthlyPrice}
-                                                    </span>
-                                                    <span className="text-slate-500">/month</span>
-                                                </div>
-                                                {isAnnual && (
-                                                    <p className="text-xs text-slate-500 mt-1">
-                                                        ${tier.annualPrice} billed annually
-                                                    </p>
-                                                )}
-                                            </>
-                                        ) : (
-                                            <div className="flex items-baseline gap-1">
-                                                <span className="text-3xl font-bold text-white">Custom</span>
-                                            </div>
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="text-4xl font-bold text-white">
+                                                ${isAnnual ? Math.round(tier.annualPrice / 12) : tier.monthlyPrice}
+                                            </span>
+                                            <span className="text-slate-500">/month</span>
+                                        </div>
+                                        {isAnnual && (
+                                            <p className="text-xs text-slate-500 mt-1">
+                                                ${tier.annualPrice} billed annually
+                                            </p>
                                         )}
                                     </div>
 
-                                    {/* ★ People Reached — THE KEY VALUE METRIC ★ */}
-                                    <div className={`rounded-xl p-4 mb-5 bg-gradient-to-r ${tier.gradient} bg-opacity-10`}>
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
-                                                <Users className="w-5 h-5 text-white" />
-                                            </div>
-                                            <div>
-                                                <p className="text-white font-bold text-lg">
-                                                    {typeof tier.peopleReached === "number" ? `${tier.peopleReached} people` : tier.peopleReached}
-                                                </p>
-                                                <p className="text-white/60 text-xs">reached by AI calls / month</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* SMS + Member Limit */}
-                                    <div className="flex flex-col gap-2 mb-5 text-sm">
-                                        <div className="flex items-center gap-2 text-slate-300">
-                                            <MessageSquare className="w-4 h-4 text-blue-400 flex-shrink-0" />
-                                            <span>{tier.smsIncluded} included</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-slate-300">
-                                            <Users className="w-4 h-4 text-purple-400 flex-shrink-0" />
-                                            <span>{tier.memberLimit}</span>
+                                    {/* Key Value Highlight */}
+                                    <div className={`rounded-xl p-3 mb-5 bg-gradient-to-r ${tier.gradient} bg-opacity-10`}>
+                                        <div className="flex items-center gap-2">
+                                            <Sparkles className="w-4 h-4 text-white" />
+                                            <span className="text-white font-medium text-sm">{tier.highlight}</span>
                                         </div>
                                     </div>
 
@@ -567,14 +494,14 @@ export default function PricingPage() {
                                         ))}
                                     </ul>
 
-                                    {/* CTA Button */}
+                                    {/* CTA */}
                                     <Button
                                         onClick={() => handleSelectPlan(tier)}
                                         disabled={loading !== null}
                                         className={`w-full h-12 text-base font-semibold transition-all ${tier.popular
-                                            ? "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white shadow-lg shadow-purple-500/25"
+                                            ? "bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white shadow-lg shadow-amber-500/25"
                                             : "bg-white/10 hover:bg-white/20 text-white border border-white/10"
-                                            }`}
+                                        }`}
                                     >
                                         {loading === tier.id ? (
                                             <Loader2 className="w-5 h-5 animate-spin" />
@@ -589,41 +516,36 @@ export default function PricingPage() {
                             </div>
                         ))}
                     </div>
-
-                    {/* Overage note */}
-                    <p className="text-center text-sm text-slate-500 mt-8">
-                        Need to reach more people? Add additional people at just <span className="text-slate-300 font-medium">$1/person/month</span>. No surprises.
-                    </p>
                 </div>
             </section>
 
-            {/* ═══ "WHAT YOUR AI DOES" — VALUE SHOWCASE ═══ */}
+            {/* Value Showcases */}
             <section className="py-24 border-t border-white/5">
                 <div className="container mx-auto px-6 max-w-6xl">
                     <div className="text-center mb-16">
                         <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 hover:bg-purple-500/20 mb-4">
                             <Brain className="w-3 h-3 mr-1.5" />
-                            AI-Powered
+                            Platform Capabilities
                         </Badge>
                         <h2 className="text-3xl md:text-5xl font-bold mb-4">
-                            Here&apos;s what your AI does{" "}
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">
-                                for you
-                            </span>
+                            What each module{" "}
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">does for you</span>
                         </h2>
-                        <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-                            Every plan includes powerful automation that runs 24/7 — so no one falls through the cracks.
-                        </p>
                     </div>
 
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {VALUE_SHOWCASES.map((item, idx) => (
                             <div
                                 key={idx}
-                                className={`group p-6 rounded-2xl bg-gradient-to-br ${item.color} border ${item.borderColor} hover:border-white/20 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/5`}
+                                className={`group p-6 rounded-2xl bg-gradient-to-br ${item.color} border ${item.borderColor} hover:border-white/20 transition-all`}
                             >
-                                <div className={`w-14 h-14 rounded-xl bg-white/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                                    <item.icon className={`w-7 h-7 ${item.iconColor}`} />
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="w-14 h-14 rounded-xl bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <item.icon className={`w-7 h-7 ${item.iconColor}`} />
+                                    </div>
+                                    <Badge variant="outline" className="text-xs text-slate-400 border-slate-700">
+                                        {item.module}
+                                    </Badge>
                                 </div>
                                 <h3 className="text-lg font-semibold text-white mb-2">{item.title}</h3>
                                 <p className="text-slate-400 text-sm mb-4 leading-relaxed">{item.description}</p>
@@ -637,134 +559,7 @@ export default function PricingPage() {
                 </div>
             </section>
 
-            {/* ═══ COST COMPARISON ═══ */}
-            <section className="py-24 border-t border-white/5">
-                <div className="container mx-auto px-6 max-w-3xl">
-                    <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                            How much would this cost{" "}
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-400">without AI?</span>
-                        </h2>
-                        <p className="text-slate-400 text-lg">
-                            Making 75 personal follow-up calls a month would normally require...
-                        </p>
-                    </div>
-
-                    <div className="space-y-4">
-                        {COST_COMPARISONS.map((item, idx) => (
-                            <div
-                                key={idx}
-                                className={`flex items-center justify-between p-5 rounded-xl border transition-all ${item.highlight
-                                    ? "bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-purple-500/30 shadow-lg shadow-purple-500/10"
-                                    : "bg-white/5 border-white/10"
-                                    }`}
-                            >
-                                <div className="flex items-center gap-4">
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${item.highlight ? "bg-purple-500/20" : "bg-white/5"}`}>
-                                        <item.icon className={`w-5 h-5 ${item.highlight ? "text-purple-400" : "text-slate-400"}`} />
-                                    </div>
-                                    <span className={`font-medium ${item.highlight ? "text-white" : "text-slate-300"}`}>{item.label}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    {item.highlight && <Star className="w-4 h-4 text-yellow-400" />}
-                                    <span className={`font-bold text-lg ${item.highlight
-                                        ? "text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400"
-                                        : "text-slate-400 line-through"
-                                        }`}>
-                                        {item.cost}
-                                    </span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="text-center mt-8">
-                        <p className="text-slate-400 text-sm">
-                            That&apos;s <span className="text-white font-bold">10x–20x cheaper</span> than hiring someone to make these calls manually.
-                        </p>
-                    </div>
-                </div>
-            </section>
-
-            {/* ═══ HOW IT WORKS ═══ */}
-            <section className="py-24 border-t border-white/5">
-                <div className="container mx-auto px-6 max-w-4xl">
-                    <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-4xl font-bold mb-4">Up and running in 5 minutes</h2>
-                        <p className="text-slate-400 text-lg">No training required. No complex setup.</p>
-                    </div>
-
-                    <div className="grid md:grid-cols-3 gap-8">
-                        {[
-                            {
-                                step: "1",
-                                title: "Add Your People",
-                                desc: "Import or add your members, visitors, and prospects to the People CRM. Set their status and contact details.",
-                                icon: Users,
-                                color: "text-purple-400",
-                            },
-                            {
-                                step: "2",
-                                title: "Choose Your Automations",
-                                desc: "Turn on birthday calls, first-timer follow-ups, and any other triggers. Pick or generate AI scripts.",
-                                icon: Zap,
-                                color: "text-blue-400",
-                            },
-                            {
-                                step: "3",
-                                title: "Let AI Do the Work",
-                                desc: "Your AI assistant calls people automatically, tracks responses, and alerts you if anyone needs pastoral care.",
-                                icon: Phone,
-                                color: "text-cyan-400",
-                            },
-                        ].map((item, idx) => (
-                            <div key={idx} className="text-center">
-                                <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-4 relative">
-                                    <item.icon className={`w-7 h-7 ${item.color}`} />
-                                    <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 flex items-center justify-center text-xs font-bold text-white">
-                                        {item.step}
-                                    </div>
-                                </div>
-                                <h3 className="text-lg font-semibold text-white mb-2">{item.title}</h3>
-                                <p className="text-slate-400 text-sm leading-relaxed">{item.desc}</p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* ═══ EVERYTHING INCLUDED ═══ */}
-            <section className="py-24 border-t border-white/5">
-                <div className="container mx-auto px-6 max-w-4xl">
-                    <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-4xl font-bold mb-4">Everything included in every plan</h2>
-                        <p className="text-slate-400 text-lg">No hidden fees. No per-feature pricing.</p>
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {[
-                            { icon: Users, label: "People CRM", desc: "Full member directory" },
-                            { icon: MessageSquare, label: "SMS Campaigns", desc: "Bulk & 1:1 texting" },
-                            { icon: BarChart3, label: "Analytics", desc: "Real-time dashboard" },
-                            { icon: Shield, label: "Security", desc: "Enterprise-grade" },
-                            { icon: CalendarCheck, label: "Scheduling", desc: "Schedule campaigns" },
-                            { icon: Gift, label: "Birthdays", desc: "Auto-tracked" },
-                            { icon: Headphones, label: "Support", desc: "Email & priority" },
-                            { icon: Brain, label: "AI Memory", desc: "Per-member context" },
-                        ].map((item, idx) => (
-                            <div key={idx} className="p-4 rounded-xl bg-white/5 border border-white/10 text-center hover:border-white/20 transition-colors">
-                                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center mx-auto mb-2">
-                                    <item.icon className="w-5 h-5 text-purple-400" />
-                                </div>
-                                <p className="text-sm font-medium text-white">{item.label}</p>
-                                <p className="text-xs text-slate-500">{item.desc}</p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* ═══ FAQs ═══ */}
+            {/* FAQs */}
             <section className="py-24 border-t border-white/5">
                 <div className="container mx-auto px-6 max-w-3xl">
                     <div className="text-center mb-16">
@@ -774,10 +569,7 @@ export default function PricingPage() {
 
                     <div className="space-y-3">
                         {FAQS.map((faq, idx) => (
-                            <div
-                                key={idx}
-                                className="rounded-xl border border-white/10 bg-white/5 overflow-hidden"
-                            >
+                            <div key={idx} className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
                                 <button
                                     onClick={() => setExpandedFaq(expandedFaq === idx ? null : idx)}
                                     className="w-full flex items-center justify-between p-5 text-left"
@@ -789,7 +581,7 @@ export default function PricingPage() {
                                     <ChevronDown className={`w-5 h-5 text-slate-500 transition-transform ${expandedFaq === idx ? "rotate-180" : ""}`} />
                                 </button>
                                 {expandedFaq === idx && (
-                                    <div className="px-5 pb-5 pl-[56px]">
+                                    <div className="px-5 pb-5 pl-14">
                                         <p className="text-slate-400 text-sm leading-relaxed">{faq.answer}</p>
                                     </div>
                                 )}
@@ -799,32 +591,36 @@ export default function PricingPage() {
                 </div>
             </section>
 
-            {/* ═══ FINAL CTA ═══ */}
-            <section className="py-24 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-900/30 to-blue-900/30 -z-10" />
-                <div className="container mx-auto px-6 text-center">
-                    <h2 className="text-3xl md:text-5xl font-bold mb-6">
-                        Ready to let AI keep your flock connected?
+            {/* Final CTA */}
+            <section className="py-24 border-t border-white/5">
+                <div className="container mx-auto px-6 text-center max-w-3xl">
+                    <h2 className="text-3xl md:text-4xl font-bold mb-6">
+                        Ready to grow your church?
                     </h2>
-                    <p className="text-xl text-slate-400 mb-4 max-w-2xl mx-auto">
-                        Start with a 14-day free trial. No credit card required.
-                    </p>
-                    <p className="text-sm text-slate-500 mb-10 max-w-lg mx-auto">
-                        Join churches already using AI to make every birthday call, follow up every visitor, and never miss a pastoral care moment.
+                    <p className="text-slate-400 text-lg mb-8">
+                        Join hundreds of churches using KeepFlock to communicate better, get free Google Ads, and stay compliant.
                     </p>
                     <Link to="/login">
-                        <Button size="lg" className="h-14 px-10 text-lg bg-white text-slate-950 hover:bg-slate-200 rounded-full shadow-2xl shadow-purple-500/20 transition-all hover:scale-105">
-                            Start Your Free Trial
-                            <ChevronRight className="w-5 h-5 ml-2" />
+                        <Button size="lg" className="h-14 px-10 text-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-full shadow-lg">
+                            Start Your Free 14-Day Trial
+                            <ArrowRight className="w-5 h-5 ml-2" />
                         </Button>
                     </Link>
+                    <p className="text-sm text-slate-500 mt-4">No credit card required</p>
                 </div>
             </section>
 
-            {/* ═══ Footer ═══ */}
-            <footer className="py-8 border-t border-white/10 bg-slate-950">
-                <div className="container mx-auto px-6 text-center text-sm text-slate-500">
-                    <p>© {new Date().getFullYear()} KeepFlock by LawOne Cloud LLC. All rights reserved.</p>
+            {/* Footer */}
+            <footer className="border-t border-white/10 py-8">
+                <div className="container mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-2 text-slate-500 text-sm">
+                        <Logo />
+                    </div>
+                    <div className="flex items-center gap-6 text-slate-500 text-sm">
+                        <Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+                        <Link to="/terms" className="hover:text-white transition-colors">Terms</Link>
+                        <a href="mailto:support@keepflock.com" className="hover:text-white transition-colors">Support</a>
+                    </div>
                 </div>
             </footer>
         </div>

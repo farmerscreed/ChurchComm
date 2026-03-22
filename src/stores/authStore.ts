@@ -15,8 +15,6 @@ type Organization = {
   settings?: any;
   subscription_plan?: string;
   subscription_status?: string;
-  stripe_customer_id?: string;
-  stripe_subscription_id?: string;
   subscription_tier?: string;
   billing_cycle?: string;
   trial_ends_at?: string;
@@ -26,6 +24,11 @@ type Organization = {
   minutes_used?: number;
   member_count?: number;
   timezone?: string;
+  // LemonSqueezy billing
+  active_modules?: string[];
+  ls_customer_id?: string;
+  ls_subscription_ids?: Record<string, string>;
+  ls_customer_portal_url?: string;
   created_at: string;
   updated_at: string;
 };

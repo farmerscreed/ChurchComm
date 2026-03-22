@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import {
     ArrowRight,
     CheckCircle,
-    ChevronRight,
     Clock,
     Globe,
     MessageCircle,
@@ -19,7 +18,6 @@ import {
     Users,
     Zap,
     PhoneCall,
-    Calendar,
     Bell,
     BarChart3,
     Award,
@@ -31,7 +29,9 @@ import {
     Cake,
     CalendarClock,
     Menu,
-    X
+    X,
+    Target,
+    Eye,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Logo, LogoIcon } from "@/components/ui/Logo";
@@ -61,7 +61,6 @@ function useCounter(end: number, duration: number = 2000, start: number = 0) {
 
 export default function LandingPage() {
     const [activeTestimonial, setActiveTestimonial] = useState(0);
-    const [isVideoPlaying, setIsVideoPlaying] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const churches = useCounter(500, 2000);
@@ -78,6 +77,7 @@ export default function LandingPage() {
             satisfaction.setIsVisible(true);
         }, 500);
         return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Auto-rotate testimonials
@@ -164,28 +164,41 @@ export default function LandingPage() {
                 <div className="container mx-auto max-w-6xl">
                     {/* Announcement Banner */}
                     <div className="flex justify-center mb-8">
-                        <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4 duration-700">
-                            <Badge className="bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0 text-xs">NEW</Badge>
-                            <span className="text-sm text-slate-300">Automations: Birthday calls, scheduled messages & more!</span>
-                            <ChevronRight className="w-4 h-4 text-slate-500" />
+                        <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4 duration-700">
+                            <Badge className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-0 text-xs">NEW</Badge>
+                            <span className="text-sm text-slate-300">Get $10,000/month in free Google Ads for your church</span>
+                            <a href="#reach-section" className="text-indigo-400 hover:text-indigo-300 text-sm font-medium ml-1">Learn how &rarr;</a>
                         </div>
                     </div>
 
                     <div className="text-center">
                         <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-8 leading-[1.1] animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
-                            Your Church's AI
+                            Your Church's Complete
                             <br />
                             <span className="relative">
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-400 to-cyan-400">
-                                    Communication Team
+                                    Growth Platform
                                 </span>
                                 <Sparkles className="absolute -top-2 -right-8 w-8 h-8 text-yellow-400 animate-pulse" />
                             </span>
                         </h1>
 
-                        <p className="text-xl md:text-2xl text-slate-400 mb-10 max-w-3xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
-                            Stop losing visitors. Our AI makes <span className="text-white font-medium">personal phone calls</span> and sends <span className="text-white font-medium">targeted SMS</span> so every member feels valued—automatically.
+                        <p className="text-xl md:text-2xl text-slate-400 mb-6 max-w-3xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
+                            Get <span className="text-white font-medium">$10,000/month in free Google Ads</span>, keep your grant compliant automatically, and keep your entire congregation <span className="text-white font-medium">connected</span> — all in one place.
                         </p>
+
+                        {/* Module Pills */}
+                        <div className="flex items-center justify-center gap-3 mb-10 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-250">
+                            <a href="#features" className="px-4 py-1.5 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-sm font-medium hover:bg-purple-500/30 transition-colors">
+                                ENGAGE
+                            </a>
+                            <a href="#reach-section" className="px-4 py-1.5 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-300 text-sm font-medium hover:bg-blue-500/30 transition-colors">
+                                REACH
+                            </a>
+                            <a href="#attract-section" className="px-4 py-1.5 rounded-full bg-green-500/20 border border-green-500/30 text-green-300 text-sm font-medium hover:bg-green-500/30 transition-colors">
+                                ATTRACT
+                            </a>
+                        </div>
 
                         {/* CTA Buttons */}
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
@@ -626,7 +639,7 @@ export default function LandingPage() {
             <section id="features" className="py-24 bg-slate-900/50">
                 <div className="container mx-auto px-6">
                     <div className="text-center mb-16">
-                        <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 mb-6">Features</Badge>
+                        <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 mb-6">ENGAGE — AI Communication</Badge>
                         <h2 className="text-3xl md:text-5xl font-bold mb-6">
                             Everything you need to{" "}
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">
@@ -772,62 +785,201 @@ export default function LandingPage() {
                 </div>
             </section>
 
+            {/* ══ REACH Section ══ */}
+            <section id="reach-section" className="py-24 bg-gradient-to-b from-slate-950 to-slate-900/30">
+                <div className="container mx-auto px-6">
+                    <div className="max-w-6xl mx-auto">
+                        <div className="grid lg:grid-cols-2 gap-12 items-center">
+                            <div>
+                                <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 mb-6">
+                                    <Target className="w-3 h-3 mr-1.5" />
+                                    REACH — Get the Google Ad Grant
+                                </Badge>
+                                <h2 className="text-3xl md:text-5xl font-bold mb-6">
+                                    The $10,000/month program{" "}
+                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
+                                        95% of eligible churches
+                                    </span>{" "}
+                                    have never applied for
+                                </h2>
+                                <p className="text-xl text-slate-400 mb-8 leading-relaxed">
+                                    Google gives qualifying 501(c)(3) churches $10,000/month in free Google Search
+                                    advertising — permanently. Most churches don't know it exists. Most that try
+                                    to apply give up because the process is confusing. KeepFlock walks you through every step.
+                                </p>
+                                <div className="space-y-3 mb-8">
+                                    {[
+                                        "Church eligibility checker — find out if you qualify in 60 seconds",
+                                        "Domain preflight scanner — ensure your site passes Google's 10 requirements",
+                                        "Google for Nonprofits application wizard — guided step-by-step",
+                                        "Campaign setup assistant — your first compliant campaign, ready to go",
+                                    ].map((item, idx) => (
+                                        <div key={idx} className="flex items-start gap-3">
+                                            <CheckCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                                            <span className="text-slate-300">{item}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                <Link to="/eligibility-check">
+                                    <Button size="lg" className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 h-12 px-6">
+                                        Check My Eligibility Free
+                                        <ArrowRight className="w-4 h-4 ml-2" />
+                                    </Button>
+                                </Link>
+                            </div>
+                            <div className="relative">
+                                <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-3xl blur-xl" />
+                                <div className="relative rounded-2xl border border-blue-500/20 bg-slate-900/90 backdrop-blur-xl p-8 shadow-2xl">
+                                    <div className="text-center mb-6">
+                                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-600 flex items-center justify-center mx-auto mb-4">
+                                            <Globe className="w-8 h-8 text-white" />
+                                        </div>
+                                        <h3 className="text-2xl font-bold text-white mb-2">Free Eligibility Check</h3>
+                                        <p className="text-slate-400">Find out in 60 seconds if your church qualifies</p>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {["501(c)(3) status", "US-based organization", "Has a website", "Not a hospital/school/gov"].map((item, idx) => (
+                                            <div key={idx} className="flex items-center gap-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                                                <CheckCircle className="w-4 h-4 text-blue-400" />
+                                                <span className="text-slate-300 text-sm">{item}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <Link to="/eligibility-check" className="block mt-6">
+                                        <Button className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white">
+                                            Start Free Eligibility Check
+                                            <ArrowRight className="w-4 h-4 ml-2" />
+                                        </Button>
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ══ ATTRACT Section ══ */}
+            <section id="attract-section" className="py-24">
+                <div className="container mx-auto px-6">
+                    <div className="max-w-6xl mx-auto">
+                        <div className="grid lg:grid-cols-2 gap-12 items-center">
+                            <div className="order-2 lg:order-1">
+                                <div className="relative">
+                                    <div className="absolute -inset-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-3xl blur-xl" />
+                                    <div className="relative rounded-2xl border border-green-500/20 bg-slate-900/90 backdrop-blur-xl p-6 shadow-2xl">
+                                        {/* Dashboard Preview */}
+                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                            <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/20">
+                                                <p className="text-xs text-green-400 mb-1">CTR (30-day)</p>
+                                                <p className="text-2xl font-bold text-white">6.2%</p>
+                                                <p className="text-xs text-green-400">Above 5% threshold</p>
+                                            </div>
+                                            <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                                                <p className="text-xs text-blue-400 mb-1">Active Campaigns</p>
+                                                <p className="text-2xl font-bold text-white">3</p>
+                                                <p className="text-xs text-slate-500">All compliant</p>
+                                            </div>
+                                            <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
+                                                <p className="text-xs text-purple-400 mb-1">Quality Score</p>
+                                                <p className="text-2xl font-bold text-white">7.2</p>
+                                                <p className="text-xs text-slate-500">Above average</p>
+                                            </div>
+                                            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                                                <p className="text-xs text-amber-400 mb-1">Grant Status</p>
+                                                <p className="text-2xl font-bold text-green-400">Active</p>
+                                                <p className="text-xs text-slate-500">Last sweep: 2h ago</p>
+                                            </div>
+                                        </div>
+                                        <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center gap-2">
+                                            <Shield className="w-4 h-4 text-green-400" />
+                                            <span className="text-sm text-green-300">GUARDIAN is monitoring your account</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="order-1 lg:order-2">
+                                <Badge className="bg-green-500/10 text-green-400 border-green-500/20 mb-6">
+                                    <Shield className="w-3 h-3 mr-1.5" />
+                                    ATTRACT — Keep Your Grant Active
+                                </Badge>
+                                <h2 className="text-3xl md:text-5xl font-bold mb-6">
+                                    Most churches{" "}
+                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400">
+                                        lose their Ad Grant
+                                    </span>{" "}
+                                    within 90 days
+                                </h2>
+                                <p className="text-xl text-slate-400 mb-8 leading-relaxed">
+                                    Google's rules are strict. Drop below a 5% click-through rate and your account
+                                    gets suspended — instantly. GUARDIAN monitors your account every 6 hours,
+                                    automatically pauses underperforming campaigns, and alerts you before anything goes wrong.
+                                </p>
+                                <div className="space-y-3 mb-8">
+                                    {[
+                                        "Daily compliance monitoring — CTR, keyword quality scores, account status",
+                                        "Auto-pause protection — kills non-compliant campaigns before Google does",
+                                        "Suspension alerts — real-time notifications",
+                                        "AI ad copy generator — creates compliant ad variations for your church",
+                                    ].map((item, idx) => (
+                                        <div key={idx} className="flex items-start gap-3">
+                                            <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                                            <span className="text-slate-300">{item}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                <Link to="/pricing">
+                                    <Button size="lg" className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 h-12 px-6">
+                                        Start Grant Management
+                                        <ArrowRight className="w-4 h-4 ml-2" />
+                                    </Button>
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             {/* Pricing Preview */}
-            <section className="py-24">
+            <section className="py-24 bg-gradient-to-b from-slate-950 to-slate-900/30">
                 <div className="container mx-auto px-6">
                     <div className="text-center mb-16">
-                        <Badge className="bg-green-500/10 text-green-400 border-green-500/20 mb-6">Pricing</Badge>
+                        <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 mb-6">Pricing</Badge>
                         <h2 className="text-3xl md:text-5xl font-bold mb-6">
-                            Start free, scale as you{" "}
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-cyan-400">
-                                grow
+                            Build your{" "}
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-400">
+                                growth stack
                             </span>
                         </h2>
                         <p className="text-xl text-slate-400 max-w-2xl mx-auto">
-                            Plans for churches of all sizes. No hidden fees. Cancel anytime.
+                            Three modules. Buy what you need. Save with EMPIRE.
                         </p>
                     </div>
 
-                    <div className="flex flex-wrap justify-center gap-6 mb-12">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 max-w-6xl mx-auto">
                         {[
-                            { name: "Starter", price: 29, desc: "Small churches", members: "200 members", minutes: "50 AI minutes" },
-                            { name: "Growth", price: 79, desc: "Growing churches", members: "1,000 members", minutes: "200 AI minutes", popular: true },
-                            { name: "Enterprise", price: 199, desc: "Large ministries", members: "Unlimited", minutes: "500 AI minutes" },
+                            { name: "ENGAGE", price: 59, desc: "AI communication", highlight: "~65 person calls/mo", icon: Phone, gradient: "from-purple-500/10 to-purple-500/5", border: "border-purple-500/20" },
+                            { name: "REACH", price: 49, desc: "Get the Ad Grant", highlight: "$10K/mo free ads", icon: Target, gradient: "from-blue-500/10 to-blue-500/5", border: "border-blue-500/20" },
+                            { name: "ATTRACT", price: 199, desc: "Grant compliance", highlight: "GUARDIAN engine", icon: Eye, gradient: "from-green-500/10 to-green-500/5", border: "border-green-500/20" },
+                            { name: "EMPIRE", price: 249, desc: "Complete platform", highlight: "Save $58/mo", icon: Star, gradient: "from-amber-500/10 to-amber-500/5", border: "border-amber-500/30", popular: true },
                         ].map((plan, idx) => (
                             <div
                                 key={idx}
-                                className={`relative p-6 rounded-2xl border w-full max-w-xs ${plan.popular
-                                    ? "bg-gradient-to-b from-purple-500/10 to-blue-500/10 border-purple-500/30"
-                                    : "bg-white/5 border-white/10"
-                                    }`}
+                                className={`relative p-6 rounded-2xl border bg-gradient-to-b ${plan.gradient} ${plan.border} ${plan.popular ? "ring-1 ring-amber-500/30" : ""}`}
                             >
                                 {plan.popular && (
-                                    <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0">
-                                        Most Popular
+                                    <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-600 to-orange-600 text-white border-0">
+                                        Best Value
                                     </Badge>
                                 )}
                                 <h3 className="text-xl font-bold text-white mb-1">{plan.name}</h3>
                                 <p className="text-sm text-slate-500 mb-4">{plan.desc}</p>
-                                <p className="text-4xl font-bold text-white mb-4">
+                                <p className="text-4xl font-bold text-white mb-2">
                                     ${plan.price}<span className="text-lg text-slate-500">/mo</span>
                                 </p>
-                                <ul className="space-y-2 mb-6">
-                                    <li className="text-sm text-slate-400 flex items-center gap-2">
-                                        <CheckCircle className="w-4 h-4 text-green-500" />
-                                        {plan.members}
-                                    </li>
-                                    <li className="text-sm text-slate-400 flex items-center gap-2">
-                                        <CheckCircle className="w-4 h-4 text-green-500" />
-                                        {plan.minutes}
-                                    </li>
-                                    <li className="text-sm text-slate-400 flex items-center gap-2">
-                                        <CheckCircle className="w-4 h-4 text-green-500" />
-                                        Unlimited SMS
-                                    </li>
-                                </ul>
+                                <p className="text-sm text-slate-400 mb-4">{plan.highlight}</p>
                                 <Link to="/pricing">
                                     <Button className={`w-full ${plan.popular
-                                        ? "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500"
+                                        ? "bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500"
                                         : "bg-white/10 hover:bg-white/20"
                                         }`}>
                                         Get Started
@@ -839,7 +991,7 @@ export default function LandingPage() {
 
                     <div className="text-center">
                         <Link to="/pricing" className="text-purple-400 hover:text-purple-300 font-medium inline-flex items-center gap-2">
-                            Compare all features
+                            Compare all modules and features
                             <ArrowRight className="w-4 h-4" />
                         </Link>
                     </div>
