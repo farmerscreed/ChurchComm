@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/integrations/supabase/client'
+import { useAuthStore } from '@/stores/authStore'
 import { Badge } from '@/components/ui/badge'
 import {
   AlertTriangle,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -218,13 +220,92 @@ function BudgetBar({ used, max }: { used: number; max: number }) {
   )
 }
 
+// ── Attract Trial Setup ───────────────────────────────────────────────────────
+
+function AttractTrialSetup({ orgId, onStarted }: { orgId: string; onStarted: () => void }) {
+  const [accountId, setAccountId] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleSubmit() {
+    const trimmed = accountId.trim()
+    if (!trimmed) {
+      setError('Please enter your Google Ad Grant account ID.')
+      return
+    }
+    setSaving(true)
+    setError('')
+    const now = new Date()
+    const trialEnd = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000)
+    const { error: dbError } = await supabase
+      .from('organizations')
+      .update({
+        google_ad_grant_account_id: trimmed,
+        attract_trial_started_at: now.toISOString(),
+        attract_trial_ends_at: trialEnd.toISOString(),
+      })
+      .eq('id', orgId)
+    setSaving(false)
+    if (dbError) {
+      setError('Failed to save. Please try again.')
+      console.error('AttractTrialSetup error', dbError)
+      return
+    }
+    onStarted()
+  }
+
+  return (
+    <div className="border border-border rounded-xl p-6 bg-card space-y-4">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0">
+          <TrendingUp className="w-5 h-5 text-purple-500" />
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold text-foreground mb-1">
+            Connect your Ad Grant account to start your free 14-day ATTRACT trial.
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            GUARDIAN will begin watching your account for CTR compliance and budget utilisation.
+          </p>
+        </div>
+      </div>
+      <div className="space-y-2">
+        <label className="text-xs font-medium text-foreground">Google Ad Grant account ID</label>
+        <Input
+          value={accountId}
+          onChange={(e) => { setAccountId(e.target.value); setError('') }}
+          placeholder="e.g. 123-456-7890"
+          className="bg-background"
+          onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+        />
+        {error && <p className="text-xs text-destructive">{error}</p>}
+      </div>
+      <Button onClick={handleSubmit} disabled={saving} className="w-full gap-2">
+        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+        {saving ? 'Saving…' : 'Start ATTRACT trial'}
+      </Button>
+    </div>
+  )
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export function GrantDashboard() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const currentOrganization = useAuthStore((s) => s.currentOrganization) as any
+  const orgId: string = currentOrganization?.id ?? ''
+
   const [data, setData] = useState<GuardianData | null>(null)
   const [loading, setLoading] = useState(true)
   const [usingMock, setUsingMock] = useState(false)
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
+
+  // Whether attract trial is already started for this org
+  const [attractTrialStarted, setAttractTrialStarted] = useState<boolean>(
+    !!currentOrganization?.attract_trial_started_at,
+  )
+  // Message shown after trial is activated
+  const [attractTrialJustStarted, setAttractTrialJustStarted] = useState(false)
 
   const fetchData = async () => {
     setLoading(true)
@@ -272,6 +353,27 @@ export function GrantDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* ATTRACT trial setup prompt */}
+      {!attractTrialStarted && orgId && (
+        <AttractTrialSetup
+          orgId={orgId}
+          onStarted={() => {
+            setAttractTrialStarted(true)
+            setAttractTrialJustStarted(true)
+          }}
+        />
+      )}
+
+      {/* ATTRACT trial just activated confirmation */}
+      {attractTrialJustStarted && (
+        <div className="flex items-center gap-2 px-4 py-3 bg-green-500/10 border border-green-500/20 rounded-lg text-sm text-green-600 dark:text-green-400">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <span>
+            <strong>Your ATTRACT trial is now active.</strong> GUARDIAN is watching your account.
+          </span>
+        </div>
+      )}
+
       {/* Mock data banner */}
       {usingMock && (
         <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-600 dark:text-amber-400">

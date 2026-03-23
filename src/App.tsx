@@ -32,11 +32,22 @@ import GoogleVerificationPage from '@/pages/reach/GoogleVerificationPage';
 import GrantDashboardPage from '@/pages/dashboard/GrantDashboardPage';
 // Billing / module gating
 import { UpgradePrompt } from '@/components/billing/UpgradePrompt';
+import { TrialExpiredPrompt } from '@/components/billing/TrialExpiredPrompt';
 import { usePlanModules } from '@/hooks/usePlanModules';
 import { Toaster } from '@/components/ui/toaster';
 
 // ── Route guard ──────────────────────────────────────────────────────────────
-// Wraps a route and shows an UpgradePrompt when the org lacks the module.
+// Wraps a route and shows an UpgradePrompt or TrialExpiredPrompt when the org
+// lacks the module or the trial has expired.
+//
+// For /reach/* routes:
+//   Allow if plan_modules includes 'reach' OR reach trial is still active.
+//   If trial expired: show TrialExpiredPrompt.
+//   If no trial and no plan: show UpgradePrompt.
+//
+// For /attract/* routes:
+//   Allow if plan_modules includes 'attract' OR attract trial is still active.
+//   Same expiry/no-trial logic.
 
 function RouteGuard({
   module,
@@ -47,11 +58,27 @@ function RouteGuard({
   price: string;
   children: React.ReactNode;
 }) {
-  const { hasModule } = usePlanModules();
-  if (!hasModule(module)) {
-    return <UpgradePrompt module={module} price={price} />;
+  const {
+    hasModule,
+    reachTrialExpired,
+    attractTrialExpired,
+  } = usePlanModules();
+
+  // hasModule already returns true when an active trial is present
+  if (hasModule(module)) {
+    return <>{children}</>;
   }
-  return <>{children}</>;
+
+  // Trial has expired — show the trial-expired prompt for reach/attract
+  if (module === 'reach' && reachTrialExpired) {
+    return <TrialExpiredPrompt module="reach" price={price} />;
+  }
+  if (module === 'attract' && attractTrialExpired) {
+    return <TrialExpiredPrompt module="attract" price={price} />;
+  }
+
+  // No trial and no paid plan — show standard upgrade prompt
+  return <UpgradePrompt module={module} price={price} />;
 }
 
 function App() {
