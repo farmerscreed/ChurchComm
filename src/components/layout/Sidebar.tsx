@@ -20,7 +20,9 @@ import {
   Cake,
   CalendarClock,
   Bell,
-  Sparkles
+  Sparkles,
+  TrendingUp,
+  ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
@@ -61,6 +63,7 @@ export function Sidebar({
     'people',
     'communications',
     'automations',
+    'grant health',
   ]);
 
   // Close mobile nav on route change
@@ -104,6 +107,17 @@ export function Sidebar({
         { name: 'Scheduled', href: '/automations/scheduled', icon: CalendarClock },
         // ghost feature — not yet implemented (no backend for group_join trigger type)
         // { name: 'Event Triggers', href: '/automations/triggers', icon: Bell },
+      ],
+    },
+    {
+      name: 'Grant Health',
+      icon: ShieldCheck,
+      dataTour: 'grant-health-nav',
+      children: [
+        { name: 'GUARDIAN Dashboard', href: '/attract/grant-dashboard', icon: TrendingUp },
+        { name: 'Eligibility', href: '/reach/eligibility', icon: Sparkles },
+        { name: 'Google Verification', href: '/reach/google-verification', icon: ShieldCheck },
+        { name: 'Preflight Check', href: '/reach/preflight', icon: Zap },
       ],
     },
   ];

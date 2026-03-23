@@ -173,34 +173,36 @@ export default function LandingPage() {
 
                     <div className="text-center">
                         <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-8 leading-[1.1] animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
-                            Your Church's AI
+                            Get $10,000/month in
                             <br />
                             <span className="relative">
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-400 to-cyan-400">
-                                    Communication Team
+                                    free Google Ads
                                 </span>
                                 <Sparkles className="absolute -top-2 -right-8 w-8 h-8 text-yellow-400 animate-pulse" />
                             </span>
+                            <br />
+                            for your church
                         </h1>
 
                         <p className="text-xl md:text-2xl text-slate-400 mb-10 max-w-3xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
-                            Stop losing visitors. Our AI makes <span className="text-white font-medium">personal phone calls</span> and sends <span className="text-white font-medium">targeted SMS</span> so every member feels valued—automatically.
+                            KeepFlock gets you the <span className="text-white font-medium">Google Ad Grant</span>, sets up your campaigns, and <span className="text-white font-medium">monitors them daily</span> — so you get new members without paying for ads.
                         </p>
 
                         {/* CTA Buttons */}
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
-                            <Link to="/login">
+                            <Link to="/reach/eligibility">
                                 <Button size="lg" className="h-14 px-8 text-lg bg-white text-slate-950 hover:bg-slate-100 rounded-full shadow-2xl shadow-white/20 hover:shadow-white/30 transition-all hover:scale-105 group">
-                                    Start Free 14-Day Trial
+                                    Check If You Qualify →
                                     <Rocket className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                 </Button>
                             </Link>
-                            <Link to="/demo">
+                            <a href="#features">
                                 <Button size="lg" variant="outline" className="h-14 px-8 text-lg border-white/20 text-white hover:bg-white/10 rounded-full group">
                                     <Play className="mr-2 w-5 h-5 group-hover:scale-110 transition-transform" />
-                                    Watch Demo
+                                    See How It Works
                                 </Button>
-                            </Link>
+                            </a>
                         </div>
 
                         {/* Trust Badges */}
@@ -397,6 +399,50 @@ export default function LandingPage() {
                                     <p className="text-xs text-slate-500">Just now</p>
                                     <p className="text-sm font-medium text-white">12 visitors followed up</p>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Grant Features — 3-column */}
+            <section id="features" className="py-20 px-6 bg-gradient-to-b from-slate-950/80 to-slate-900/60">
+                <div className="container mx-auto max-w-5xl">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* Column 1 */}
+                        <div className="flex flex-col gap-4 p-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm">
+                            <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center">
+                                <TrendingUp className="w-5 h-5 text-purple-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-white mb-2">Get the Grant</h3>
+                                <p className="text-slate-400 text-sm leading-relaxed">
+                                    We guide your church through the application. Most churches qualify in under 2 weeks.
+                                </p>
+                            </div>
+                        </div>
+                        {/* Column 2 */}
+                        <div className="flex flex-col gap-4 p-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm">
+                            <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
+                                <Shield className="w-5 h-5 text-blue-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-white mb-2">We Manage It</h3>
+                                <p className="text-slate-400 text-sm leading-relaxed">
+                                    GUARDIAN monitors your account 24/7, prevents suspensions, and keeps your ads compliant automatically.
+                                </p>
+                            </div>
+                        </div>
+                        {/* Column 3 */}
+                        <div className="flex flex-col gap-4 p-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm">
+                            <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center">
+                                <Users className="w-5 h-5 text-cyan-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-white mb-2">Keep Your Congregation</h3>
+                                <p className="text-slate-400 text-sm leading-relaxed">
+                                    Once you have visitors, KeepFlock converts them to members and keeps them engaged.
+                                </p>
                             </div>
                         </div>
                     </div>

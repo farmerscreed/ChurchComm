@@ -24,7 +24,35 @@ import EventTriggers from '@/pages/automations/EventTriggers';
 import AutomationDocs from '@/pages/automations/AutomationDocs';
 import PeopleDocs from '@/pages/PeopleDocs';
 import CommunicationsDocs from '@/pages/CommunicationsDocs';
+// REACH module
+import EligibilityPage from '@/pages/reach/EligibilityPage';
+import PreflightPage from '@/pages/reach/PreflightPage';
+import GoogleVerificationPage from '@/pages/reach/GoogleVerificationPage';
+// ATTRACT module
+import GrantDashboardPage from '@/pages/dashboard/GrantDashboardPage';
+// Billing / module gating
+import { UpgradePrompt } from '@/components/billing/UpgradePrompt';
+import { usePlanModules } from '@/hooks/usePlanModules';
 import { Toaster } from '@/components/ui/toaster';
+
+// ── Route guard ──────────────────────────────────────────────────────────────
+// Wraps a route and shows an UpgradePrompt when the org lacks the module.
+
+function RouteGuard({
+  module,
+  price,
+  children,
+}: {
+  module: 'reach' | 'attract' | 'engage';
+  price: string;
+  children: React.ReactNode;
+}) {
+  const { hasModule } = usePlanModules();
+  if (!hasModule(module)) {
+    return <UpgradePrompt module={module} price={price} />;
+  }
+  return <>{children}</>;
+}
 
 function App() {
   const { fetchSession, user, loading } = useAuthStore();
@@ -92,6 +120,40 @@ function App() {
             <Route path="automations/docs" element={<AutomationDocs />} />
             <Route path="settings" element={<Settings />} />
             <Route path="system-test" element={<SystemTest />} />
+            {/* REACH module — gated to 'reach' plan */}
+            <Route
+              path="reach/eligibility"
+              element={
+                <RouteGuard module="reach" price="49">
+                  <EligibilityPage />
+                </RouteGuard>
+              }
+            />
+            <Route
+              path="reach/preflight"
+              element={
+                <RouteGuard module="reach" price="49">
+                  <PreflightPage />
+                </RouteGuard>
+              }
+            />
+            <Route
+              path="reach/google-verification"
+              element={
+                <RouteGuard module="reach" price="49">
+                  <GoogleVerificationPage />
+                </RouteGuard>
+              }
+            />
+            {/* ATTRACT module — gated to 'attract' plan */}
+            <Route
+              path="attract/grant-dashboard"
+              element={
+                <RouteGuard module="attract" price="199">
+                  <GrantDashboardPage />
+                </RouteGuard>
+              }
+            />
           </Route>
 
           {/* Catch all - redirect to dashboard or login */}

@@ -39,7 +39,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/ui/Logo";
 
 // ═══════════════════════════════════════════
-// PRICING TIERS — framed around people reached
+// PRICING TIERS — Grant-first module model
 // ═══════════════════════════════════════════
 interface PricingTier {
     id: string;
@@ -47,119 +47,104 @@ interface PricingTier {
     tagline: string;
     monthlyPrice: number | null;
     annualPrice: number | null;
-    peopleReached: number | string;
-    smsIncluded: string;
-    memberLimit: string;
+    grantAnchor: string;
     popular?: boolean;
     gradient: string;
     borderGlow: string;
     features: { text: string; included: boolean; highlight?: boolean }[];
     ctaText: string;
+    lsVariantKey?: string;
 }
 
 const PRICING_TIERS: PricingTier[] = [
     {
-        id: "starter",
-        name: "Starter",
-        tagline: "For small churches beginning their AI outreach journey",
-        monthlyPrice: 29,
-        annualPrice: 290,
-        peopleReached: 25,
-        smsIncluded: "500 texts",
-        memberLimit: "Up to 200 members",
+        id: "reach",
+        name: "REACH",
+        tagline: "Grant acquisition — eligibility, wizard, preflight, application tracker",
+        monthlyPrice: 49,
+        annualPrice: 490, // 10 months (2 months free)
+        grantAnchor: "Get your $10,000/month grant. We walk you through every step.",
         gradient: "from-slate-600 to-slate-800",
         borderGlow: "border-slate-500/30",
+        lsVariantKey: "reach",
         features: [
-            { text: "Auto birthday calls", included: true, highlight: true },
-            { text: "First-timer follow-up calls", included: true, highlight: true },
-            { text: "People CRM & directory", included: true },
-            { text: "SMS campaigns", included: true },
-            { text: "Basic call scripts", included: true },
-            { text: "Dashboard analytics", included: true },
-            { text: "Email support", included: true },
-            { text: "AI Script Builder", included: false },
-            { text: "Auto workflows & triggers", included: false },
-            { text: "Escalation alerts", included: false },
+            { text: "Eligibility checker", included: true, highlight: true },
+            { text: "Google Verification Wizard", included: true, highlight: true },
+            { text: "Preflight compliance check", included: true },
+            { text: "Application status tracker", included: true },
+            { text: "Step-by-step grant guidance", included: true },
+            { text: "GUARDIAN monitoring", included: false },
+            { text: "CTR & suspension protection", included: false },
+            { text: "SMS & email outreach", included: false },
         ],
-        ctaText: "Start Free Trial",
+        ctaText: "Get Started",
     },
     {
-        id: "growth",
-        name: "Growth",
-        tagline: "The perfect plan for active, growing congregations",
-        monthlyPrice: 79,
-        annualPrice: 790,
-        peopleReached: 75,
-        smsIncluded: "2,000 texts",
-        memberLimit: "Up to 1,000 members",
+        id: "attract",
+        name: "ATTRACT",
+        tagline: "Grant compliance — GUARDIAN monitoring, CTR, suspension protection",
+        monthlyPrice: 199,
+        annualPrice: 1990, // 10 months (2 months free)
+        grantAnchor: "Keep your $10,000/month grant safe. GUARDIAN watches 24/7.",
         popular: true,
         gradient: "from-purple-500 to-blue-600",
         borderGlow: "border-purple-500/50",
+        lsVariantKey: "attract",
         features: [
-            { text: "Auto birthday calls", included: true, highlight: true },
-            { text: "First-timer follow-up calls", included: true, highlight: true },
-            { text: "Lead invitation calls", included: true, highlight: true },
-            { text: "People CRM & directory", included: true },
-            { text: "SMS campaigns", included: true },
-            { text: "AI Script Builder", included: true },
-            { text: "Auto workflows & triggers", included: true },
-            { text: "Escalation alerts", included: true },
-            { text: "Priority support", included: true },
-            { text: "Custom integrations", included: false },
+            { text: "Everything in REACH", included: true, highlight: true },
+            { text: "GUARDIAN compliance dashboard", included: true, highlight: true },
+            { text: "24/7 CTR monitoring", included: true, highlight: true },
+            { text: "Auto keyword pausing", included: true },
+            { text: "Suspension protection", included: true },
+            { text: "Budget utilisation tracking", included: true },
+            { text: "Account health alerts", included: true },
+            { text: "SMS & email outreach", included: false },
         ],
         ctaText: "Start Free Trial",
     },
     {
-        id: "pro",
-        name: "Pro",
-        tagline: "For large ministries with high-volume outreach needs",
-        monthlyPrice: 149,
-        annualPrice: 1490,
-        peopleReached: 200,
-        smsIncluded: "5,000 texts",
-        memberLimit: "Unlimited members",
+        id: "engage",
+        name: "ENGAGE",
+        tagline: "Communication — SMS, email, AI voice calls, congregation management",
+        monthlyPrice: 59,
+        annualPrice: 590, // 10 months (2 months free)
+        grantAnchor: "Turn grant-driven visitors into members and keep them engaged.",
         gradient: "from-cyan-500 to-blue-600",
         borderGlow: "border-cyan-500/30",
+        lsVariantKey: "engage",
         features: [
-            { text: "Auto birthday calls", included: true, highlight: true },
-            { text: "First-timer follow-up calls", included: true, highlight: true },
-            { text: "Lead invitation calls", included: true, highlight: true },
-            { text: "Mass voice campaigns", included: true, highlight: true },
+            { text: "AI voice calls", included: true, highlight: true },
+            { text: "SMS campaigns", included: true, highlight: true },
+            { text: "Email outreach", included: true },
             { text: "People CRM & directory", included: true },
-            { text: "AI Script Builder", included: true },
-            { text: "Auto workflows & triggers", included: true },
-            { text: "Escalation alerts", included: true },
-            { text: "AI Memory per member", included: true },
-            { text: "Custom integrations & API", included: true },
+            { text: "Birthday & follow-up automation", included: true },
+            { text: "Congregation management", included: true },
+            { text: "GUARDIAN monitoring", included: false },
+            { text: "Grant acquisition wizard", included: false },
         ],
         ctaText: "Start Free Trial",
     },
     {
-        id: "enterprise",
-        name: "Enterprise",
-        tagline: "White-glove service for multi-campus & large organizations",
-        monthlyPrice: null,
-        annualPrice: null,
-        peopleReached: "Unlimited",
-        smsIncluded: "Unlimited",
-        memberLimit: "Unlimited members",
+        id: "bundle",
+        name: "FULL PLATFORM BUNDLE",
+        tagline: "All three modules — saves $58/month",
+        monthlyPrice: 249,
+        annualPrice: 2490, // 10 months (2 months free)
+        grantAnchor: "The complete system: get the grant, protect it, convert it.",
         gradient: "from-amber-500 to-orange-600",
         borderGlow: "border-amber-500/30",
+        lsVariantKey: "bundle",
         features: [
-            { text: "Everything in Pro", included: true, highlight: true },
-            { text: "Unlimited AI calls", included: true, highlight: true },
-            { text: "Dedicated account manager", included: true },
-            { text: "Custom AI voice training", included: true },
-            { text: "Multi-campus support", included: true },
-            { text: "SLA & uptime guarantee", included: true },
-            { text: "Onboarding & training", included: true },
-            { text: "Custom reporting", included: true },
-            { text: "Priority phone support", included: true },
-            { text: "SSO & advanced security", included: true },
+            { text: "Everything in REACH", included: true, highlight: true },
+            { text: "Everything in ATTRACT", included: true, highlight: true },
+            { text: "Everything in ENGAGE", included: true, highlight: true },
+            { text: "Priority support", included: true },
+            { text: "Saves $58/month vs. buying separately", included: true },
         ],
-        ctaText: "Contact Sales",
+        ctaText: "Get Everything",
     },
 ];
+
 
 // ═══════════════════════════════════════════
 // VALUE SHOWCASE — what the AI actually does
@@ -228,7 +213,7 @@ const COST_COMPARISONS = [
     { label: "Part-time outreach coordinator", cost: "$1,500+/mo", icon: Users },
     { label: "Traditional call center service", cost: "$500+/mo", icon: Phone },
     { label: "Hiring a follow-up volunteer team", cost: "$0 but unreliable", icon: Clock },
-    { label: "KeepFlock Growth Plan", cost: "$79/mo", icon: Sparkles, highlight: true },
+    { label: "KeepFlock Full Platform Bundle", cost: "$249/mo", icon: Sparkles, highlight: true },
 ];
 
 // ═══════════════════════════════════════════
@@ -282,8 +267,11 @@ export default function PricingPage() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const handleSelectPlan = async (tier: PricingTier) => {
-        if (tier.id === "enterprise") {
-            window.location.href = "mailto:sales@keepflock.com?subject=Enterprise%20Plan%20Inquiry";
+        // LemonSqueezy variant IDs come from VITE_LS_VARIANT_* env vars
+        const variantEnvKey = `VITE_LS_VARIANT_${(tier.lsVariantKey ?? tier.id).toUpperCase()}`;
+        const variantId = (import.meta as unknown as Record<string, Record<string, string>>).env?.[variantEnvKey];
+        if (variantId) {
+            window.location.href = `https://keepflock.lemonsqueezy.com/checkout/buy/${variantId}`;
             return;
         }
 
@@ -520,30 +508,17 @@ export default function PricingPage() {
                                         )}
                                     </div>
 
-                                    {/* ★ People Reached — THE KEY VALUE METRIC ★ */}
+                                    {/* ★ Grant Value Anchor ★ */}
                                     <div className={`rounded-xl p-4 mb-5 bg-gradient-to-r ${tier.gradient} bg-opacity-10`}>
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
-                                                <Users className="w-5 h-5 text-white" />
+                                                <TrendingUp className="w-5 h-5 text-white" />
                                             </div>
                                             <div>
-                                                <p className="text-white font-bold text-lg">
-                                                    {typeof tier.peopleReached === "number" ? `${tier.peopleReached} people` : tier.peopleReached}
+                                                <p className="text-white font-semibold text-sm leading-snug">
+                                                    {tier.grantAnchor}
                                                 </p>
-                                                <p className="text-white/60 text-xs">reached by AI calls / month</p>
                                             </div>
-                                        </div>
-                                    </div>
-
-                                    {/* SMS + Member Limit */}
-                                    <div className="flex flex-col gap-2 mb-5 text-sm">
-                                        <div className="flex items-center gap-2 text-slate-300">
-                                            <MessageSquare className="w-4 h-4 text-blue-400 flex-shrink-0" />
-                                            <span>{tier.smsIncluded} included</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-slate-300">
-                                            <Users className="w-4 h-4 text-purple-400 flex-shrink-0" />
-                                            <span>{tier.memberLimit}</span>
                                         </div>
                                     </div>
 
@@ -590,9 +565,9 @@ export default function PricingPage() {
                         ))}
                     </div>
 
-                    {/* Overage note */}
+                    {/* Bundle note */}
                     <p className="text-center text-sm text-slate-500 mt-8">
-                        Need to reach more people? Add additional people at just <span className="text-slate-300 font-medium">$1/person/month</span>. No surprises.
+                        Bundle all three modules for <span className="text-slate-300 font-medium">$249/month</span> and save $58/month. Cancel anytime.
                     </p>
                 </div>
             </section>
