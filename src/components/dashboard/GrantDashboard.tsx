@@ -28,6 +28,12 @@ interface GuardianData {
   budget_used: number              // dollars used this month (max $10,000)
 }
 
+interface ComplianceEntry {
+  timestamp: string
+  event: string
+  detail: string
+}
+
 const MOCK_DATA: GuardianData = {
   ctr: 6.2,
   status: 'ACTIVE',
@@ -295,8 +301,12 @@ export function GrantDashboard() {
   const currentOrganization = useAuthStore((s) => s.currentOrganization) as any
   const orgId: string = currentOrganization?.id ?? ''
 
+  const accountId: string = currentOrganization?.google_ad_grant_account_id ?? ''
+
   const [data, setData] = useState<GuardianData | null>(null)
+  const [complianceLog, setComplianceLog] = useState<ComplianceEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [sweeping, setSweeping] = useState(false)
   const [usingMock, setUsingMock] = useState(false)
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
 
@@ -308,17 +318,34 @@ export function GrantDashboard() {
   const [attractTrialJustStarted, setAttractTrialJustStarted] = useState(false)
 
   const fetchData = async () => {
+    if (!accountId) {
+      setLoading(false)
+      return
+    }
     setLoading(true)
     try {
-      const { data: result, error } = await supabase.functions.invoke('guardian-proxy', {
-        body: null,
+      // Fetch status from Guardian via the proxy
+      const statusRes = await supabase.functions.invoke('guardian-proxy', {
+        body: { path: `/api/status/${accountId}` },
         headers: { 'Content-Type': 'application/json' },
       })
 
-      if (error || !result) throw new Error(error?.message ?? 'No data')
+      if (statusRes.error || !statusRes.data) throw new Error(statusRes.error?.message ?? 'No data')
 
-      setData(result as GuardianData)
+      // Map the Guardian response to our GuardianData shape
+      const raw = statusRes.data
+      setData({
+        ctr: raw.ctr ?? 0,
+        status: raw.status ?? 'ACTIVE',
+        last_sweep_minutes_ago: raw.last_sweep ?? 0,
+        keywords_paused_quality: raw.keywords_paused?.quality ?? 0,
+        keywords_paused_ctr: raw.keywords_paused?.ctr ?? 0,
+        budget_used: raw.budget_used ?? 0,
+      })
       setUsingMock(false)
+
+      // Also fetch compliance log (non-blocking)
+      fetchComplianceLog()
     } catch {
       // GUARDIAN not reachable in dev — use mock data
       setData(MOCK_DATA)
@@ -329,12 +356,45 @@ export function GrantDashboard() {
     }
   }
 
+  const fetchComplianceLog = async () => {
+    if (!accountId) return
+    try {
+      const res = await supabase.functions.invoke('guardian-proxy', {
+        body: { path: `/api/compliance/${accountId}` },
+        headers: { 'Content-Type': 'application/json' },
+      })
+      if (!res.error && Array.isArray(res.data)) {
+        setComplianceLog(res.data)
+      }
+    } catch {
+      // Silently ignore — compliance log is supplementary
+    }
+  }
+
+  const triggerSweep = async () => {
+    if (!accountId) return
+    setSweeping(true)
+    try {
+      await supabase.functions.invoke('guardian-proxy', {
+        body: { path: `/api/sweep/${accountId}`, method: 'POST' },
+        headers: { 'Content-Type': 'application/json' },
+      })
+      // Refresh data after sweep
+      await fetchData()
+    } catch {
+      // Ignore — fetchData will handle fallback
+    } finally {
+      setSweeping(false)
+    }
+  }
+
   useEffect(() => {
     fetchData()
     // Poll every 5 minutes
     const timer = setInterval(fetchData, 5 * 60 * 1000)
     return () => clearInterval(timer)
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accountId])
 
   if (loading && !data) {
     return (
@@ -424,19 +484,54 @@ export function GrantDashboard() {
       {/* Budget utilisation */}
       <BudgetBar used={data.budget_used} max={BUDGET_MAX} />
 
-      {/* Refresh button */}
+      {/* Compliance log */}
+      {complianceLog.length > 0 && (
+        <div className="border border-border rounded-xl p-4 bg-card space-y-3">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-wider">
+            <AlertTriangle className="w-3.5 h-3.5 text-indigo-400" />
+            Recent Compliance Events
+          </div>
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {complianceLog.slice(0, 10).map((entry, i) => (
+              <div key={i} className="flex items-start gap-3 text-xs py-1.5 border-b border-border/50 last:border-0">
+                <span className="text-muted-foreground whitespace-nowrap">
+                  {new Date(entry.timestamp).toLocaleDateString()}
+                </span>
+                <span className="font-medium text-foreground">{entry.event}</span>
+                <span className="text-muted-foreground">{entry.detail}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Actions row */}
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>Last refreshed: {lastRefresh.toLocaleTimeString()}</span>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={fetchData}
-          disabled={loading}
-          className="gap-1.5 text-xs h-8"
-        >
-          <RefreshCw className={cn('w-3.5 h-3.5', loading && 'animate-spin')} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          {accountId && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={triggerSweep}
+              disabled={sweeping || loading}
+              className="gap-1.5 text-xs h-8"
+            >
+              {sweeping ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              {sweeping ? 'Sweeping...' : 'Run Sweep'}
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={fetchData}
+            disabled={loading}
+            className="gap-1.5 text-xs h-8"
+          >
+            <RefreshCw className={cn('w-3.5 h-3.5', loading && 'animate-spin')} />
+            Refresh
+          </Button>
+        </div>
       </div>
     </div>
   )

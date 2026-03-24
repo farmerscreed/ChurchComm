@@ -28,8 +28,11 @@ import CommunicationsDocs from '@/pages/CommunicationsDocs';
 import EligibilityPage from '@/pages/reach/EligibilityPage';
 import PreflightPage from '@/pages/reach/PreflightPage';
 import GoogleVerificationPage from '@/pages/reach/GoogleVerificationPage';
+import StatusPage from '@/pages/reach/StatusPage';
+import ApplicationPage from '@/pages/reach/ApplicationPage';
 // ATTRACT module
 import GrantDashboardPage from '@/pages/dashboard/GrantDashboardPage';
+import ConnectPage from '@/pages/attract/ConnectPage';
 // Billing / module gating
 import { UpgradePrompt } from '@/components/billing/UpgradePrompt';
 import { TrialExpiredPrompt } from '@/components/billing/TrialExpiredPrompt';
@@ -172,7 +175,31 @@ function App() {
                 </RouteGuard>
               }
             />
+            <Route
+              path="reach/status"
+              element={
+                <RouteGuard module="reach" price="49">
+                  <StatusPage />
+                </RouteGuard>
+              }
+            />
+            <Route
+              path="reach/apply"
+              element={
+                <RouteGuard module="reach" price="49">
+                  <ApplicationPage />
+                </RouteGuard>
+              }
+            />
             {/* ATTRACT module — gated to 'attract' plan */}
+            <Route
+              path="attract/connect"
+              element={
+                <RouteGuard module="attract" price="199">
+                  <ConnectPage />
+                </RouteGuard>
+              }
+            />
             <Route
               path="attract/grant-dashboard"
               element={

@@ -92,14 +92,14 @@ const PATH_B_STEPS: Step[] = [
     id: 1,
     title: 'Obtain your group exemption letter',
     instruction:
-      'Contact your denominational headquarters and request the IRS group exemption letter. This letter covers all churches under the denomination's umbrella EIN so individual 501(c)(3) determination letters are not required.',
+      'Contact your denominational headquarters and request the IRS group exemption letter. This letter covers all churches under the denomination\u0027s umbrella EIN so individual 501(c)(3) determination letters are not required.',
     documents: [
       'Group exemption letter from denomination (IRS Letter 1025 or equivalent)',
       'Letter showing your church is listed as a subordinate under the group ruling',
     ],
     timeline: '1–5 business days (denomination response varies)',
     note:
-      'Common denominations with group exemptions include the United Methodist Church, SBC, ELCA, and many others. Ask your regional office or bishop's office.',
+      'Common denominations with group exemptions include the United Methodist Church, SBC, ELCA, and many others. Ask your regional office or bishop\u0027s office.',
   },
   {
     id: 2,
@@ -109,12 +109,12 @@ const PATH_B_STEPS: Step[] = [
     url: { label: 'Start Goodstack verification', href: 'https://www.goodstack.io/' },
     documents: [
       'Group exemption letter PDF',
-      'Denomination's EIN (from the group exemption letter)',
+      'Denomination\u0027s EIN (from the group exemption letter)',
       'Your church website URL',
     ],
     timeline: '2–14 business days for Goodstack to verify',
     note:
-      'If Goodstack asks for a subordinate list, your denomination's national office can provide a letter confirming your church's inclusion.',
+      'If Goodstack asks for a subordinate list, your denomination\u0027s national office can provide a letter confirming your church\u0027s inclusion.',
   },
   {
     id: 3,
