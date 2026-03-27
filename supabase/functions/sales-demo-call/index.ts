@@ -28,11 +28,21 @@ function isCallRateLimited(phone: string): string | null {
 }
 
 function formatPhone(phone: string): string {
+  // If already starts with +, trust it as E.164
+  if (phone.startsWith('+')) {
+    return '+' + phone.replace(/\D/g, '');
+  }
   const digits = phone.replace(/\D/g, '');
+  // US: 10 digits → +1
   if (digits.length === 10) return `+1${digits}`;
+  // US: 11 digits starting with 1 → +
   if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
-  if (digits.startsWith('+')) return phone;
-  return `+${digits}`;
+  // Nigerian numbers: 11 digits starting with 0 → +234 (drop leading 0)
+  if (digits.length === 11 && digits.startsWith('0')) return `+234${digits.slice(1)}`;
+  // Already has country code (12+ digits)
+  if (digits.length >= 12) return `+${digits}`;
+  // Fallback: assume US
+  return `+1${digits}`;
 }
 
 serve(async (req) => {
@@ -72,7 +82,7 @@ serve(async (req) => {
 
     const formattedPhone = formatPhone(phone_number);
     if (formattedPhone.replace(/\D/g, '').length < 10) {
-      return new Response(JSON.stringify({ error: 'Please enter a valid US phone number' }), {
+      return new Response(JSON.stringify({ error: 'Please enter a valid phone number with country code' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -170,7 +180,8 @@ Three pillars, one platform: get the grant (REACH, free), protect it (ATTRACT), 
     const vapiPayload = {
       phoneNumberId: VAPI_PHONE_NUMBER_ID,
       customer: { number: formattedPhone },
-      assistantOverrides: {
+      assistant: {
+        name: 'KeepFlock Sales - ' + first_name,
         firstMessage,
         model: {
           provider: 'openai',
@@ -204,8 +215,12 @@ Three pillars, one platform: get the grant (REACH, free), protect it (ATTRACT), 
     const vapiData = await vapiResponse.json();
 
     if (!vapiResponse.ok) {
-      console.error('Vapi call failed:', vapiData);
-      return new Response(JSON.stringify({ error: 'Failed to initiate call. Please try again.' }), {
+      console.error('Vapi call failed:', JSON.stringify(vapiData));
+      const vapiMsg = vapiData?.message || '';
+      const userError = vapiMsg.includes('phone number')
+        ? 'Invalid phone number. Please check your number and try again.'
+        : 'Failed to initiate call. Please try again.';
+      return new Response(JSON.stringify({ error: userError }), {
         status: 502,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
