@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,17 +12,26 @@ export function useOnboardingRedirect() {
     const navigate = useNavigate();
     const location = useLocation();
     const [checked, setChecked] = useState(false);
+    // Track if we already confirmed onboarding is done to avoid re-checking
+    // during refreshOrganization() calls that temporarily null the org.
+    const onboardingDone = useRef(false);
 
     useEffect(() => {
         const checkOnboarding = async () => {
-            // Skip if no user or org yet
+            // Skip if no user or org yet (still loading)
             if (!user || !currentOrganization) {
-                setChecked(true);
+                // Don't set checked=true here — wait for org to load
                 return;
             }
 
             // Skip if already on onboarding page
             if (location.pathname === "/onboarding") {
+                setChecked(true);
+                return;
+            }
+
+            // Skip if we already confirmed onboarding is complete
+            if (onboardingDone.current) {
                 setChecked(true);
                 return;
             }
@@ -43,7 +52,9 @@ export function useOnboardingRedirect() {
                 }
 
                 if (data && data.onboarding_completed === false) {
-                    navigate("/onboarding");
+                    navigate("/onboarding", { replace: true });
+                } else {
+                    onboardingDone.current = true;
                 }
             } catch (err) {
                 console.error("Onboarding check failed:", err);

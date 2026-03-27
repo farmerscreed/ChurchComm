@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,16 @@ export default function OnboardingPage() {
     const [loading, setLoading] = useState(false);
 
     const { user, currentOrganization, refreshOrganization } = useAuthStore();
+
+    // Pre-populate church name from registration metadata or existing org name
+    useEffect(() => {
+        const orgName = currentOrganization?.name;
+        const metaName = user?.user_metadata?.organization_name;
+        const name = orgName || metaName || "";
+        if (name && !churchName) {
+            setChurchName(name);
+        }
+    }, [user, currentOrganization]);
     const navigate = useNavigate();
     const { toast } = useToast();
 
@@ -64,6 +74,9 @@ export default function OnboardingPage() {
     const handleComplete = async () => {
         setLoading(true);
 
+        const now = new Date();
+        const trialEnd = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+
         const { error } = await supabase
             .from("organizations")
             .update({
@@ -73,29 +86,39 @@ export default function OnboardingPage() {
                 preferred_channels: Object.entries(channels)
                     .filter(([_, enabled]) => enabled)
                     .map(([channel]) => channel),
+                attract_trial_started_at: now.toISOString(),
+                attract_trial_ends_at: trialEnd.toISOString(),
             })
             .eq("id", currentOrganization?.id);
 
         if (error) {
             toast({ title: "Setup failed", description: error.message, variant: "destructive" });
-        } else {
-            // Mark onboarding as complete
-            await supabase
-                .from("organization_members")
-                .update({ onboarding_completed: true })
-                .eq("organization_id", currentOrganization?.id)
-                .eq("user_id", user?.id);
-
-            // Seed demo data for new organizations
-            await supabase.functions.invoke("seed-demo-data", {
-                body: { organization_id: currentOrganization?.id },
-            });
-
-            await refreshOrganization();
-            toast({ title: "Welcome to KeepFlock!", description: "Your church is ready to go." });
-            navigate("/dashboard");
+            setLoading(false);
+            return;
         }
 
+        // Mark onboarding as complete — must succeed before navigating
+        const { error: memberError } = await supabase
+            .from("organization_members")
+            .update({ onboarding_completed: true })
+            .eq("organization_id", currentOrganization?.id)
+            .eq("user_id", user?.id);
+
+        if (memberError) {
+            toast({ title: "Setup failed", description: memberError.message, variant: "destructive" });
+            setLoading(false);
+            return;
+        }
+
+        // Seed demo data for new organizations (fire and forget — don't block nav)
+        supabase.functions.invoke("seed-demo-data", {
+            body: { organization_id: currentOrganization?.id },
+        }).catch(() => {});
+
+        // Refresh org state then navigate
+        await refreshOrganization();
+        toast({ title: "Welcome to KeepFlock!", description: "Your church is ready to go." });
+        navigate("/dashboard", { replace: true });
         setLoading(false);
     };
 

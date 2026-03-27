@@ -3,15 +3,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // ── Variant → module mapping ──────────────────────────────────────────────────
 
+// REACH is free — no variant mapping needed. Only paid modules tracked here.
 const VARIANT_MODULE_MAP: Record<number, string[]> = {
-  1432323: ['engage'],    // ENGAGE monthly
-  1432332: ['engage'],    // ENGAGE annual
-  1432343: ['reach'],     // REACH monthly
-  1432347: ['reach'],     // REACH annual
-  1432351: ['attract'],   // ATTRACT monthly
-  1432352: ['attract'],   // ATTRACT annual
-  1432355: ['engage', 'reach', 'attract'], // EMPIRE monthly (bundle)
-  1432361: ['engage', 'reach', 'attract'], // EMPIRE annual (bundle)
+  1432323: ['engage'],              // ENGAGE monthly
+  1432332: ['engage'],              // ENGAGE annual
+  1432351: ['attract'],             // ATTRACT monthly
+  1432352: ['attract'],             // ATTRACT annual
+  1432355: ['engage', 'attract'],   // Full Platform monthly (bundle)
+  1432361: ['engage', 'attract'],   // Full Platform annual (bundle)
 };
 
 // ── HMAC-SHA256 signature verification ───────────────────────────────────────
@@ -227,6 +226,55 @@ serve(async (req) => {
   }
 
   console.log(`Updated plan_modules for org ${orgId} to [${modules.join(', ')}] (variant ${variantId})`);
+
+  // ── Send confirmation email ───────────────────────────────────────────────
+  const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+  if (RESEND_API_KEY && customerEmail) {
+    const moduleNames = modules.map((m: string) => m.toUpperCase()).join(' + ');
+    const isBundle = modules.length >= 3;
+    const planName = isBundle ? 'Full Platform' : moduleNames;
+
+    try {
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: 'KeepFlock <hello@keepflock.com>',
+          to: [customerEmail],
+          subject: `Welcome to KeepFlock ${planName}!`,
+          html: `
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+              <h1 style="color: #1e293b; font-size: 24px; margin-bottom: 16px;">Welcome to KeepFlock!</h1>
+              <p style="color: #475569; font-size: 16px; line-height: 1.6;">
+                Your <strong>${planName}</strong> subscription is now active. Here's what you can do next:
+              </p>
+              <ul style="color: #475569; font-size: 16px; line-height: 1.8; padding-left: 20px;">
+                ${modules.includes('engage') ? '<li><strong>ENGAGE:</strong> Import your members, set up AI voice calls and SMS campaigns</li>' : ''}
+                ${modules.includes('attract') ? '<li><strong>ATTRACT:</strong> Connect your Google Ads account and let GUARDIAN monitor your grant 24/7</li>' : ''}
+                ${modules.includes('reach') ? '<li><strong>REACH:</strong> Run your eligibility check and start your Ad Grant application</li>' : ''}
+              </ul>
+              <div style="margin-top: 32px;">
+                <a href="https://keepflock.com/dashboard" style="display: inline-block; background: linear-gradient(135deg, #7c3aed, #3b82f6); color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
+                  Go to Your Dashboard
+                </a>
+              </div>
+              <p style="color: #94a3b8; font-size: 14px; margin-top: 32px;">
+                Questions? Reply to this email — we're here to help.<br/>
+                — The KeepFlock Team
+              </p>
+            </div>
+          `,
+        }),
+      });
+      console.log(`Confirmation email sent to ${customerEmail} for ${planName}`);
+    } catch (emailErr) {
+      // Don't fail the webhook if email fails — modules are already activated
+      console.error('Failed to send confirmation email', emailErr);
+    }
+  }
 
   return new Response(
     JSON.stringify({ received: true, orgId, modules, variantId }),

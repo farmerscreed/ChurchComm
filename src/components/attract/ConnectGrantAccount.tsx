@@ -65,6 +65,26 @@ export function ConnectGrantAccount() {
     setSaving(true)
     setError('')
 
+    // Build Google OAuth URL and redirect
+    const googleClientId = import.meta.env.VITE_GOOGLE_ADS_CLIENT_ID
+    if (googleClientId) {
+      // Full OAuth flow — redirect to Google consent screen
+      const state = encodeURIComponent(JSON.stringify({ accountId: trimmed, orgId }))
+      const redirectUri = `${window.location.origin}/attract/oauth-callback`
+      const params = new URLSearchParams({
+        client_id: googleClientId,
+        redirect_uri: redirectUri,
+        response_type: 'code',
+        scope: 'https://www.googleapis.com/auth/adwords',
+        access_type: 'offline',
+        prompt: 'consent',
+        state,
+      })
+      window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`
+      return
+    }
+
+    // Fallback: Save account ID without OAuth (for when Google OAuth is not yet configured)
     const now = new Date()
     const trialEnd = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000)
 
@@ -81,18 +101,12 @@ export function ConnectGrantAccount() {
 
     if (dbError) {
       setError('Failed to save. Please try again.')
-      console.error('ConnectGrantAccount error', dbError)
       return
     }
 
-    // Refresh org data so the rest of the app sees the new account ID
     await refreshOrganization()
     setSuccess(true)
-
-    // Navigate to dashboard after a brief pause for the success message
-    setTimeout(() => {
-      navigate('/attract/grant-dashboard')
-    }, 2000)
+    setTimeout(() => navigate('/attract/grant-dashboard'), 2000)
   }
 
   // ── Success state ────────────────────────────────────────────────────────

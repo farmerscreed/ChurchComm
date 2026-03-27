@@ -325,8 +325,9 @@ export function GrantDashboard() {
     setLoading(true)
     try {
       // Fetch status from Guardian via the proxy
+      // Guardian endpoint: GET /accounts/{account_id}/status (accepts google_ad_grant_account_id)
       const statusRes = await supabase.functions.invoke('guardian-proxy', {
-        body: { path: `/api/status/${accountId}` },
+        body: { path: `/accounts/${accountId}/status` },
         headers: { 'Content-Type': 'application/json' },
       })
 
@@ -335,12 +336,12 @@ export function GrantDashboard() {
       // Map the Guardian response to our GuardianData shape
       const raw = statusRes.data
       setData({
-        ctr: raw.ctr ?? 0,
-        status: raw.status ?? 'ACTIVE',
-        last_sweep_minutes_ago: raw.last_sweep ?? 0,
-        keywords_paused_quality: raw.keywords_paused?.quality ?? 0,
-        keywords_paused_ctr: raw.keywords_paused?.ctr ?? 0,
-        budget_used: raw.budget_used ?? 0,
+        ctr: raw.ctr ?? raw.account_ctr ?? 0,
+        status: raw.status ?? raw.compliance_status ?? 'ACTIVE',
+        last_sweep_minutes_ago: raw.last_sweep_minutes_ago ?? raw.last_sweep ?? 0,
+        keywords_paused_quality: raw.keywords_paused_quality ?? raw.keywords_paused?.quality ?? 0,
+        keywords_paused_ctr: raw.keywords_paused_ctr ?? raw.keywords_paused?.ctr ?? 0,
+        budget_used: raw.budget_used ?? raw.monthly_spend ?? 0,
       })
       setUsingMock(false)
 
@@ -359,12 +360,15 @@ export function GrantDashboard() {
   const fetchComplianceLog = async () => {
     if (!accountId) return
     try {
+      // Guardian endpoint: GET /compliance-log?limit=50
       const res = await supabase.functions.invoke('guardian-proxy', {
-        body: { path: `/api/compliance/${accountId}` },
+        body: { path: `/compliance-log?limit=50` },
         headers: { 'Content-Type': 'application/json' },
       })
-      if (!res.error && Array.isArray(res.data)) {
-        setComplianceLog(res.data)
+      if (!res.error && res.data) {
+        // Handle both array response and { events: [...] } shape
+        const entries = Array.isArray(res.data) ? res.data : (res.data.events ?? [])
+        setComplianceLog(entries)
       }
     } catch {
       // Silently ignore — compliance log is supplementary
@@ -375,8 +379,10 @@ export function GrantDashboard() {
     if (!accountId) return
     setSweeping(true)
     try {
+      // Trigger a compliance sweep via Guardian
+      // Uses the same customer status endpoint pattern with POST method
       await supabase.functions.invoke('guardian-proxy', {
-        body: { path: `/api/sweep/${accountId}`, method: 'POST' },
+        body: { path: `/sweep`, method: 'POST' },
         headers: { 'Content-Type': 'application/json' },
       })
       // Refresh data after sweep
@@ -404,7 +410,75 @@ export function GrantDashboard() {
     )
   }
 
-  if (!data) return null
+  // No Google Ads account connected — show connect prompt + mock preview
+  if (!accountId || !data) {
+    const preview = MOCK_DATA
+    return (
+      <div className="space-y-6">
+        {/* Connect account prompt */}
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+              <AlertTriangle className="w-6 h-6 text-amber-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-white mb-1">Connect Your Google Ads Account</h3>
+              <p className="text-sm text-slate-400 mb-4">
+                To activate GUARDIAN monitoring and AdPilot campaign management, connect your Google Ad Grant account.
+                Don't have one yet? Use the <a href="/reach/eligibility" className="text-purple-400 hover:text-purple-300 underline">eligibility checker</a> to see if you qualify.
+              </p>
+              <a href="/attract/connect">
+                <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white">
+                  Connect Account
+                </Button>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* AttractTrialSetup if no trial started */}
+        {!attractTrialStarted && orgId && (
+          <AttractTrialSetup
+            orgId={orgId}
+            onStarted={() => {
+              setAttractTrialStarted(true)
+              setAttractTrialJustStarted(true)
+            }}
+          />
+        )}
+
+        {/* Preview with mock data so dashboard isn't blank */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[1px] z-10 rounded-xl flex items-center justify-center">
+            <Badge variant="outline" className="border-amber-500/30 text-amber-400 bg-slate-950/80 px-4 py-2 text-sm">
+              <Clock className="w-4 h-4 mr-2" />
+              Preview — connect your account to see real data
+            </Badge>
+          </div>
+          <div className="opacity-50 pointer-events-none">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-center">
+                <p className="text-2xl font-bold text-white">{preview.ctr}%</p>
+                <p className="text-xs text-slate-400">30-day CTR</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-center">
+                <p className="text-2xl font-bold text-green-400">{preview.status}</p>
+                <p className="text-xs text-slate-400">Grant Status</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-center">
+                <p className="text-2xl font-bold text-white">{preview.keywords_paused_quality + preview.keywords_paused_ctr}</p>
+                <p className="text-xs text-slate-400">Keywords Paused</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-center">
+                <p className="text-2xl font-bold text-white">${preview.budget_used.toLocaleString()}</p>
+                <p className="text-xs text-slate-400">Budget Used</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const sweepLabel =
     data.last_sweep_minutes_ago < 60

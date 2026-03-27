@@ -144,7 +144,6 @@ export default function CallHistory() {
         throw error;
       }
 
-      console.log('Loaded call logs:', data?.length || 0);
       const logs = (data || []) as CallLog[];
       setCallLogs(logs);
 

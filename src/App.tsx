@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { LoginPage } from '@/components/auth/LoginPage';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { AdminLayout } from '@/components/layout/AdminLayout';
 import Dashboard from '@/pages/Dashboard';
 import People from '@/pages/People';
 import Groups from '@/pages/Groups';
@@ -16,6 +17,9 @@ import OnboardingPage from '@/pages/OnboardingPage';
 import PricingPage from '@/pages/PricingPage';
 import LandingPage from '@/pages/LandingPage';
 import DemoPage from '@/pages/DemoPage';
+import CheckEligibilityPage from '@/pages/CheckEligibilityPage';
+import PrivacyPage from '@/pages/PrivacyPage';
+import TermsPage from '@/pages/TermsPage';
 // Automations pages
 import AutomationsOverview from '@/pages/automations/AutomationsOverview';
 import BirthdayAutomations from '@/pages/automations/BirthdayAutomations';
@@ -33,6 +37,15 @@ import ApplicationPage from '@/pages/reach/ApplicationPage';
 // ATTRACT module
 import GrantDashboardPage from '@/pages/dashboard/GrantDashboardPage';
 import ConnectPage from '@/pages/attract/ConnectPage';
+import OAuthCallbackPage from '@/pages/attract/OAuthCallbackPage';
+import AdPilotPage from '@/pages/attract/AdPilotPage';
+import AdPilotPreviewPage from '@/pages/attract/AdPilotPreviewPage';
+import AdPilotCampaignDetailPage from '@/pages/attract/AdPilotCampaignDetailPage';
+// Admin pages
+import AdminDashboard from '@/pages/admin/AdminDashboard';
+import LeadPipeline from '@/pages/admin/LeadPipeline';
+import CustomerManagement from '@/pages/admin/CustomerManagement';
+import CommunicationLog from '@/pages/admin/CommunicationLog';
 // Billing / module gating
 import { UpgradePrompt } from '@/components/billing/UpgradePrompt';
 import { TrialExpiredPrompt } from '@/components/billing/TrialExpiredPrompt';
@@ -42,47 +55,33 @@ import { Toaster } from '@/components/ui/toaster';
 // ── Route guard ──────────────────────────────────────────────────────────────
 // Wraps a route and shows an UpgradePrompt or TrialExpiredPrompt when the org
 // lacks the module or the trial has expired.
-//
-// For /reach/* routes:
-//   Allow if plan_modules includes 'reach' OR reach trial is still active.
-//   If trial expired: show TrialExpiredPrompt.
-//   If no trial and no plan: show UpgradePrompt.
-//
-// For /attract/* routes:
-//   Allow if plan_modules includes 'attract' OR attract trial is still active.
-//   Same expiry/no-trial logic.
+// REACH is free — no RouteGuard needed for /reach/* routes.
 
 function RouteGuard({
   module,
   price,
   children,
 }: {
-  module: 'reach' | 'attract' | 'engage';
+  module: 'attract' | 'engage';
   price: string;
   children: React.ReactNode;
 }) {
   const {
     hasModule,
-    reachTrialExpired,
     attractTrialExpired,
   } = usePlanModules();
 
-  // hasModule already returns true when an active trial is present
   if (hasModule(module)) {
     return <>{children}</>;
   }
 
-  // Trial has expired — show the trial-expired prompt for reach/attract
-  if (module === 'reach' && reachTrialExpired) {
-    return <TrialExpiredPrompt module="reach" price={price} />;
-  }
   if (module === 'attract' && attractTrialExpired) {
     return <TrialExpiredPrompt module="attract" price={price} />;
   }
 
-  // No trial and no paid plan — show standard upgrade prompt
   return <UpgradePrompt module={module} price={price} />;
 }
+
 
 function App() {
   const { fetchSession, user, loading } = useAuthStore();
@@ -117,6 +116,9 @@ function App() {
           />
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/demo" element={<DemoPage />} />
+          <Route path="/check" element={<CheckEligibilityPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
 
           {/* Onboarding route (authenticated but outside AppLayout) */}
           <Route
@@ -143,54 +145,16 @@ function App() {
             <Route path="automations" element={<AutomationsOverview />} />
             <Route path="automations/birthdays" element={<BirthdayAutomations />} />
             <Route path="automations/scheduled" element={<ScheduledOutreach />} />
-            {false && (
-              // ghost feature — EventTriggers (group_join) has no backend processor in auto-call-trigger
-              <Route path="automations/triggers" element={<EventTriggers />} />
-            )}
+            <Route path="automations/triggers" element={<EventTriggers />} />
             <Route path="automations/docs" element={<AutomationDocs />} />
             <Route path="settings" element={<Settings />} />
             <Route path="system-test" element={<SystemTest />} />
-            {/* REACH module — gated to 'reach' plan */}
-            <Route
-              path="reach/eligibility"
-              element={
-                <RouteGuard module="reach" price="49">
-                  <EligibilityPage />
-                </RouteGuard>
-              }
-            />
-            <Route
-              path="reach/preflight"
-              element={
-                <RouteGuard module="reach" price="49">
-                  <PreflightPage />
-                </RouteGuard>
-              }
-            />
-            <Route
-              path="reach/google-verification"
-              element={
-                <RouteGuard module="reach" price="49">
-                  <GoogleVerificationPage />
-                </RouteGuard>
-              }
-            />
-            <Route
-              path="reach/status"
-              element={
-                <RouteGuard module="reach" price="49">
-                  <StatusPage />
-                </RouteGuard>
-              }
-            />
-            <Route
-              path="reach/apply"
-              element={
-                <RouteGuard module="reach" price="49">
-                  <ApplicationPage />
-                </RouteGuard>
-              }
-            />
+            {/* REACH module — free for all authenticated users */}
+            <Route path="reach/eligibility" element={<EligibilityPage />} />
+            <Route path="reach/preflight" element={<PreflightPage />} />
+            <Route path="reach/google-verification" element={<GoogleVerificationPage />} />
+            <Route path="reach/status" element={<StatusPage />} />
+            <Route path="reach/apply" element={<ApplicationPage />} />
             {/* ATTRACT module — gated to 'attract' plan */}
             <Route
               path="attract/connect"
@@ -208,6 +172,41 @@ function App() {
                 </RouteGuard>
               }
             />
+            {/* ATTRACT AdPilot routes */}
+            <Route
+              path="attract/adpilot"
+              element={
+                <RouteGuard module="attract" price="199">
+                  <AdPilotPage />
+                </RouteGuard>
+              }
+            />
+            <Route
+              path="attract/adpilot/preview"
+              element={
+                <RouteGuard module="attract" price="199">
+                  <AdPilotPreviewPage />
+                </RouteGuard>
+              }
+            />
+            <Route
+              path="attract/adpilot/:id"
+              element={
+                <RouteGuard module="attract" price="199">
+                  <AdPilotCampaignDetailPage />
+                </RouteGuard>
+              }
+            />
+            {/* ATTRACT OAuth callback */}
+            <Route path="attract/oauth-callback" element={<OAuthCallbackPage />} />
+          </Route>
+
+          {/* Admin routes — standalone layout, separate from church app */}
+          <Route element={user ? <AdminLayout /> : <Navigate to="/login" replace />}>
+            <Route path="admin" element={<AdminDashboard />} />
+            <Route path="admin/leads" element={<LeadPipeline />} />
+            <Route path="admin/customers" element={<CustomerManagement />} />
+            <Route path="admin/communications" element={<CommunicationLog />} />
           </Route>
 
           {/* Catch all - redirect to dashboard or login */}

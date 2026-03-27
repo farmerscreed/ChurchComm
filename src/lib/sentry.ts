@@ -63,7 +63,6 @@ export function initSentry() {
         },
     });
 
-    console.log('Sentry initialized:', { environment: SENTRY_ENVIRONMENT, release: SENTRY_RELEASE });
 }
 
 /**

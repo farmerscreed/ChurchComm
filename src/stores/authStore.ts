@@ -97,10 +97,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signUp: async (email: string, password: string, firstName: string, lastName: string, organizationName?: string) => {
     set({ loading: true, error: null });
     try {
+      const redirectUrl = `${window.location.origin}/login`;
       const { data, error } = await supabase.auth.signUp({
         email: email,
         password: password,
         options: {
+          emailRedirectTo: redirectUrl,
           data: {
             first_name: firstName,
             last_name: lastName,
@@ -174,15 +176,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
       if (!membership) {
         // User has no organization - this is OK for new users
-        console.log('No organization membership found. User needs to create or join an organization.');
+        // User has no organization yet
         set({ loading: false, organization: null, currentOrganization: null });
         return;
       }
-      console.log('Step 1 SUCCESS. Membership found. Org ID:', membership.organization_id);
-
       const organizationId = membership.organization_id;
 
-      console.log("Step 2: Fetching organization details from 'organizations'");
       const { data: org, error: orgError } = await supabase
         .from('organizations')
         .select('*')
@@ -197,9 +196,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         console.error('loadUserOrganization ERROR: No organization record found for ID:', organizationId);
         throw new Error('Could not load your organization details.');
       }
-      console.log('Step 2 SUCCESS. Organization found:', org.name);
-
-      console.log('Step 3: Setting organization in store.');
       set({
         organization: org,
         currentOrganization: org,
@@ -207,12 +203,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         loading: false,
         error: null
       });
-      console.log('--- loadUserOrganization END ---');
-
     } catch (error: any) {
       console.error('loadUserOrganization: CATCH block error:', error);
       set({ error: error.message, loading: false });
-      console.log('--- loadUserOrganization END with ERROR ---');
     }
   },
 

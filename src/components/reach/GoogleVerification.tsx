@@ -38,7 +38,7 @@ const PATH_A_STEPS: Step[] = [
     id: 1,
     title: 'Gather your documents',
     instruction:
-      'Before you begin the application, collect the three items Goodstack requires. Having them ready prevents delays.',
+      'Before you begin the application, collect the three items Google requires during enrollment. Having them ready prevents delays.',
     documents: [
       'EIN confirmation letter from the IRS',
       '501(c)(3) determination letter (CP-575 or the official letter)',
@@ -48,42 +48,42 @@ const PATH_A_STEPS: Step[] = [
   },
   {
     id: 2,
-    title: 'Verify your nonprofit status on Goodstack',
+    title: 'Check eligibility & enroll in Google for Nonprofits',
     instruction:
-      'Google uses Goodstack (formerly TechSoup) to verify nonprofit eligibility before granting access to Google for Nonprofits. Create a free Goodstack account and submit your organisation for verification.',
-    url: { label: 'Start Goodstack verification', href: 'https://www.goodstack.io/' },
+      'Google for Nonprofits is the gateway program. Start by confirming your eligibility, then request an account. Google uses a verification partner (Goodstack) to validate your nonprofit status — this happens automatically during enrollment.',
+    url: { label: 'Check eligibility requirements', href: 'https://www.google.com/nonprofits/eligibility/' },
     documents: [
-      'EIN number (enter during signup)',
-      '501(c)(3) determination letter PDF (upload)',
+      'EIN number',
+      '501(c)(3) determination letter PDF',
       'Church website URL',
     ],
-    timeline: '2–14 business days for Goodstack to verify',
+    timeline: '2–14 business days for verification',
     note:
-      'Goodstack is free for nonprofits. The verification email will come from noreply@goodstack.io — check spam if you do not see it.',
+      'After checking eligibility, click "Get Started" to begin enrollment. You will be asked to sign in with a Google account and then verify your nonprofit through Goodstack. The verification email may come from noreply@goodstack.io — check spam if you do not see it.',
   },
   {
     id: 3,
-    title: 'Apply to Google for Nonprofits',
+    title: 'Sign up for Google for Nonprofits',
     instruction:
-      'Once Goodstack approves your organisation, you will receive a token. Use it to enrol in Google for Nonprofits, which unlocks Google Ad Grants ($10,000/month in free ads).',
+      'Once your nonprofit is verified, complete the Google for Nonprofits enrollment. Use the same Google account email you plan to use for Google Ads.',
     url: {
-      label: 'Apply at Google for Nonprofits',
-      href: 'https://nonprofits.google.com/intl/en_us/eligibility/',
+      label: 'Google for Nonprofits signup',
+      href: 'https://www.google.com/nonprofits/account/signup/',
     },
-    documents: ['Goodstack verification token (emailed to you)'],
-    timeline: '1–3 business days for Google approval after Goodstack verification',
+    documents: ['Goodstack verification (completed in previous step)'],
+    timeline: '1–3 business days for Google to approve your account',
   },
   {
     id: 4,
-    title: 'Activate your Ad Grant',
+    title: 'Activate Google Ad Grants',
     instruction:
-      'After Google for Nonprofits approves you, log in to the portal and click "Activate" next to Google Ad Grants. You will then have a Google Ads account with a $10,000/month credit.',
+      'After Google approves your nonprofits account, sign in and activate Google Ad Grants from the product list. Follow the prompts to submit your organization for Ad Grants review. Once approved, you will have a Google Ads account with a $10,000/month credit.',
     url: {
-      label: 'Google for Nonprofits portal',
-      href: 'https://nonprofits.google.com/',
+      label: 'Google Ad Grants — Get Started guide',
+      href: 'https://www.google.com/grants/get-started/',
     },
-    timeline: 'Immediate once activated',
-    note: 'Bring your Google Ads account ID to the KeepFlock REACH module to link your grant.',
+    timeline: 'Approval typically within a few business days',
+    note: 'Use the same login email for both Google for Nonprofits and Google Ads. After activation, bring your Google Ads account ID to the KeepFlock ATTRACT module to link your grant and enable GUARDIAN monitoring.',
   },
 ]
 
@@ -92,49 +92,50 @@ const PATH_B_STEPS: Step[] = [
     id: 1,
     title: 'Obtain your group exemption letter',
     instruction:
-      'Contact your denominational headquarters and request the IRS group exemption letter. This letter covers all churches under the denomination\u0027s umbrella EIN so individual 501(c)(3) determination letters are not required.',
+      'Contact your denominational headquarters and request the IRS group exemption letter. This letter covers all churches under the denomination\'s umbrella EIN so individual 501(c)(3) determination letters are not required.',
     documents: [
       'Group exemption letter from denomination (IRS Letter 1025 or equivalent)',
       'Letter showing your church is listed as a subordinate under the group ruling',
     ],
     timeline: '1–5 business days (denomination response varies)',
     note:
-      'Common denominations with group exemptions include the United Methodist Church, SBC, ELCA, and many others. Ask your regional office or bishop\u0027s office.',
+      'Common denominations with group exemptions include the United Methodist Church, SBC, ELCA, and many others. Ask your regional office or bishop\'s office.',
   },
   {
     id: 2,
-    title: 'Verify on Goodstack with the group exemption letter',
+    title: 'Enroll in Google for Nonprofits with group exemption',
     instruction:
-      'Create a Goodstack account and, when prompted for your determination letter, upload the group exemption letter instead. Note in the notes field that you are a subordinate organisation under a group ruling.',
-    url: { label: 'Start Goodstack verification', href: 'https://www.goodstack.io/' },
+      'Start the Google for Nonprofits enrollment. During the Goodstack verification step, upload the group exemption letter instead of an individual determination letter. Note in any comments field that you are a subordinate organisation under a group ruling.',
+    url: { label: 'Google for Nonprofits eligibility', href: 'https://www.google.com/nonprofits/eligibility/' },
     documents: [
       'Group exemption letter PDF',
-      'Denomination\u0027s EIN (from the group exemption letter)',
+      'Denomination\'s EIN (from the group exemption letter)',
       'Your church website URL',
     ],
-    timeline: '2–14 business days for Goodstack to verify',
+    timeline: '2–14 business days for verification',
     note:
-      'If Goodstack asks for a subordinate list, your denomination\u0027s national office can provide a letter confirming your church\u0027s inclusion.',
+      'If Goodstack asks for a subordinate list, your denomination\'s national office can provide a letter confirming your church\'s inclusion.',
   },
   {
     id: 3,
-    title: 'Apply to Google for Nonprofits',
+    title: 'Complete Google for Nonprofits signup',
     instruction:
-      'Use your Goodstack verification token to enrol in Google for Nonprofits. The process is identical to Path A from this point forward.',
+      'Once verified, complete the Google for Nonprofits enrollment. Use the same Google account email you plan to use for Google Ads.',
     url: {
-      label: 'Apply at Google for Nonprofits',
-      href: 'https://nonprofits.google.com/intl/en_us/eligibility/',
+      label: 'Google for Nonprofits signup',
+      href: 'https://www.google.com/nonprofits/account/signup/',
     },
-    documents: ['Goodstack verification token (emailed to you)'],
+    documents: ['Goodstack verification (completed in previous step)'],
     timeline: '1–3 business days for Google approval',
   },
   {
     id: 4,
-    title: 'Activate your Ad Grant',
+    title: 'Activate Google Ad Grants',
     instruction:
-      'Log in to the Google for Nonprofits portal and activate Google Ad Grants to receive your $10,000/month credit.',
-    url: { label: 'Google for Nonprofits portal', href: 'https://nonprofits.google.com/' },
-    timeline: 'Immediate once activated',
+      'Sign in to your Google for Nonprofits account and activate Google Ad Grants from the product list. Follow the steps to submit for Ad Grants review.',
+    url: { label: 'Google Ad Grants — Get Started guide', href: 'https://www.google.com/grants/get-started/' },
+    timeline: 'Approval typically within a few business days',
+    note: 'After activation, bring your Google Ads account ID to KeepFlock ATTRACT to link your grant and enable GUARDIAN monitoring.',
   },
 ]
 

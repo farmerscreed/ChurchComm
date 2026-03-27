@@ -58,7 +58,7 @@ export function AppLayout() {
             <div className="flex items-center space-x-2 overflow-hidden">
               <Users className="h-4 w-4 text-primary flex-shrink-0" />
               <span className="text-sm text-muted-foreground hidden sm:inline">Organization:</span>
-              <Badge variant="secondary" className="text-xs truncate">
+              <Badge variant="secondary" className="text-xs truncate max-w-[150px] sm:max-w-none">
                 {currentOrganization?.name || 'Loading...'}
               </Badge>
             </div>

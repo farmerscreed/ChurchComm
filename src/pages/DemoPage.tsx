@@ -35,9 +35,15 @@ import {
     Power,
     Settings2,
     Menu,
-    X
+    X,
+    Target,
+    Shield,
+    Activity,
+    Eye,
+    Pause
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
+import { useAuthStore } from "@/stores/authStore";
 
 // Demo data representing actual app features
 const DEMO_STATS = {
@@ -130,11 +136,12 @@ I'm calling because the women's retreat is coming up next month, and I know you 
 };
 
 export default function DemoPage() {
-    const [activeTab, setActiveTab] = useState<"dashboard" | "calling" | "memory" | "sms" | "people" | "automations">("dashboard");
+    const [activeTab, setActiveTab] = useState<"dashboard" | "calling" | "memory" | "sms" | "people" | "automations" | "grantcheck" | "guardian">("grantcheck");
     const [isPlaying, setIsPlaying] = useState(false);
     const [demoMessage, setDemoMessage] = useState("Hi {Name}, just a reminder about our Sunday service at 10am. Hope to see you there!");
     const [selectedHistoryIndex, setSelectedHistoryIndex] = useState(0);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const { user } = useAuthStore();
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-50 overflow-hidden relative selection:bg-purple-500/30">
@@ -157,16 +164,27 @@ export default function DemoPage() {
                         <Link to="/pricing" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Pricing</Link>
                     </div>
                     <div className="hidden md:flex items-center gap-4">
-                        <Link to="/login">
-                            <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-white/5">
-                                Sign In
-                            </Button>
-                        </Link>
-                        <Link to="/login">
-                            <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white border-0">
-                                Get Started
-                            </Button>
-                        </Link>
+                        {user ? (
+                            <>
+                                <Link to="/dashboard">
+                                    <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-white/5">Dashboard</Button>
+                                </Link>
+                                <span className="text-sm text-slate-400 hidden md:inline">{user.email}</span>
+                            </>
+                        ) : (
+                            <>
+                                <Link to="/login">
+                                    <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-white/5">
+                                        Sign In
+                                    </Button>
+                                </Link>
+                                <Link to="/login">
+                                    <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white border-0">
+                                        Get Started
+                                    </Button>
+                                </Link>
+                            </>
+                        )}
                     </div>
 
                     {/* Mobile Menu Toggle */}
@@ -182,16 +200,24 @@ export default function DemoPage() {
                         <span className="text-sm font-medium text-white py-2">Demo</span>
                         <Link to="/pricing" className="text-sm font-medium text-slate-300 hover:text-white transition-colors py-2" onClick={() => setIsMobileMenuOpen(false)}>Pricing</Link>
                         <div className="h-px bg-white/10 my-2" />
-                        <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                            <Button variant="ghost" className="w-full justify-start text-slate-300 hover:text-white hover:bg-white/5">
-                                Sign In
-                            </Button>
-                        </Link>
-                        <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                            <Button className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white border-0">
-                                Get Started
-                            </Button>
-                        </Link>
+                        {user ? (
+                            <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
+                                <Button className="w-full bg-slate-800 hover:bg-slate-700 text-white border-0">Go to Dashboard</Button>
+                            </Link>
+                        ) : (
+                            <>
+                                <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                                    <Button variant="ghost" className="w-full justify-start text-slate-300 hover:text-white hover:bg-white/5">
+                                        Sign In
+                                    </Button>
+                                </Link>
+                                <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                                    <Button className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white border-0">
+                                        Get Started
+                                    </Button>
+                                </Link>
+                            </>
+                        )}
                     </div>
                 )}
             </nav>
@@ -204,15 +230,15 @@ export default function DemoPage() {
                         <span>Interactive Demo</span>
                     </div>
 
-                    <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
+                    <h1 className="text-2xl sm:text-4xl md:text-6xl font-bold tracking-tight mb-6">
                         See KeepFlock{" "}
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-400 to-cyan-400">
                             in action
                         </span>
                     </h1>
 
-                    <p className="text-xl text-slate-400 mb-12 max-w-2xl mx-auto">
-                        Explore our dashboard, AI calling, SMS campaigns, and people management - no sign-up required.
+                    <p className="text-base sm:text-lg md:text-xl text-slate-400 mb-12 max-w-2xl mx-auto">
+                        Explore grant eligibility tools, AI-managed ad campaigns, GUARDIAN compliance monitoring, AI calling, and more — no sign-up required.
                     </p>
                 </div>
             </section>
@@ -222,27 +248,31 @@ export default function DemoPage() {
                 <div className="container mx-auto max-w-6xl">
                     {/* Tab Navigation */}
                     <div className="flex justify-center mb-8">
-                        <div className="inline-flex bg-white/5 border border-white/10 rounded-full p-1">
-                            {[
-                                { id: "dashboard", label: "Dashboard", icon: BarChart3 },
-                                { id: "calling", label: "AI Calling", icon: Phone },
-                                { id: "memory", label: "AI Memory", icon: Brain },
-                                { id: "automations", label: "Automations", icon: Zap },
-                                { id: "sms", label: "SMS", icon: MessageSquare },
-                                { id: "people", label: "People", icon: Users },
-                            ].map((tab) => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                                    className={`flex items-center gap-2 px-5 py-3 rounded-full text-sm font-medium transition-all ${activeTab === tab.id
-                                        ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg"
-                                        : "text-slate-400 hover:text-white"
-                                        }`}
-                                >
-                                    <tab.icon className="w-4 h-4" />
-                                    <span className="hidden md:inline">{tab.label}</span>
-                                </button>
-                            ))}
+                        <div className="w-full overflow-x-auto scrollbar-hide pb-2 -mb-2">
+                            <div className="inline-flex bg-white/5 border border-white/10 rounded-full p-1 min-w-max mx-auto">
+                                {[
+                                    { id: "grantcheck", label: "Grant Check", icon: Target },
+                                    { id: "guardian", label: "GUARDIAN", icon: Shield },
+                                    { id: "dashboard", label: "Dashboard", icon: BarChart3 },
+                                    { id: "calling", label: "AI Calling", icon: Phone },
+                                    { id: "memory", label: "AI Memory", icon: Brain },
+                                    { id: "automations", label: "Automations", icon: Zap },
+                                    { id: "sms", label: "SMS", icon: MessageSquare },
+                                    { id: "people", label: "People", icon: Users },
+                                ].map((tab) => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                                        className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2.5 sm:py-3 rounded-full text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab.id
+                                            ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg"
+                                            : "text-slate-400 hover:text-white"
+                                            }`}
+                                    >
+                                        <tab.icon className="w-4 h-4" />
+                                        <span className="hidden sm:inline">{tab.label}</span>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
 
@@ -294,7 +324,7 @@ export default function DemoPage() {
                                     </div>
 
                                     {/* Stats Grid */}
-                                    <div className="grid md:grid-cols-3 gap-4 mb-8">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8">
                                         {/* Minute Usage */}
                                         <div className="p-5 rounded-xl bg-gradient-to-br from-purple-500/10 to-purple-500/5 border border-purple-500/20">
                                             <div className="flex items-center justify-between mb-4">
@@ -726,7 +756,7 @@ export default function DemoPage() {
                                                     When Maria picks up the phone, she doesn't hear a cold script. She hears someone who remembers her daughter Emma just started college,
                                                     who knows about her interest in the women's retreat, and who cares about her as a person.
                                                 </p>
-                                                <div className="flex gap-4 mt-4">
+                                                <div className="flex flex-wrap gap-4 mt-4">
                                                     <div className="flex items-center gap-2 text-sm text-purple-300">
                                                         <CheckCircle2 className="w-4 h-4" />
                                                         Automatic insight extraction
@@ -852,7 +882,7 @@ export default function DemoPage() {
                                     </div>
 
                                     {/* Stats */}
-                                    <div className="grid grid-cols-4 gap-4 mb-6">
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                                         {[
                                             { label: "Members", value: 245, color: "purple" },
                                             { label: "Regular Attenders", value: 67, color: "blue" },
@@ -939,6 +969,375 @@ export default function DemoPage() {
                                 </div>
                             )}
 
+                            {/* Grant Check Tab */}
+                            {activeTab === "grantcheck" && (
+                                <div className="p-6 md:p-8">
+                                    {/* Header */}
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div>
+                                            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                                <Target className="w-6 h-6 text-green-400" />
+                                                Grant Eligibility Checker
+                                            </h3>
+                                            <p className="text-slate-400 text-sm mt-1">Find out if your church qualifies for a Google Ad Grant in under 60 seconds.</p>
+                                        </div>
+                                        <Badge className="bg-green-500/20 text-green-400 border-0 px-4 py-1">
+                                            REACH
+                                        </Badge>
+                                    </div>
+
+                                    <div className="grid lg:grid-cols-2 gap-8">
+                                        {/* Left: Eligibility Questionnaire */}
+                                        <div>
+                                            <div className="p-5 rounded-xl bg-white/5 border border-white/10">
+                                                <h4 className="font-semibold text-white flex items-center gap-2 mb-4">
+                                                    <FileText className="w-4 h-4 text-green-400" />
+                                                    Eligibility Questions
+                                                </h4>
+                                                <div className="space-y-4">
+                                                    {[
+                                                        { q: "Is your organization a registered 501(c)(3)?", a: true },
+                                                        { q: "Does your church have a live, functional website?", a: true },
+                                                        { q: "Is your website SSL-secured (HTTPS)?", a: true },
+                                                        { q: "Does your mission focus on community benefit?", a: true },
+                                                        { q: "Can you commit to managing the grant monthly?", a: true },
+                                                    ].map((item, idx) => (
+                                                        <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-white/5">
+                                                            <span className="text-sm text-slate-300">{item.q}</span>
+                                                            <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0 ml-3">
+                                                                <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Result */}
+                                            <div className="mt-4 p-5 rounded-xl bg-gradient-to-br from-green-500/15 to-emerald-500/10 border border-green-500/30">
+                                                <div className="flex items-center gap-3 mb-3">
+                                                    <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                                                        <CheckCircle2 className="w-7 h-7 text-green-400" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xl font-bold text-green-400">Qualified!</p>
+                                                        <p className="text-sm text-slate-400">Your church likely qualifies for $10,000/mo in free Google Ads</p>
+                                                    </div>
+                                                </div>
+                                                <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20 mb-3">
+                                                    <p className="text-sm text-purple-300 flex items-center gap-2">
+                                                        <Sparkles className="w-4 h-4 flex-shrink-0" />
+                                                        Next step: AdPilot will automatically create your first campaign — no Google Ads experience needed.
+                                                    </p>
+                                                </div>
+                                                <Link to="/check">
+                                                    <Button className="w-full mt-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500">
+                                                        Check Your Real Eligibility
+                                                        <ArrowRight className="w-4 h-4 ml-2" />
+                                                    </Button>
+                                                </Link>
+                                            </div>
+                                        </div>
+
+                                        {/* Right: Website Scan Results */}
+                                        <div>
+                                            <div className="p-5 rounded-xl bg-white/5 border border-white/10">
+                                                <h4 className="font-semibold text-white flex items-center gap-2 mb-4">
+                                                    <Eye className="w-4 h-4 text-cyan-400" />
+                                                    Website Preflight Scan
+                                                </h4>
+                                                <p className="text-xs text-slate-500 mb-4">Mock scan of gracechurch.org</p>
+
+                                                <div className="space-y-3">
+                                                    {[
+                                                        { label: "SSL Certificate", score: 100, status: "Pass" },
+                                                        { label: "Mobile Responsiveness", score: 92, status: "Pass" },
+                                                        { label: "Page Load Speed", score: 78, status: "Needs Work" },
+                                                        { label: "Mission Clarity", score: 95, status: "Pass" },
+                                                        { label: "Navigation Quality", score: 88, status: "Pass" },
+                                                        { label: "Donation Page Present", score: 100, status: "Pass" },
+                                                    ].map((item, idx) => (
+                                                        <div key={idx} className="space-y-1">
+                                                            <div className="flex items-center justify-between text-sm">
+                                                                <span className="text-slate-300">{item.label}</span>
+                                                                <Badge variant="outline" className={`text-xs ${item.score >= 90
+                                                                    ? "border-green-500/30 text-green-400"
+                                                                    : item.score >= 70
+                                                                        ? "border-amber-500/30 text-amber-400"
+                                                                        : "border-red-500/30 text-red-400"
+                                                                    }`}>
+                                                                    {item.status}
+                                                                </Badge>
+                                                            </div>
+                                                            <Progress value={item.score} className="h-1.5 bg-white/10" />
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
+                                                    <span className="text-sm text-slate-400">Overall Readiness</span>
+                                                    <span className="text-2xl font-bold text-green-400">92/100</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Bottom Info Card */}
+                                    <div className="mt-8 p-6 rounded-xl bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-cyan-500/10 border border-green-500/20">
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                                                <Target className="w-6 h-6 text-green-400" />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-lg font-semibold text-white mb-2">How REACH Works</h4>
+                                                <p className="text-slate-400 text-sm leading-relaxed">
+                                                    REACH checks your church's eligibility for the Google Ad Grant — $10,000/month in free advertising.
+                                                    We scan your website, verify your nonprofit status, and guide you through the application process.
+                                                    Once approved, AdPilot automatically creates your first campaigns — you never need to touch Google Ads.
+                                                </p>
+                                                <div className="flex flex-wrap gap-4 mt-4">
+                                                    <div className="flex items-center gap-2 text-sm text-green-300">
+                                                        <CheckCircle2 className="w-4 h-4" />
+                                                        Free eligibility check
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-sm text-emerald-300">
+                                                        <CheckCircle2 className="w-4 h-4" />
+                                                        Website readiness scan
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-sm text-cyan-300">
+                                                        <CheckCircle2 className="w-4 h-4" />
+                                                        $10,000/mo in free ads
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* GUARDIAN Tab */}
+                            {activeTab === "guardian" && (
+                                <div className="p-6 md:p-8">
+                                    {/* Header */}
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div>
+                                            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                                <Shield className="w-6 h-6 text-blue-400" />
+                                                AdPilot + GUARDIAN Dashboard
+                                            </h3>
+                                            <p className="text-slate-400 text-sm mt-1">AI creates and optimizes your campaigns. GUARDIAN monitors 24/7 to keep your grant safe.</p>
+                                        </div>
+                                        <Badge className="bg-blue-500/20 text-blue-400 border-0 px-4 py-1">
+                                            ATTRACT
+                                        </Badge>
+                                    </div>
+
+                                    {/* Top Stats Row */}
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                                        {/* Grant Health */}
+                                        <div className="p-5 rounded-xl bg-gradient-to-br from-green-500/10 to-green-500/5 border border-green-500/20">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                                                    <Heart className="w-5 h-5 text-green-400" />
+                                                </div>
+                                                <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse" />
+                                            </div>
+                                            <p className="text-2xl font-bold text-white">Healthy</p>
+                                            <p className="text-xs text-slate-500">Grant Status</p>
+                                        </div>
+
+                                        {/* CTR */}
+                                        <div className="p-5 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/20">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                                                    <TrendingUp className="w-5 h-5 text-blue-400" />
+                                                </div>
+                                                <Badge className="bg-green-500/20 text-green-400 border-0 text-xs">Above 5%</Badge>
+                                            </div>
+                                            <p className="text-2xl font-bold text-white">7.2% CTR</p>
+                                            <div className="mt-2">
+                                                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full" style={{ width: "72%" }} />
+                                                </div>
+                                                <p className="text-xs text-slate-500 mt-1">5% minimum required</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Keywords */}
+                                        <div className="p-5 rounded-xl bg-gradient-to-br from-purple-500/10 to-purple-500/5 border border-purple-500/20">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                                                    <Activity className="w-5 h-5 text-purple-400" />
+                                                </div>
+                                            </div>
+                                            <p className="text-2xl font-bold text-white">47 <span className="text-sm text-slate-500">active</span></p>
+                                            <p className="text-xs text-slate-500">3 paused by GUARDIAN</p>
+                                        </div>
+
+                                        {/* Compliance Score */}
+                                        <div className="p-5 rounded-xl bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border border-cyan-500/20">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                                                    <Shield className="w-5 h-5 text-cyan-400" />
+                                                </div>
+                                            </div>
+                                            <p className="text-2xl font-bold text-white">96<span className="text-lg text-slate-500">/100</span></p>
+                                            <p className="text-xs text-slate-500">Compliance Score</p>
+                                        </div>
+                                    </div>
+
+                                    {/* AdPilot Active Campaigns */}
+                                    <div className="p-5 rounded-xl bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-purple-500/20 mb-6">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h4 className="font-semibold text-white flex items-center gap-2">
+                                                <Sparkles className="w-4 h-4 text-purple-400" />
+                                                AdPilot Active Campaigns
+                                            </h4>
+                                            <Badge className="bg-purple-500/20 text-purple-400 border-0 text-xs">2 managed by AI</Badge>
+                                        </div>
+                                        <div className="grid md:grid-cols-2 gap-4">
+                                            <div className="p-4 rounded-lg bg-white/5 border border-white/10">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <p className="text-sm font-medium text-white">Sunday Services - Austin TX</p>
+                                                    <Badge className="bg-green-500/20 text-green-400 border-0 text-xs">Active</Badge>
+                                                </div>
+                                                <p className="text-xs text-slate-500 mb-2">Created by AdPilot · Last optimized 2 days ago</p>
+                                                <div className="flex items-center gap-4 text-xs text-slate-400">
+                                                    <span>12 keywords</span>
+                                                    <span>6.8% CTR</span>
+                                                    <span className="text-green-400">$4,200 value</span>
+                                                </div>
+                                            </div>
+                                            <div className="p-4 rounded-lg bg-white/5 border border-white/10">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <p className="text-sm font-medium text-white">Youth Programs - Austin TX</p>
+                                                    <Badge className="bg-green-500/20 text-green-400 border-0 text-xs">Active</Badge>
+                                                </div>
+                                                <p className="text-xs text-slate-500 mb-2">Created by AdPilot · Last optimized 2 days ago</p>
+                                                <div className="flex items-center gap-4 text-xs text-slate-400">
+                                                    <span>8 keywords</span>
+                                                    <span>7.4% CTR</span>
+                                                    <span className="text-green-400">$3,600 value</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid lg:grid-cols-2 gap-6">
+                                        {/* Last Sweep & Monitoring */}
+                                        <div className="p-5 rounded-xl bg-white/5 border border-white/10">
+                                            <h4 className="font-semibold text-white flex items-center gap-2 mb-4">
+                                                <Eye className="w-4 h-4 text-blue-400" />
+                                                GUARDIAN Monitoring
+                                            </h4>
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-between p-3 rounded-lg bg-white/5">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+                                                            <Clock className="w-4 h-4 text-green-400" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-medium text-white">Last Sweep</p>
+                                                            <p className="text-xs text-slate-500">All checks passed</p>
+                                                        </div>
+                                                    </div>
+                                                    <Badge className="bg-green-500/20 text-green-400 border-0 text-xs">2 min ago</Badge>
+                                                </div>
+                                                <div className="flex items-center justify-between p-3 rounded-lg bg-white/5">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                                                            <BarChart3 className="w-4 h-4 text-blue-400" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-medium text-white">Budget Utilization</p>
+                                                            <p className="text-xs text-slate-500">$7,800 of $10,000 used</p>
+                                                        </div>
+                                                    </div>
+                                                    <span className="text-sm font-semibold text-white">78%</span>
+                                                </div>
+                                                <div className="flex items-center justify-between p-3 rounded-lg bg-white/5">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                                                            <Activity className="w-4 h-4 text-purple-400" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-medium text-white">Conversion Tracking</p>
+                                                            <p className="text-xs text-slate-500">23 conversions this month</p>
+                                                        </div>
+                                                    </div>
+                                                    <Badge className="bg-green-500/20 text-green-400 border-0 text-xs">Active</Badge>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Recent Activity Log */}
+                                        <div className="p-5 rounded-xl bg-white/5 border border-white/10">
+                                            <h4 className="font-semibold text-white flex items-center gap-2 mb-4">
+                                                <History className="w-4 h-4 text-amber-400" />
+                                                Recent GUARDIAN Activity
+                                            </h4>
+                                            <div className="space-y-3">
+                                                {[
+                                                    { action: "Paused keyword 'free church' — CTR 2.1%", time: "12 min ago", icon: Pause, color: "amber" },
+                                                    { action: "Budget utilization check: 78% — healthy", time: "2 min ago", icon: CheckCircle2, color: "green" },
+                                                    { action: "Paused keyword 'church near me free' — CTR 1.8%", time: "1 hr ago", icon: Pause, color: "amber" },
+                                                    { action: "CTR sweep: 7.2% overall — above threshold", time: "2 hrs ago", icon: CheckCircle2, color: "green" },
+                                                    { action: "Paused keyword 'free worship' — CTR 3.2%", time: "5 hrs ago", icon: Pause, color: "amber" },
+                                                    { action: "Weekly compliance report generated", time: "1 day ago", icon: FileText, color: "blue" },
+                                                ].map((item, idx) => (
+                                                    <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-white/5">
+                                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${item.color === "amber" ? "bg-amber-500/20" : item.color === "green" ? "bg-green-500/20" : "bg-blue-500/20"}`}>
+                                                            <item.icon className={`w-3.5 h-3.5 ${item.color === "amber" ? "text-amber-400" : item.color === "green" ? "text-green-400" : "text-blue-400"}`} />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm text-white">{item.action}</p>
+                                                            <p className="text-xs text-slate-500">{item.time}</p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Bottom CTA */}
+                                    <div className="mt-8 p-6 rounded-xl bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 border border-blue-500/20">
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                                                <Shield className="w-6 h-6 text-blue-400" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <h4 className="text-lg font-semibold text-white mb-2">How AdPilot + GUARDIAN Work</h4>
+                                                <p className="text-slate-400 text-sm leading-relaxed">
+                                                    AdPilot is your AI advertising manager. It researches the best keywords for your church, creates
+                                                    compliant campaigns, writes ad copy, and optimizes performance weekly. GUARDIAN then monitors your
+                                                    account 24/7, auto-pauses underperformers, maintains CTR above Google's 5% threshold, and alerts
+                                                    you to any issues. It's a fully managed Ad Grant service — powered by AI instead of a $8,650/mo agency.
+                                                </p>
+                                                <div className="flex flex-wrap gap-4 mt-4">
+                                                    <div className="flex items-center gap-2 text-sm text-purple-300">
+                                                        <CheckCircle2 className="w-4 h-4" />
+                                                        AI campaign creation
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-sm text-blue-300">
+                                                        <CheckCircle2 className="w-4 h-4" />
+                                                        Weekly optimization
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-sm text-indigo-300">
+                                                        <CheckCircle2 className="w-4 h-4" />
+                                                        24/7 compliance monitoring
+                                                    </div>
+                                                </div>
+                                                <Link to="/pricing" className="inline-block mt-4">
+                                                    <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500">
+                                                        Protect Your Grant
+                                                        <ArrowRight className="w-4 h-4 ml-2" />
+                                                    </Button>
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Automations Tab */}
                             {activeTab === "automations" && (
                                 <div className="p-6 md:p-8">
@@ -958,7 +1357,7 @@ export default function DemoPage() {
                                     </div>
 
                                     {/* Automation Categories */}
-                                    <div className="grid md:grid-cols-3 gap-4 mb-8">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8">
                                         {/* Birthday Automations */}
                                         <div className="p-5 rounded-xl bg-gradient-to-br from-pink-500/10 to-rose-500/10 border border-pink-500/20 hover:border-pink-500/40 transition-all cursor-pointer group">
                                             <div className="flex items-center justify-between mb-4">
@@ -1090,7 +1489,7 @@ export default function DemoPage() {
                                                     messages make long-time members feel appreciated. You stay focused on ministry while your
                                                     AI assistant handles the outreach.
                                                 </p>
-                                                <div className="flex gap-4 mt-4">
+                                                <div className="flex flex-wrap gap-4 mt-4">
                                                     <div className="flex items-center gap-2 text-sm text-pink-300">
                                                         <CheckCircle2 className="w-4 h-4" />
                                                         Birthday wishes
@@ -1118,19 +1517,19 @@ export default function DemoPage() {
             <section className="py-24 border-t border-white/5">
                 <div className="container mx-auto px-6 max-w-5xl">
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-4xl font-bold mb-4">Why churches love KeepFlock</h2>
-                        <p className="text-slate-400 text-lg">Real features that make a real difference</p>
+                        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">Why churches love KeepFlock</h2>
+                        <p className="text-slate-400 text-base sm:text-lg">Real features that make a real difference</p>
                     </div>
 
                     {/* AI Memory - Featured */}
-                    <div className="mb-8 p-8 rounded-2xl bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-cyan-500/10 border border-purple-500/20">
+                    <div className="mb-8 p-5 sm:p-8 rounded-2xl bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-cyan-500/10 border border-purple-500/20">
                         <div className="flex flex-col md:flex-row gap-6 items-start">
                             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/30 to-blue-500/30 flex items-center justify-center flex-shrink-0">
                                 <Brain className="w-8 h-8 text-purple-400" />
                             </div>
                             <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <h3 className="text-xl font-bold text-white">AI Memory & Relationship Intelligence</h3>
+                                <div className="flex flex-wrap items-center gap-3 mb-2">
+                                    <h3 className="text-lg sm:text-xl font-bold text-white">AI Memory & Relationship Intelligence</h3>
                                     <Badge className="bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0 text-xs">
                                         <Sparkles className="w-3 h-3 mr-1" />
                                         Core Feature
@@ -1191,19 +1590,19 @@ export default function DemoPage() {
             <section className="py-24 relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-900/30 to-blue-900/30 -z-10" />
                 <div className="container mx-auto px-6 text-center">
-                    <h2 className="text-3xl md:text-5xl font-bold mb-6">Ready to try it yourself?</h2>
-                    <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto">
-                        Start your free 14-day trial and experience AI-powered ministry communication.
+                    <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-6">Ready to see what KeepFlock can do for your church?</h2>
+                    <p className="text-base sm:text-lg md:text-xl text-slate-400 mb-10 max-w-2xl mx-auto">
+                        From grant eligibility to compliance monitoring to AI-powered outreach — everything your church needs to grow and stay protected.
                     </p>
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                        <Link to="/login">
-                            <Button size="lg" className="h-14 px-10 text-lg bg-white text-slate-950 hover:bg-slate-200 rounded-full shadow-2xl shadow-purple-500/20 transition-all hover:scale-105">
-                                Start Free Trial
+                        <Link to="/check">
+                            <Button size="lg" className="h-12 sm:h-14 px-6 sm:px-10 text-base sm:text-lg bg-white text-slate-950 hover:bg-slate-200 rounded-full shadow-2xl shadow-purple-500/20 transition-all hover:scale-105">
+                                Check Eligibility (Free)
                                 <ArrowRight className="w-5 h-5 ml-2" />
                             </Button>
                         </Link>
                         <Link to="/pricing">
-                            <Button size="lg" variant="outline" className="h-14 px-10 text-lg border-white/20 text-white hover:bg-white/10 rounded-full">
+                            <Button size="lg" variant="outline" className="h-12 sm:h-14 px-6 sm:px-10 text-base sm:text-lg border-white/20 text-white hover:bg-white/10 rounded-full">
                                 View Pricing
                                 <ChevronRight className="w-5 h-5 ml-2" />
                             </Button>

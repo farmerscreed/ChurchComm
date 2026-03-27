@@ -92,7 +92,6 @@ export function CSVUpload({ onUploadComplete }: CSVUploadProps) {
   };
 
   const handleUpload = async () => {
-    console.log("handleUpload called. File:", file, "Org:", currentOrganization);
     if (!file || !currentOrganization?.id) {
         toast({
             title: "Import Failed",

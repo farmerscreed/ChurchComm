@@ -31,7 +31,8 @@ import {
     Star,
     ChevronDown,
     Wand2,
-    CalendarCheck
+    CalendarCheck,
+    FileText
 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,57 +59,58 @@ interface PricingTier {
 
 const PRICING_TIERS: PricingTier[] = [
     {
-        id: "reach",
-        name: "REACH",
-        tagline: "Grant acquisition — eligibility, wizard, preflight, application tracker",
-        monthlyPrice: 49,
-        annualPrice: 490, // 10 months (2 months free)
-        grantAnchor: "Get your $10,000/month grant. We walk you through every step.",
+        id: "free",
+        name: "FREE",
+        tagline: "Grant acquisition — check eligibility, scan your site, apply step by step",
+        monthlyPrice: 0,
+        annualPrice: 0,
+        grantAnchor: "Find out if your church qualifies for $10,000/month in free Google Ads.",
         gradient: "from-slate-600 to-slate-800",
         borderGlow: "border-slate-500/30",
-        lsVariantKey: "reach",
         features: [
             { text: "Eligibility checker", included: true, highlight: true },
-            { text: "Google Verification Wizard", included: true, highlight: true },
-            { text: "Preflight compliance check", included: true },
+            { text: "Website readiness scan", included: true, highlight: true },
+            { text: "Google Verification Wizard", included: true },
+            { text: "Step-by-step application guide", included: true },
             { text: "Application status tracker", included: true },
-            { text: "Step-by-step grant guidance", included: true },
             { text: "GUARDIAN monitoring", included: false },
-            { text: "CTR & suspension protection", included: false },
-            { text: "SMS & email outreach", included: false },
+            { text: "AI voice calls & SMS", included: false },
         ],
-        ctaText: "Get Started",
+        ctaText: "Sign Up Free",
     },
     {
         id: "attract",
         name: "ATTRACT",
-        tagline: "Grant compliance — GUARDIAN monitoring, CTR, suspension protection",
+        tagline: "AI-managed advertising — we research, create, and optimize your Google Ads campaigns, then GUARDIAN monitors 24/7",
         monthlyPrice: 199,
-        annualPrice: 1990, // 10 months (2 months free)
-        grantAnchor: "Keep your $10,000/month grant safe. GUARDIAN watches 24/7.",
+        annualPrice: 1990,
+        grantAnchor: "Hands-free Google Ads. AdPilot creates and optimizes your campaigns automatically — protecting your $10,000/month grant.",
         popular: true,
         gradient: "from-purple-500 to-blue-600",
         borderGlow: "border-purple-500/50",
         lsVariantKey: "attract",
         features: [
-            { text: "Everything in REACH", included: true, highlight: true },
-            { text: "GUARDIAN compliance dashboard", included: true, highlight: true },
-            { text: "24/7 CTR monitoring", included: true, highlight: true },
+            { text: "Everything in Free", included: true, highlight: true },
+            { text: "AI campaign creation", included: true, highlight: true },
+            { text: "Automated keyword research", included: true, highlight: true },
+            { text: "Ad copy generation", included: true, highlight: true },
+            { text: "Weekly performance optimization", included: true },
+            { text: "GUARDIAN compliance dashboard", included: true },
+            { text: "24/7 CTR monitoring", included: true },
             { text: "Auto keyword pausing", included: true },
             { text: "Suspension protection", included: true },
-            { text: "Budget utilisation tracking", included: true },
             { text: "Account health alerts", included: true },
-            { text: "SMS & email outreach", included: false },
+            { text: "AI voice calls & SMS", included: false },
         ],
         ctaText: "Start Free Trial",
     },
     {
         id: "engage",
         name: "ENGAGE",
-        tagline: "Communication — SMS, email, AI voice calls, congregation management",
+        tagline: "AI communication — voice calls, SMS, CRM, and automations for your church",
         monthlyPrice: 59,
-        annualPrice: 590, // 10 months (2 months free)
-        grantAnchor: "Turn grant-driven visitors into members and keep them engaged.",
+        annualPrice: 590,
+        grantAnchor: "Turn visitors into members. AI handles calls, texts, and follow-ups.",
         gradient: "from-cyan-500 to-blue-600",
         borderGlow: "border-cyan-500/30",
         lsVariantKey: "engage",
@@ -119,27 +121,27 @@ const PRICING_TIERS: PricingTier[] = [
             { text: "People CRM & directory", included: true },
             { text: "Birthday & follow-up automation", included: true },
             { text: "Congregation management", included: true },
+            { text: "Pastoral care alerts", included: true },
             { text: "GUARDIAN monitoring", included: false },
-            { text: "Grant acquisition wizard", included: false },
         ],
         ctaText: "Start Free Trial",
     },
     {
         id: "bundle",
-        name: "FULL PLATFORM BUNDLE",
-        tagline: "All three modules — saves $58/month",
-        monthlyPrice: 249,
-        annualPrice: 2490, // 10 months (2 months free)
-        grantAnchor: "The complete system: get the grant, protect it, convert it.",
+        name: "FULL PLATFORM",
+        tagline: "AI-managed ads + AI communication — the complete done-for-you church growth toolkit",
+        monthlyPrice: 229,
+        annualPrice: 2290,
+        grantAnchor: "Get the grant, protect it, and grow your congregation — all in one.",
         gradient: "from-amber-500 to-orange-600",
         borderGlow: "border-amber-500/30",
         lsVariantKey: "bundle",
         features: [
-            { text: "Everything in REACH", included: true, highlight: true },
+            { text: "Everything in Free", included: true, highlight: true },
             { text: "Everything in ATTRACT", included: true, highlight: true },
             { text: "Everything in ENGAGE", included: true, highlight: true },
             { text: "Priority support", included: true },
-            { text: "Saves $58/month vs. buying separately", included: true },
+            { text: "Saves $29/month vs. buying separately", included: true },
         ],
         ctaText: "Get Everything",
     },
@@ -150,6 +152,33 @@ const PRICING_TIERS: PricingTier[] = [
 // VALUE SHOWCASE — what the AI actually does
 // ═══════════════════════════════════════════
 const VALUE_SHOWCASES = [
+    {
+        icon: Target,
+        title: "Grant Eligibility Check",
+        description: "Find out in 60 seconds if your church qualifies for $10,000/month in free Google Ads. Our checker scans your nonprofit status, website, and mission alignment.",
+        impact: "Unlock $120K/year in free advertising",
+        color: "from-emerald-500/20 to-emerald-500/5",
+        iconColor: "text-emerald-400",
+        borderColor: "border-emerald-500/20",
+    },
+    {
+        icon: FileText,
+        title: "Application Wizard",
+        description: "Step-by-step guided application for Google Ad Grants. We walk you through verification, website readiness, and submission — no guesswork.",
+        impact: "90% of churches qualify but don't know it",
+        color: "from-teal-500/20 to-teal-500/5",
+        iconColor: "text-teal-400",
+        borderColor: "border-teal-500/20",
+    },
+    {
+        icon: Shield,
+        title: "GUARDIAN + AdPilot",
+        description: "AI researches keywords, creates compliant campaigns, and writes ad copy for your church. Then GUARDIAN monitors 24/7, auto-pauses underperformers, and optimizes weekly.",
+        impact: "AI-managed ads — protect $10K/month",
+        color: "from-indigo-500/20 to-indigo-500/5",
+        iconColor: "text-indigo-400",
+        borderColor: "border-indigo-500/20",
+    },
     {
         icon: Cake,
         title: "Auto Birthday Calls",
@@ -210,16 +239,28 @@ const VALUE_SHOWCASES = [
 // COST COMPARISON
 // ═══════════════════════════════════════════
 const COST_COMPARISONS = [
+    { label: "Managed Google Ad Grant service", cost: "$8,650+/mo", icon: Target },
     { label: "Part-time outreach coordinator", cost: "$1,500+/mo", icon: Users },
     { label: "Traditional call center service", cost: "$500+/mo", icon: Phone },
-    { label: "Hiring a follow-up volunteer team", cost: "$0 but unreliable", icon: Clock },
-    { label: "KeepFlock Full Platform Bundle", cost: "$249/mo", icon: Sparkles, highlight: true },
+    { label: "KeepFlock Full Platform (AI-managed)", cost: "$229/mo", icon: Sparkles, highlight: true },
 ];
 
 // ═══════════════════════════════════════════
 // FAQ
 // ═══════════════════════════════════════════
 const FAQS = [
+    {
+        question: "What is the Google Ad Grant?",
+        answer: "Google awards eligible 501(c)(3) nonprofits up to $10,000/month in free Google Ads. Your church can use this to drive visitors to your website, promote events, and grow your congregation — at zero cost. KeepFlock's REACH module helps you check eligibility and apply."
+    },
+    {
+        question: "What does GUARDIAN do?",
+        answer: "GUARDIAN is the AI engine behind the ATTRACT module. First, AdPilot researches the best keywords for your church, creates compliant Google Ads campaigns, and writes your ad copy — completely hands-free. Then GUARDIAN monitors your account 24/7, automatically pauses underperforming keywords, optimizes campaigns weekly, and alerts you before any compliance issue can trigger a grant suspension. It's a full AI-managed advertising service."
+    },
+    {
+        question: "Can I use KeepFlock without the Ad Grant?",
+        answer: "Absolutely. The ENGAGE module (AI calling, SMS, CRM) works independently. Many churches start with ENGAGE for member communication and add REACH and ATTRACT later when they're ready to pursue the Ad Grant."
+    },
     {
         question: "What does \"people reached\" mean?",
         answer: "\"People reached\" is the number of individual people your AI can call each month. For example, the Growth plan lets your AI personally call up to 75 different people — whether that's birthday calls, first-timer follow-ups, or campaign outreach. Each person counts once per month regardless of call duration."
@@ -267,6 +308,12 @@ export default function PricingPage() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const handleSelectPlan = async (tier: PricingTier) => {
+        // Free tier — just send to signup
+        if (tier.id === 'free') {
+            navigate(user ? '/dashboard' : '/login');
+            return;
+        }
+
         // LemonSqueezy variant IDs come from VITE_LS_VARIANT_* env vars
         const variantEnvKey = `VITE_LS_VARIANT_${(tier.lsVariantKey ?? tier.id).toUpperCase()}`;
         const variantId = (import.meta as unknown as Record<string, Record<string, string>>).env?.[variantEnvKey];
@@ -411,16 +458,15 @@ export default function PricingPage() {
                         <span>Trusted by churches nationwide</span>
                     </div>
 
-                    <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
-                        Your AI pastor&apos;s assistant,{" "}
+                    <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
+                        Get the grant, protect it,{" "}
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-400 to-cyan-400">
-                            at a fraction of the cost
+                            grow your church
                         </span>
                     </h1>
 
-                    <p className="text-xl text-slate-400 mb-6 max-w-2xl mx-auto">
-                        Automated birthday calls, first-timer follow-ups, lead outreach, and crisis detection —
-                        all handled by AI so your team can focus on what matters most: people.
+                    <p className="text-base sm:text-lg md:text-xl text-slate-400 mb-6 max-w-2xl mx-auto">
+                        Unlock $10K/month in free Google Ads with REACH, let AdPilot create and optimize your campaigns automatically, guard your grant 24/7 with GUARDIAN, and let AI handle calls, SMS, and follow-ups.
                     </p>
 
                     <p className="text-sm text-slate-500 mb-12">
@@ -452,7 +498,7 @@ export default function PricingPage() {
             {/* ═══ PRICING CARDS ═══ */}
             <section className="pb-24 px-6">
                 <div className="container mx-auto max-w-7xl">
-                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         {PRICING_TIERS.map((tier) => (
                             <div
                                 key={tier.id}
@@ -469,7 +515,7 @@ export default function PricingPage() {
                                 <div className={`relative h-full rounded-2xl border ${tier.popular
                                     ? "border-purple-500/50 bg-slate-900/90"
                                     : `${tier.borderGlow} bg-slate-900/50`
-                                    } backdrop-blur-xl p-6 flex flex-col`}>
+                                    } backdrop-blur-xl p-4 sm:p-6 flex flex-col`}>
 
                                     {tier.popular && (
                                         <div className="absolute -top-4 left-1/2 -translate-x-1/2">
@@ -490,7 +536,7 @@ export default function PricingPage() {
                                         {tier.monthlyPrice !== null ? (
                                             <>
                                                 <div className="flex items-baseline gap-1">
-                                                    <span className="text-4xl font-bold text-white">
+                                                    <span className="text-3xl sm:text-4xl font-bold text-white">
                                                         ${isAnnual ? Math.round(tier.annualPrice! / 12) : tier.monthlyPrice}
                                                     </span>
                                                     <span className="text-slate-500">/month</span>
@@ -567,7 +613,7 @@ export default function PricingPage() {
 
                     {/* Bundle note */}
                     <p className="text-center text-sm text-slate-500 mt-8">
-                        Bundle all three modules for <span className="text-slate-300 font-medium">$249/month</span> and save $58/month. Cancel anytime.
+                        Bundle all three modules for <span className="text-slate-300 font-medium">$229/month</span> and save $29/month. Cancel anytime.
                     </p>
                 </div>
             </section>
@@ -580,13 +626,13 @@ export default function PricingPage() {
                             <Brain className="w-3 h-3 mr-1.5" />
                             AI-Powered
                         </Badge>
-                        <h2 className="text-3xl md:text-5xl font-bold mb-4">
+                        <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4">
                             Here&apos;s what your AI does{" "}
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">
                                 for you
                             </span>
                         </h2>
-                        <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+                        <p className="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto">
                             Every plan includes powerful automation that runs 24/7 — so no one falls through the cracks.
                         </p>
                     </div>
@@ -616,11 +662,11 @@ export default function PricingPage() {
             <section className="py-24 border-t border-white/5">
                 <div className="container mx-auto px-6 max-w-3xl">
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">
                             How much would this cost{" "}
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-400">without AI?</span>
                         </h2>
-                        <p className="text-slate-400 text-lg">
+                        <p className="text-slate-400 text-base sm:text-lg">
                             Making 75 personal follow-up calls a month would normally require...
                         </p>
                     </div>
@@ -629,7 +675,7 @@ export default function PricingPage() {
                         {COST_COMPARISONS.map((item, idx) => (
                             <div
                                 key={idx}
-                                className={`flex items-center justify-between p-5 rounded-xl border transition-all ${item.highlight
+                                className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 p-4 sm:p-5 rounded-xl border transition-all ${item.highlight
                                     ? "bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-purple-500/30 shadow-lg shadow-purple-500/10"
                                     : "bg-white/5 border-white/10"
                                     }`}
@@ -665,30 +711,30 @@ export default function PricingPage() {
             <section className="py-24 border-t border-white/5">
                 <div className="container mx-auto px-6 max-w-4xl">
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-4xl font-bold mb-4">Up and running in 5 minutes</h2>
-                        <p className="text-slate-400 text-lg">No training required. No complex setup.</p>
+                        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">Up and running in 5 minutes</h2>
+                        <p className="text-slate-400 text-base sm:text-lg">No training required. No complex setup.</p>
                     </div>
 
                     <div className="grid md:grid-cols-3 gap-8">
                         {[
                             {
                                 step: "1",
-                                title: "Add Your People",
-                                desc: "Import or add your members, visitors, and prospects to the People CRM. Set their status and contact details.",
-                                icon: Users,
+                                title: "Check Your Eligibility",
+                                desc: "Answer 5 quick questions to see if your church qualifies for $10,000/month in free Google Ads. Most 501(c)(3) churches do.",
+                                icon: Target,
                                 color: "text-purple-400",
                             },
                             {
                                 step: "2",
-                                title: "Choose Your Automations",
-                                desc: "Turn on birthday calls, first-timer follow-ups, and any other triggers. Pick or generate AI scripts.",
-                                icon: Zap,
+                                title: "AI Creates Your Campaigns",
+                                desc: "Once approved, AdPilot automatically researches keywords, creates campaigns, and writes ad copy. GUARDIAN monitors 24/7 and optimizes weekly — completely hands-free.",
+                                icon: Shield,
                                 color: "text-blue-400",
                             },
                             {
                                 step: "3",
-                                title: "Let AI Do the Work",
-                                desc: "Your AI assistant calls people automatically, tracks responses, and alerts you if anyone needs pastoral care.",
+                                title: "Grow Your Church",
+                                desc: "AI handles calls, SMS, and follow-ups automatically. Birthday greetings, visitor welcome calls, and crisis alerts — so no one falls through the cracks.",
                                 icon: Phone,
                                 color: "text-cyan-400",
                             },
@@ -712,8 +758,8 @@ export default function PricingPage() {
             <section className="py-24 border-t border-white/5">
                 <div className="container mx-auto px-6 max-w-4xl">
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-4xl font-bold mb-4">Everything included in every plan</h2>
-                        <p className="text-slate-400 text-lg">No hidden fees. No per-feature pricing.</p>
+                        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">Features across the platform</h2>
+                        <p className="text-slate-400 text-base sm:text-lg">From grant acquisition to congregation engagement</p>
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -743,8 +789,8 @@ export default function PricingPage() {
             <section className="py-24 border-t border-white/5">
                 <div className="container mx-auto px-6 max-w-3xl">
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-4xl font-bold mb-4">Frequently Asked Questions</h2>
-                        <p className="text-slate-400 text-lg">Everything you need to know about KeepFlock</p>
+                        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">Frequently Asked Questions</h2>
+                        <p className="text-slate-400 text-base sm:text-lg">Everything you need to know about KeepFlock</p>
                     </div>
 
                     <div className="space-y-3">
@@ -778,17 +824,17 @@ export default function PricingPage() {
             <section className="py-24 relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-900/30 to-blue-900/30 -z-10" />
                 <div className="container mx-auto px-6 text-center">
-                    <h2 className="text-3xl md:text-5xl font-bold mb-6">
-                        Ready to let AI keep your flock connected?
+                    <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-6">
+                        Ready to grow your church with $10K/month in free advertising?
                     </h2>
-                    <p className="text-xl text-slate-400 mb-4 max-w-2xl mx-auto">
-                        Start with a 14-day free trial. No credit card required.
+                    <p className="text-base sm:text-lg md:text-xl text-slate-400 mb-4 max-w-2xl mx-auto">
+                        Start with our free eligibility check. No credit card required.
                     </p>
                     <p className="text-sm text-slate-500 mb-10 max-w-lg mx-auto">
-                        Join churches already using AI to make every birthday call, follow up every visitor, and never miss a pastoral care moment.
+                        From grant acquisition to AI-managed campaigns to automated engagement — KeepFlock is the complete church growth platform.
                     </p>
                     <Link to="/login">
-                        <Button size="lg" className="h-14 px-10 text-lg bg-white text-slate-950 hover:bg-slate-200 rounded-full shadow-2xl shadow-purple-500/20 transition-all hover:scale-105">
+                        <Button size="lg" className="h-12 sm:h-14 px-6 sm:px-10 text-base sm:text-lg bg-white text-slate-950 hover:bg-slate-200 rounded-full shadow-2xl shadow-purple-500/20 transition-all hover:scale-105">
                             Start Your Free Trial
                             <ChevronRight className="w-5 h-5 ml-2" />
                         </Button>

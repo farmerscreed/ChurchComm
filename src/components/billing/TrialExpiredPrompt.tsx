@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
-export type TrialModule = 'reach' | 'attract'
+export type TrialModule = 'attract'
 
 interface TrialExpiredPromptProps {
   module: TrialModule
@@ -15,12 +15,6 @@ const MODULE_META: Record<
   TrialModule,
   { label: string; color: string; badgeClass: string; variantEnvKey: string }
 > = {
-  reach: {
-    label: 'REACH',
-    color: 'from-slate-600 to-slate-800',
-    badgeClass: 'bg-slate-500/20 text-slate-300 border-slate-500/30',
-    variantEnvKey: 'VITE_LS_VARIANT_REACH',
-  },
   attract: {
     label: 'ATTRACT',
     color: 'from-purple-600 to-blue-700',
@@ -29,12 +23,8 @@ const MODULE_META: Record<
   },
 }
 
-function getCheckoutUrl(module: TrialModule): string {
-  const variantId =
-    module === 'reach'
-      ? import.meta.env.VITE_LS_VARIANT_REACH
-      : import.meta.env.VITE_LS_VARIANT_ATTRACT
-
+function getCheckoutUrl(_module: TrialModule): string {
+  const variantId = import.meta.env.VITE_LS_VARIANT_ATTRACT
   if (variantId) {
     return `https://keepflock.lemonsqueezy.com/checkout/buy/${variantId}`
   }

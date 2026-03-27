@@ -194,7 +194,7 @@ export default function AutomationsOverview() {
 
           {/* Feature Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {categories.filter(c => c.id !== 'triggers').map((category) => (
+            {categories.map((category) => (
               <Link key={category.id} to={category.href} className="group block">
                 <div className={cn(
                   "p-6 rounded-xl bg-gradient-to-br border transition-all cursor-pointer hover:scale-[1.02]",

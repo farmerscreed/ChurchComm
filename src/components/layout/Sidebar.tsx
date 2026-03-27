@@ -23,6 +23,7 @@ import {
   Sparkles,
   TrendingUp,
   ShieldCheck,
+  Target,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
@@ -57,7 +58,7 @@ export function Sidebar({
   onMobileNavClose,
 }: SidebarProps) {
   const location = useLocation();
-  const { signOut, currentOrganization } = useAuthStore();
+  const { signOut, currentOrganization, currentMember } = useAuthStore();
   const { canHandleEscalations, canManageOrgSettings } = usePermissions();
   const [expandedItems, setExpandedItems] = useState<string[]>([
     'people',
@@ -105,8 +106,7 @@ export function Sidebar({
         { name: 'Overview', href: '/automations', icon: Sparkles },
         { name: 'Birthday Messages', href: '/automations/birthdays', icon: Cake },
         { name: 'Scheduled', href: '/automations/scheduled', icon: CalendarClock },
-        // ghost feature — not yet implemented (no backend for group_join trigger type)
-        // { name: 'Event Triggers', href: '/automations/triggers', icon: Bell },
+        { name: 'Event Triggers', href: '/automations/triggers', icon: Bell },
       ],
     },
     {
@@ -115,6 +115,7 @@ export function Sidebar({
       dataTour: 'grant-health-nav',
       children: [
         { name: 'GUARDIAN Dashboard', href: '/attract/grant-dashboard', icon: TrendingUp },
+        { name: 'Ad Campaigns', href: '/attract/adpilot', icon: Target, badge: 'New' },
         { name: 'Eligibility', href: '/reach/eligibility', icon: Sparkles },
         { name: 'Google Verification', href: '/reach/google-verification', icon: ShieldCheck },
         { name: 'Preflight Check', href: '/reach/preflight', icon: Zap },
@@ -276,7 +277,12 @@ export function Sidebar({
                             )}
                           >
                             <child.icon className={cn("h-4 w-4 shrink-0 transition-colors", active ? "text-indigo-400" : "text-slate-500")} />
-                            <span>{child.name}</span>
+                            <span className="flex-1">{child.name}</span>
+                            {child.badge && (
+                              <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-500/30 text-[10px] px-1.5 py-0 font-semibold shadow-[0_0_10px_-3px_rgba(99,102,241,0.4)]">
+                                {child.badge}
+                              </Badge>
+                            )}
                           </Link>
                         )
                       })}

@@ -44,7 +44,7 @@ serve(async (req) => {
     const upstreamRes = await fetch(upstreamUrl, {
       method: upstreamMethod,
       headers: {
-        "Authorization": `Bearer ${GUARDIAN_API_KEY}`,
+        "x-api-key": GUARDIAN_API_KEY,
         "Content-Type": "application/json",
       },
       body: upstreamMethod !== "GET" && upstreamMethod !== "HEAD" ? forwardBody : undefined,

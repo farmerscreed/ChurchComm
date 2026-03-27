@@ -81,17 +81,16 @@ serve(async (req) => {
     .eq("google_ad_grant_account_id", payload.account_id)
     .maybeSingle();
 
-  // Insert the compliance event
+  // Insert the compliance event into grant_compliance_events (existing table)
   const { error: insertError } = await supabase
-    .from("compliance_events")
+    .from("grant_compliance_events")
     .insert({
-      organization_id: org?.id ?? null,
-      account_id: payload.account_id,
+      org_id: org?.id ?? null,
       event_type: payload.event_type,
       severity: payload.severity ?? "info",
-      detail: payload.detail ?? null,
-      metadata: payload.metadata ?? null,
-      occurred_at: payload.timestamp ?? new Date().toISOString(),
+      message: payload.detail ?? null,
+      raw_payload: payload.metadata ?? null,
+      is_read: false,
     });
 
   if (insertError) {
