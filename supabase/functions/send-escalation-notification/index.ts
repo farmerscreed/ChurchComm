@@ -193,7 +193,7 @@ async function sendEmailNotification(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'KeepFlock <alerts@churchcomm.app>',
+      from: 'KeepFlock <noreply@faithtechalliance.org>',
       to: email,
       subject: '[' + priority.toUpperCase() + '] Escalation: ' + personName.trim() + ' - ' + alertType,
       html: html,

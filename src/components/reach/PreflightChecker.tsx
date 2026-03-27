@@ -140,7 +140,9 @@ export function PreflightChecker({ initialUrl = '' }: PreflightCheckerProps) {
   async function runScan() {
     let target = url.trim()
     if (!target) { setUrlError('Please enter a website URL.'); return }
-    if (!target.startsWith('http')) target = `https://${target}`
+    // Strip duplicate protocols (e.g. "http://https://..." or "https://http://...")
+    target = target.replace(/^(https?:\/\/)+/i, '')
+    target = `https://${target}`
     try { new URL(target) } catch { setUrlError('Please enter a valid URL.'); return }
 
     setUrlError('')
@@ -174,19 +176,20 @@ export function PreflightChecker({ initialUrl = '' }: PreflightCheckerProps) {
             <p className="text-xs text-muted-foreground">Checks all 10 Google Ad Grant requirements</p>
           </div>
         </div>
-        <div className="flex gap-3">
-          <div className="flex-1">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-1 min-w-0">
             <Input
               value={url}
               onChange={e => { setUrl(e.target.value); setUrlError(''); setScanError(null) }}
-              placeholder="https://yourchurch.org"
-              className="bg-background"
+              placeholder="yourchurch.org"
+              className="bg-background w-full"
               onKeyDown={e => e.key === 'Enter' && !scanning && runScan()}
               disabled={scanning}
             />
             {urlError && <p className="text-xs text-destructive mt-1">{urlError}</p>}
+            {!urlError && !result && <p className="text-xs text-muted-foreground mt-1">Just the domain — no need to include https://</p>}
           </div>
-          <Button onClick={runScan} disabled={scanning} className="gap-2 shrink-0">
+          <Button onClick={runScan} disabled={scanning} className="gap-2 shrink-0 w-full sm:w-auto">
             {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
             {scanning ? 'Scanning…' : result ? 'Re-scan' : 'Scan my website'}
           </Button>

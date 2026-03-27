@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuthStore } from '@/stores/authStore';
-import { Users } from 'lucide-react';
+import { Users, Mail, CheckCircle2 } from 'lucide-react';
 
 export const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -18,6 +18,48 @@ export const LoginPage = () => {
   const [signupSuccess, setSignupSuccess] = useState(false);
 
   const { signIn, signUp, loading, error, clearError, user } = useAuthStore();
+
+  // Show full-page email verification screen after successful signup
+  // Must check BEFORE user redirect — Supabase may auto-set user before email is confirmed
+  if (signupSuccess) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-8 pb-8 text-center space-y-5">
+            <div className="mx-auto w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
+              <Mail className="h-8 w-8 text-green-500" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold">Check Your Email</h2>
+              <p className="text-muted-foreground text-sm">
+                We've sent a verification link to <strong>{email}</strong>.
+                Click the link in your email to activate your account.
+              </p>
+            </div>
+            <div className="bg-muted/50 rounded-lg p-4 text-left space-y-2">
+              <p className="text-sm font-medium flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-green-500" />
+                Account created successfully
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Didn't receive the email? Check your spam folder, or click below to go back and try again.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setSignupSuccess(false);
+                setIsSignUp(false);
+              }}
+            >
+              Back to Sign In
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Redirect if already logged in
   if (user) {
@@ -138,15 +180,7 @@ export const LoginPage = () => {
               </Alert>
             )}
 
-            {signupSuccess && (
-              <Alert className="bg-success/10 border-success text-success-foreground">
-                <AlertDescription>
-                  Sign up successful! Please check your email for a confirmation link to complete your registration.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            <Button type="submit" className="w-full" disabled={loading || signupSuccess}>
+            <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Please wait...' : (isSignUp ? 'Create Account' : 'Sign In')}
             </Button>
           </form>

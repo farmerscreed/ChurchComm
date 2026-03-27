@@ -112,8 +112,12 @@ export function GuidedTour() {
             } catch (err) {
                 console.warn("Failed to mark tour complete:", err);
             }
-        } else if (type === "step:after" || action === "next") {
-            // Basic navigation logic if we want to change routes during tour
+        } else if (type === "step:after") {
+            if (action === "next") {
+                setStepIndex(index + 1);
+            } else if (action === "prev") {
+                setStepIndex(index - 1);
+            }
         }
     };
 

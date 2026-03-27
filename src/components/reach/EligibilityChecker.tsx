@@ -183,10 +183,28 @@ export function EligibilityChecker() {
     }))
   }
 
+  async function sendResultEmail(result: 'qualified' | 'pending' | 'disqualified', websiteUrl: string, pf: PreflightResult | null) {
+    try {
+      await supabase.functions.invoke('send-eligibility-result', {
+        body: {
+          result,
+          websiteUrl,
+          preflightScore: pf?.score ?? null,
+          preflightTotal: pf?.total ?? null,
+          organizationName: currentOrganization?.name || '',
+        },
+      })
+    } catch (err) {
+      // Email is non-blocking — don't break the flow
+      console.warn('Failed to send eligibility result email:', err)
+    }
+  }
+
   function disqualify(headline: string, detail: string, change?: string) {
     setDisqualifyReason({ headline, detail, change })
     setPhase('disqualified')
     saveResult('disqualified', answers.q3_url, null)
+    sendResultEmail('disqualified', answers.q3_url, null)
   }
 
   async function startReachTrial() {
@@ -202,8 +220,6 @@ export function EligibilityChecker() {
       .eq('id', currentOrganization.id)
     if (error) {
       console.error('Failed to start REACH trial', error)
-    } else {
-      console.log('REACH trial started — ends', trialEnd.toISOString())
     }
   }
 
@@ -220,6 +236,7 @@ export function EligibilityChecker() {
       saveResult(result.ready ? 'qualified' : 'preflight_issues', url, result)
       if (result.ready) {
         await startReachTrial()
+        sendResultEmail('qualified', url, result)
       }
       setPhase(result.ready ? 'qualified' : 'preflight_issues')
     } catch (err: any) {
@@ -232,7 +249,7 @@ export function EligibilityChecker() {
     if (qIdx === 0) {
       const v = value as Q1Answer
       setAnswers(a => ({ ...a, q1: v }))
-      if (v === 'pending') { setPhase('pending'); return }
+      if (v === 'pending') { setPhase('pending'); sendResultEmail('pending', '', null); return }
       if (v === 'no') { disqualify('501(c)(3) status required', 'The Google Ad Grant is only available to registered 501(c)(3) nonprofits.', 'Once your church receives 501(c)(3) status, you can re-apply here.'); return }
       setStep(1)
     } else if (qIdx === 1) {
