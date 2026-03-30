@@ -57,7 +57,7 @@ serve(async (req) => {
             ...p,
             organization_id,
             is_demo: true,
-            email: `${p.first_name.toLowerCase()}.${p.last_name.toLowerCase()}@demo.churchcomm.app`,
+            email: `${p.first_name.toLowerCase()}.${p.last_name.toLowerCase()}@demo.keepflock.com`,
             birthday: randomBirthday(),
         }));
 

@@ -2,7 +2,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
 
-const APP_URL = 'https://church.lawonecloud.com'
+const APP_URL = 'https://keepflock.com'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -202,10 +202,10 @@ serve(async (req) => {
           </div>
           <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e5e7eb; border-top: none;">
             <p style="font-size: 16px; margin-bottom: 20px;">
-              <strong>${inviterName || 'Someone'}</strong> has invited you to join <strong>${organizationName}</strong> on ChurchConnect as a <strong>${roleDisplay}</strong>.
+              <strong>${inviterName || 'Someone'}</strong> has invited you to join <strong>${organizationName}</strong> on KeepFlock as a <strong>${roleDisplay}</strong>.
             </p>
             <p style="font-size: 16px; margin-bottom: 25px;">
-              ChurchConnect helps churches stay connected with their community through smart communication tools.
+              KeepFlock helps churches stay connected with their community through smart communication tools.
             </p>
             <div style="text-align: center; margin: 30px 0;">
               <a href="${inviteUrl}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;">
@@ -220,7 +220,7 @@ serve(async (req) => {
             </p>
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 25px 0;">
             <p style="font-size: 12px; color: #9ca3af; text-align: center;">
-              ChurchConnect - Keeping Churches Connected
+              KeepFlock - Keeping Churches Connected
             </p>
           </div>
         </body>
@@ -230,7 +230,7 @@ serve(async (req) => {
       const emailText = `
 You're Invited to ${organizationName}!
 
-${inviterName || 'Someone'} has invited you to join ${organizationName} on ChurchConnect as a ${roleDisplay}.
+${inviterName || 'Someone'} has invited you to join ${organizationName} on KeepFlock as a ${roleDisplay}.
 
 Click the link below to accept and create your account:
 ${inviteUrl}
@@ -261,9 +261,9 @@ If you didn't expect this invitation, you can safely ignore this email.
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            from: 'ChurchConnect <noreply@lawonecloud.com>',
+            from: 'KeepFlock <noreply@faithtechalliance.org>',
             to: email,
-            subject: `You're invited to join ${organizationName} on ChurchConnect`,
+            subject: `You're invited to join ${organizationName} on KeepFlock`,
             html: emailHtml,
             text: emailText
           })
@@ -298,7 +298,7 @@ If you didn't expect this invitation, you can safely ignore this email.
         const cleanPhone = phoneNumber.replace(/\D/g, '')
         const formattedPhone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`
 
-        const smsMessage = `${organizationName} invited you to join ChurchConnect as ${roleDisplay}. Create your account: ${inviteUrl} (Expires in 7 days)`
+        const smsMessage = `${organizationName} invited you to join KeepFlock as ${roleDisplay}. Create your account: ${inviteUrl} (Expires in 7 days)`
 
         const twilioResponse = await fetch(
           `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
