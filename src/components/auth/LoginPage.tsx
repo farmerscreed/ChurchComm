@@ -74,6 +74,7 @@ export const LoginPage = () => {
     if (isSignUp) {
       await signUp(email, password, firstName, lastName, organizationName);
       if (!useAuthStore.getState().error) {
+        if (typeof window.fbq === 'function') window.fbq('track', 'CompleteRegistration', { content_name: 'keepflock_signup' });
         setSignupSuccess(true);
       }
     } else {

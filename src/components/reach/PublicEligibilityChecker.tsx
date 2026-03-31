@@ -174,10 +174,12 @@ export function PublicEligibilityChecker({ onLeadCaptured, compact }: PublicElig
       }))
 
       onLeadCaptured?.({ email: trimmed, qualified: true })
+      if (typeof window.fbq === 'function') window.fbq('track', 'Lead', { content_name: 'eligibility_check', status: 'qualified' })
       setPhase('complete')
     } catch {
       // Still show success — don't block UX on backend failure
       onLeadCaptured?.({ email: trimmed, qualified: true })
+      if (typeof window.fbq === 'function') window.fbq('track', 'Lead', { content_name: 'eligibility_check', status: 'qualified' })
       setPhase('complete')
     } finally {
       setSubmitting(false)
