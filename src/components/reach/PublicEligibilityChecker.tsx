@@ -106,6 +106,7 @@ export function PublicEligibilityChecker({ onLeadCaptured, compact }: PublicElig
 
   function handleAnswer(qIdx: number, value: string) {
     if (qIdx === 0) {
+      if (typeof window.fbq === 'function') window.fbq('trackCustom', 'QuizStart', { content_name: 'eligibility_checker' })
       const v = value as Q1Answer
       setAnswers(a => ({ ...a, q1: v }))
       if (v === 'pending') { setPhase('pending'); return }

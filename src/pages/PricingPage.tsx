@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -307,7 +307,15 @@ export default function PricingPage() {
     const { toast } = useToast();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+    // Track pricing page view
+    useEffect(() => {
+        if (typeof window.fbq === 'function') window.fbq('track', 'ViewContent', { content_name: 'pricing_page', content_type: 'product_group' });
+    }, []);
+
     const handleSelectPlan = async (tier: PricingTier) => {
+        // Track plan selection
+        if (typeof window.fbq === 'function') window.fbq('track', 'AddToCart', { content_name: tier.id, currency: 'USD', value: isAnnual ? (tier.annualPrice ?? tier.monthlyPrice ?? 0) : (tier.monthlyPrice ?? 0) });
+
         // Free tier — just send to signup
         if (tier.id === 'free') {
             navigate(user ? '/dashboard' : '/login');
@@ -318,6 +326,7 @@ export default function PricingPage() {
         const variantEnvKey = `VITE_LS_VARIANT_${(tier.lsVariantKey ?? tier.id).toUpperCase()}`;
         const variantId = (import.meta as unknown as Record<string, Record<string, string>>).env?.[variantEnvKey];
         if (variantId) {
+            if (typeof window.fbq === 'function') window.fbq('track', 'InitiateCheckout', { content_name: tier.id, currency: 'USD', value: isAnnual ? (tier.annualPrice ?? tier.monthlyPrice ?? 0) : (tier.monthlyPrice ?? 0) });
             window.location.href = `https://keepflock.lemonsqueezy.com/checkout/buy/${variantId}`;
             return;
         }
@@ -363,6 +372,7 @@ export default function PricingPage() {
             }
 
             if (data?.url) {
+                if (typeof window.fbq === 'function') window.fbq('track', 'InitiateCheckout', { content_name: tier.id, currency: 'USD', value: isAnnual ? (tier.annualPrice ?? tier.monthlyPrice ?? 0) : (tier.monthlyPrice ?? 0) });
                 window.location.href = data.url;
             } else {
                 throw new Error(data?.error || "No checkout URL returned");

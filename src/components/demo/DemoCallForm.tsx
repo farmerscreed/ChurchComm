@@ -45,6 +45,7 @@ export function DemoCallForm({ email, eligibilityResult, className }: DemoCallFo
       if (error) throw new Error(error.message || 'Failed to connect to call service')
       if (data?.error) throw new Error(typeof data.error === 'string' ? data.error : 'Call service returned an error')
 
+      if (typeof window.fbq === 'function') window.fbq('track', 'Contact', { content_name: 'demo_call_request' })
       setStatus('success')
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
